@@ -1,0 +1,33 @@
+# Compiled files
+*.py[co]
+
+# Sphinx
+_build
+doc/source/api/
+
+# release notes build
+releasenotes/build
+
+# Packaging artefacts
+*.egg
+*.egg-info
+dist
+build
+eggs
+.eggs
+parts
+var
+sdist
+develop-eggs
+.installed.cfg
+
+# Testing artefacts
+.testrepository
+.tox
+.venv
+.coverage
+cover
+
+# Others
+AUTHORS
+ChangeLog
