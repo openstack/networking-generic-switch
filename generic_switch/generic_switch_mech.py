@@ -50,6 +50,13 @@ class GenericSwitch (object):
                  'switchport access vlan {segmentation_id}'],
                 'del_network': ['no vlan {segmentation_id}'],
             }
+        elif self.conn_info['device_type'] == 'ovs_linux':
+            self.cmd_set = {
+                'add_network': [''],
+                'plug_port_to_network':
+                ['ovs-vsctl set port {port} tag={segmentation_id}'],
+                'del_network': [''],
+            }
         else:
             LOG.error(_LE("Unsupported device type %s"),
                       self.conn_info['device_type'])
