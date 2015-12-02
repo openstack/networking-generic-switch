@@ -14,6 +14,15 @@ function configure_generic_switch {
         Q_ML2_PLUGIN_MECHANISM_DRIVERS+=',genericswitch'
     fi
     populate_ml2_config /$Q_PLUGIN_CONF_FILE ml2 mechanism_drivers=$Q_ML2_PLUGIN_MECHANISM_DRIVERS
+
+    # Create generic_switch ml2 config
+    local cfg_sec="genericswitch:$IRONIC_VM_NETWORK_BRIDGE"
+    if ! is_ironic_hardware; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec key_file=$IRONIC_KEY_FILE
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec username=$STACK_USER
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec ip=localhost
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec device_type=ovs_linux
+    fi
 }
 
 # check for service enabled
