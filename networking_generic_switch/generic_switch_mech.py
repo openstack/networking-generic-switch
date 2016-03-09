@@ -12,179 +12,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
-from neutron.plugins.ml2 import driver_api
-from oslo_log import log as logging
-from netmiko import ConnectHandler
-from oslo_config import cfg
-from neutron.i18n import _LE, _LI
-from neutron.plugins.ml2 import driver_api as api
 from neutron.common import constants as const
 from neutron.extensions import portbindings
+from neutron.plugins.ml2 import driver_api
+from oslo_log import log as logging
+
+from networking_generic_switch import config as gsw_conf
+from networking_generic_switch import devices
+from networking_generic_switch import exceptions as exc
 
 LOG = logging.getLogger(__name__)
 
 
-def _get_config():
-    CONF = cfg.CONF
-    multi_parser = cfg.MultiConfigParser()
-    multi_parser.read(CONF.config_file)
-
-    return multi_parser.parsed
-
-
-class GenericSwitch (object):
-
-    def __init__(self, device_id):
-
-        self.cmd_set = {}
-        self.conn_info = {}
-
-        self.conn_info = self._get_config_for_device(device_id)
-
-        if self.conn_info['device_type'] == 'cisco_ios':
-            self.cmd_set = {
-                'add_network': ['vlan {segmentation_id}', 'name {network_id}'],
-                'plug_port_to_network':
-                ['interface {port}',
-                 'switchport access vlan {segmentation_id}'],
-                'del_network': ['no vlan {segmentation_id}'],
-            }
-        elif self.conn_info['device_type'] == 'ovs_linux':
-            self.cmd_set = {
-                'add_network': [''],
-                'plug_port_to_network':
-                ['ovs-vsctl set port {port} tag={segmentation_id}'],
-                'del_network': [''],
-            }
-        else:
-            LOG.error(_LE("Unsupported device type %s"),
-                      self.conn_info['device_type'])
-
-    def _get_config_for_device(self, device_id):
-
-        device = 'genericswitch:%s' % device_id
-        device_cfg = {}
-
-        for parsed_file in _get_config():
-            for parsed_item in parsed_file.keys():
-                if parsed_item == device:
-                    device_cfg = {k: v[0] for k,
-                                  v in parsed_file[device].items()}
-
-        return device_cfg
-
-    def _get_connection(self):
-        """Establish ssh connection to switch
-        :return  netmiko connection
-        """
-        net_connect = ConnectHandler(**self.conn_info)
-        return net_connect
-
-    def _exec_cmd_set(self, cmd_set):
-        net_connect = self._get_connection()
-        net_connect.enable()
-        output = net_connect.send_config_set(cmd_set)
-
-        return output
-
-    def _add_network(self, segmentation_id, network_id):
-        """Add network (vlan) on the switch
-        :param net_connect : netmiko connection,
-        :param segmentation_id : vlan id
-        :parram network_id : neutron network id (vlan name)
-        """
-        cmd_set = self.cmd_set['add_network']
-        tmp_cmd_set = []
-
-        for cmd in cmd_set:
-            cmd = cmd.format(segmentation_id=segmentation_id,
-                             network_id=network_id)
-            tmp_cmd_set.append(cmd)
-
-        cmd_set = tmp_cmd_set
-
-        return cmd_set
-
-    def _del_network(self, segmentation_id):
-        """Remove network (vlan) on the switch
-        :param segmentation_id : vlan id
-        """
-
-        cmd_set = self.cmd_set['del_network']
-        tmp_cmd_set = []
-        for cmd in cmd_set:
-            cmd = cmd.format(segmentation_id=segmentation_id)
-            tmp_cmd_set.append(cmd)
-
-        cmd_set = tmp_cmd_set
-
-        return cmd_set
-
-    def _plug_port_to_network(self, port, segmentation_id):
-        """Add port to network
-        :param net_connect : netmiko connection,
-        :param port : name of interface on the switch
-        :parram segmentation_id : vlan id
-        """
-
-        cmd_set = self.cmd_set['plug_port_to_network']
-        tmp_cmd_set = []
-
-        for cmd in cmd_set:
-            cmd = cmd.format(segmentation_id=segmentation_id, port=port)
-            tmp_cmd_set.append(cmd)
-
-        cmd_set = tmp_cmd_set
-
-        return cmd_set
-
-    def add_network(self, segmentation_id, network_id):
-        cmd_set = self._add_network(segmentation_id=segmentation_id,
-                                    network_id=network_id)
-
-        self._exec_cmd_set(cmd_set)
-        LOG.info('Network  %s has been added', network_id)
-
-    def del_network(self, segmentation_id):
-        cmd_set = self._del_network(segmentation_id=segmentation_id)
-
-        self._exec_cmd_set(cmd_set)
-        LOG.info('Network %s has been deleted', segmentation_id)
-
-    def plug_port_to_network(self, port, segmentation_id):
-        cmd_set = self._plug_port_to_network(
-            port=port, segmentation_id=segmentation_id)
-
-        self._exec_cmd_set(cmd_set)
-        LOG.info(_LI("Port %(port)s has been added to vlan "
-                 "%(segmentation_id)d"),
-                 {'port': port, 'segmentation_id': segmentation_id})
-
-
 class GenericSwitchDriver(driver_api.MechanismDriver):
-
-    def _get_device_list(self):
-
-        device_tag = 'genericswitch'
-        device_list = []
-
-        for parsed_file in _get_config():
-            for parsed_item in parsed_file.keys():
-                if device_tag in parsed_item:
-                    dev_tag, sep, dev_id = parsed_item.partition(':')
-                    device_list.append(dev_id)
-
-        return device_list
-
-    def _check_for_device(self, device_id):
-        """
-        Check if device exists in config
-        """
-        if device_id in self._get_device_list():
-            return True
-
-        return False
 
     def initialize(self):
         """Perform driver initialization.
@@ -228,10 +68,9 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         if provider_type == 'vlan' and segmentation_id:
 
             # Create vlan on all switches from this driver
-            for device in self._get_device_list():
-                switch = GenericSwitch(device_id=device)
-                switch.add_network(segmentation_id=segmentation_id,
-                                   network_id=network_id)
+            for device in gsw_conf.get_device_list():
+                switch = devices.get_device(device_id=device)
+                switch.add_network(segmentation_id, network_id)
 
     def update_network_precommit(self, context):
         """Update resources of a network.
@@ -300,9 +139,9 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         segmentation_id = network['provider:segmentation_id']
 
         if provider_type == 'vlan' and segmentation_id:
-            for device in self._get_device_list():
-                switch = GenericSwitch(device_id=device)
-                switch.del_network(segmentation_id=segmentation_id)
+            for device in gsw_conf.get_device_list():
+                switch = devices.get_device(device_id=device)
+                switch.del_network(segmentation_id)
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.
@@ -530,6 +369,8 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         vnic_type = port['binding:vnic_type']
         if vnic_type == 'baremetal' and local_link_information:
             switch_info = local_link_information[0].get('switch_info')
+            if switch_info not in gsw_conf.get_device_list():
+                raise exc.GenericSwitchConfigError(switch=switch_info)
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
             segmentation_id = segments[0]['segmentation_id']
@@ -541,15 +382,9 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                           port=port_id,
                           switch_info=switch_info,
                           segmentation_id=segmentation_id))
-            if self._check_for_device(device_id=switch_info):
-                switch = GenericSwitch(device_id=switch_info)
-
-                # Move port to network
-                switch.plug_port_to_network(port=port_id,
-                                            segmentation_id=segmentation_id)
-                context.set_binding(segments[0][api.ID],
-                                    portbindings.VIF_TYPE_OTHER, {},
-                                    status=const.PORT_STATUS_ACTIVE)
-            else:
-                LOG.error(_LE("Can't find configuration for switch %s"),
-                          switch_info)
+            switch = devices.get_device(device_id=switch_info)
+            # Move port to network
+            switch.plug_port_to_network(port_id, segmentation_id)
+            context.set_binding(segments[0][driver_api.ID],
+                                portbindings.VIF_TYPE_OTHER, {},
+                                status=const.PORT_STATUS_ACTIVE)
