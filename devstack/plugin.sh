@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # plugin.sh - DevStack plugin.sh dispatch script template
 
 GENERIC_SWITCH_DIR=${GENERIC_SWITCH_DIR:-$DEST/networking-generic-switch}

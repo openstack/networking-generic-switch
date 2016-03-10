@@ -67,6 +67,8 @@ class GenericSwitch(object):
             cmd_set = [cmd.format(**kwargs) for cmd in commands]
         except KeyError:
             raise exc.GenericSwitchMethodError(cmds=commands, args=kwargs)
+        except TypeError:
+            raise exc.GenericSwitchMethodError(cmds=commands, args=kwargs)
         return cmd_set
 
     def add_network(self, segmentation_id, network_id):
