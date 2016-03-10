@@ -29,7 +29,9 @@ function configure_generic_switch {
     if [[ -z "$Q_ML2_PLUGIN_MECHANISM_DRIVERS" ]]; then
         Q_ML2_PLUGIN_MECHANISM_DRIVERS='genericswitch'
     else
-        Q_ML2_PLUGIN_MECHANISM_DRIVERS+=',genericswitch'
+        if [[ ! $Q_ML2_PLUGIN_MECHANISM_DRIVERS =~ $(echo '\<genericswitch\>') ]]; then
+            Q_ML2_PLUGIN_MECHANISM_DRIVERS+=',genericswitch'
+        fi
     fi
     populate_ml2_config /$Q_PLUGIN_CONF_FILE ml2 mechanism_drivers=$Q_ML2_PLUGIN_MECHANISM_DRIVERS
 
