@@ -16,14 +16,13 @@ from neutron.i18n import _
 from neutron.plugins.ml2.common import exceptions as ml2_exc
 
 
-class GenericSwitchNotSupported(ml2_exc.MechanismDriverError):
-    message = _("Device type %(device_type)s is not supported "
-                "by %(lib)s.")
+class GenericSwitchException(ml2_exc.MechanismDriverError):
+    pass
 
 
-class GenericSwitchMethodError(ml2_exc.MechanismDriverError):
-    message = _("Can not parse arguments: commands %(cmds)s, args %(args)s")
+class GenericSwitchEntrypointLoadError(GenericSwitchException):
+    message = _("Failed to load entrypoint %(ep)s: %(err)s")
 
 
-class GenericSwitchConfigError(ml2_exc.MechanismDriverError):
+class GenericSwitchConfigError(GenericSwitchException):
     message = _("Can not find configuration for switch %(switch)s")

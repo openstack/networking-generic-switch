@@ -23,26 +23,16 @@ def get_config():
     return multi_parser.parsed
 
 
-def get_config_for_device(device_id):
-    device = 'genericswitch:%s' % device_id
-    device_cfg = {}
+def get_devices():
+
+    device_tag = 'genericswitch:'
+    devices = {}
+
     for parsed_file in get_config():
-        for parsed_item in parsed_file.keys():
-            if parsed_item == device:
+        for parsed_item, parsed_value in parsed_file.items():
+            if parsed_item.startswith(device_tag):
+                dev_id = parsed_item.partition(device_tag)[2]
                 device_cfg = {k: v[0] for k, v
-                              in parsed_file[device].items()}
-    return device_cfg
-
-
-def get_device_list():
-
-    device_tag = 'genericswitch'
-    device_list = []
-
-    for parsed_file in get_config():
-        for parsed_item in parsed_file.keys():
-            if device_tag in parsed_item:
-                dev_tag, sep, dev_id = parsed_item.partition(':')
-                device_list.append(dev_id)
-
-    return device_list
+                              in parsed_value.items()}
+                devices[dev_id] = device_cfg
+    return devices

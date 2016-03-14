@@ -12,14 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from networking_generic_switch import devices
+from networking_generic_switch.devices import netmiko_devices
 
 
-class OvsLinux(devices.GenericSwitch):
+class OvsLinux(netmiko_devices.NetmikoSwitch):
 
         PLUG_PORT_TO_NETWORK = (
             'ovs-vsctl set port {port} tag={segmentation_id}',
         )
-
-
-generic_switch_device = OvsLinux

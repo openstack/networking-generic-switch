@@ -11,47 +11,43 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 import mock
 
-from networking_generic_switch.devices import ovs_linux
-from networking_generic_switch.tests.unit import test_base_switch
+from networking_generic_switch.devices.netmiko_devices import ovs
+from networking_generic_switch.tests.unit.netmiko import test_netmiko_base
 
 
-@mock.patch('networking_generic_switch.devices.GenericSwitch._exec_commands')
-class TestOvsLinux(test_base_switch.TestBaseSwitch):
-    def setUp(self):
-        super(test_base_switch.TestBaseSwitch, self).setUp()
+class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
 
+    def _make_switch_device(self):
+        device_cfg = {'device_type': 'netmiko_ovs_linux'}
+        return ovs.OvsLinux(device_cfg)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
     def test_add_network(self, m_exec):
-        self.switch = ovs_linux.generic_switch_device("ovs_linux")
         self.switch.add_network(44, 44)
         m_exec.assert_called_with(None, network_id=44, segmentation_id=44)
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
     def test_del_network(self, mock_exec):
-        self.switch = ovs_linux.generic_switch_device("ovs_linux")
         self.switch.del_network(44)
         mock_exec.assert_called_with(None, segmentation_id=44)
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
     def test_plug_port_to_network(self, mock_exec):
-        self.switch = ovs_linux.generic_switch_device("ovs_linux")
         self.switch.plug_port_to_network(4444, 44)
         mock_exec.assert_called_with(
             ('ovs-vsctl set port {port} tag={segmentation_id}',),
             port=4444, segmentation_id=44)
 
-
-class TestOvsLinuxExecFormat(test_base_switch.TestBaseSwitchExecFormat):
-    def setUp(self):
-        super(TestOvsLinuxExecFormat, self).setUp()
-        self.switch = ovs_linux.generic_switch_device("ovs_linux")
-
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
-            ovs_linux.generic_switch_device.PLUG_PORT_TO_NETWORK,
+            ovs.OvsLinux.PLUG_PORT_TO_NETWORK,
             port=3333,
             segmentation_id=33)
         self.assertEqual(cmd_set,
                          ['ovs-vsctl set port 3333 tag=33'])
-
-    def test__exec_commands(self):
-        pass

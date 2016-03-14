@@ -1,31 +1,55 @@
+############################################
 Networking-generic-switch Neutron ML2 driver
-============================================
+############################################
 
 This is a Modular Layer 2 `Neutron Mechanism driver
 <https://wiki.openstack.org/wiki/Neutron/ML2>`_. The mechanism driver is
 responsible for applying configuration information to hardware equipment.
-``GenericSwitch`` uses `Netmiko <https://github.com/ktbyers/netmiko>`_ library
-as the backend to configure network equipment. It has pluggable mechanism of
-adding new SSH-enabled devices support.
+``GenericSwitch`` provides a pluggable framework to implement
+functionality required for use-cases like OpenStack Ironic multi-tenancy mode.
+It abstracts applying changes to all switches managed by this ML2 plugin
+and handling ``local_link_information`` field of Neutron port.
+
+* Code: http://git.openstack.org/cgit/openstack/networking-generic-switch
+* Bugs: https://bugs.launchpad.net/networking-generic-switch
+* Docs: TBD
+
 
 .. contents:: Contents:
    :local:
 
+
 Supported Devices
------------------
+=================
+
 * Cisco IOS switches
-* Openvswitch
+* OpenVSwitch
+
+This Mechanism Driver architecture allows easily to add more devices
+of any type.
+
+::
+
+  OpenStack Neutron v2.0 => ML2 plugin => Generic Mechanism Driver => Device plugin
+
+
+As example plugins, Cisco IOS and Linux OpenVSwitch are provided.
+These device plugins use `Netmiko <https://github.com/ktbyers/netmiko>`_
+library, which in turn uses `Paramiko` library to access and configure
+the switches via SSH protocol.
 
 
 Configuration
--------------
+=============
 
-In order to use this mechnism the generic configuration file needs to be
-updated with the appropriate configuration information. Here is an example
-of ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``::
+In order to use this mechanism the generic configuration file needs to be
+created/updated with the appropriate configuration information.
+Here is an example of
+``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``
+for the Cisco IOS device::
 
     [genericswitch:sw-hostname]
-    device_type = cisco_ios
+    device_type = netmiko_cisco_ios
     username = admin
     password = password
     secret = secret
@@ -40,3 +64,11 @@ the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
    mechanism_drivers = openvswitch,genericswitch
    ...
    ...
+
+(Re)start ``neutron-server`` specifying this additional configuration file::
+
+    neutron-server \
+        --config-file /etc/neutron/neutron.conf \
+        --config-file /etc/neutron/plugins/ml2/ml2_conf.ini \
+        --config-file /etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini
+

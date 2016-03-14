@@ -12,10 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from networking_generic_switch import devices
+from networking_generic_switch.devices import netmiko_devices
 
 
-class CiscoIos(devices.GenericSwitch):
+class CiscoIos(netmiko_devices.NetmikoSwitch):
         ADD_NETWORK = (
             'vlan {segmentation_id}',
             'name {network_id}',
@@ -29,6 +29,3 @@ class CiscoIos(devices.GenericSwitch):
             'interface {port}',
             'switchport access vlan {segmentation_id}',
         )
-
-
-generic_switch_device = CiscoIos

@@ -30,7 +30,6 @@ class TestConfig(fixtures.TestWithFixtures):
         CONF.reset()
         CONF.config_file = 'The path'
         self.cfg = self.useFixture(config_fixture.Config(CONF))
-        self.cfg.register_opt(cfg.Opt(name='test'), 'baremetal')
 
     @mock.patch('oslo_config.cfg.MultiConfigParser.read')
     def test_get_config(self, m_read):
@@ -38,35 +37,30 @@ class TestConfig(fixtures.TestWithFixtures):
         m_read.assert_called_with('The path')
 
     @mock.patch('networking_generic_switch.config.get_config')
-    def test_get_config_for_device(self, m_get_config):
+    def test_get_devices(self, m_get_config):
         # get_config array
         m_get_config.return_value = [  # parsed_file dict
             {  # parsed_item str
-                'genericswitch:base':  # device
+                'genericswitch:foo':  # device_tag
                 {  # parsed_file[device].items() dict
-                    'device_type': ['cisco_ios']  # {k: v[0] for k, v
-                }
-            }
-        ]
-        device_cfg = config.get_config_for_device('base')
-        self.assertEqual(device_cfg, {'device_type': 'cisco_ios'})
-        m_get_config.assert_called_with()
-
-    @mock.patch('networking_generic_switch.config.get_config')
-    def test_get_device_list(self, m_get_config):
-        # get_config array
-        m_get_config.return_value = [  # parsed_file dict
-            {  # parsed_item str
-                'genericswitch:base':  # device_tag
-                {  # parsed_file[device].items() dict
-                    'device_type': ['cisco_ios']  # {k: v[0] for k, v
+                    'device_type': ['foo_device'],  # {k: v[0] for k, v
+                    'spam': ['eggs']
                 },
-                'genericswitch:cisco_ios':  # device_tag
+                'genericswitch:bar':  # device_tag
                 {  # parsed_file[device].items() dict
-                    'device_type': ['cisco_ios']  # {k: v[0] for k, v
+                    'device_type': ['bar_device'],  # {k: v[0] for k, v
+                    'ham': ['vikings']
                 }
+            },
+            {
+                'other_driver:bar': {}
             }
+
         ]
-        device_list = config.get_device_list()
-        self.assertEqual(set(device_list), set(['cisco_ios', 'base']))
+        device_list = config.get_devices()
         m_get_config.assert_called_with()
+        self.assertEqual(set(device_list), set(['foo', 'bar']))
+        self.assertEqual({"device_type": "foo_device", "spam": "eggs"},
+                         device_list['foo'])
+        self.assertEqual({"device_type": "bar_device", "ham": "vikings"},
+                         device_list['bar'])

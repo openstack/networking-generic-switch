@@ -47,7 +47,7 @@ function configure_generic_switch {
             populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec key_file=$GENERIC_SWITCH_KEY_FILE
             populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec username=$STACK_USER
             populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec ip=localhost
-            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec device_type=ovs_linux
+            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec device_type=netmiko_ovs_linux
         fi
     done
 }

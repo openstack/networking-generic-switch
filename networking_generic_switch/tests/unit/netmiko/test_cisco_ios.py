@@ -11,61 +11,59 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 import mock
 
-from networking_generic_switch.devices import cisco_ios
-from networking_generic_switch.tests.unit import test_base_switch
+from networking_generic_switch.devices.netmiko_devices import cisco
+from networking_generic_switch.tests.unit.netmiko import test_netmiko_base
 
 
-@mock.patch('networking_generic_switch.devices.GenericSwitch._exec_commands')
-class TestCiscoIos(test_base_switch.TestBaseSwitch):
-    def setUp(self):
-        super(test_base_switch.TestBaseSwitch, self).setUp()
-        self.switch = cisco_ios.generic_switch_device("cisco_ios")
+class TestNetmikoCiscoIos(test_netmiko_base.NetmikoSwitchTestBase):
 
+    def _make_switch_device(self):
+        device_cfg = {'device_type': 'netmiko_cisco_ios'}
+        return cisco.CiscoIos(device_cfg)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
     def test_add_network(self, m_exec):
         self.switch.add_network(33, 33)
         m_exec.assert_called_with(
             ('vlan {segmentation_id}', 'name {network_id}'),
             network_id=33, segmentation_id=33)
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
     def test_del_network(self, mock_exec):
         self.switch.del_network(33)
         mock_exec.assert_called_with(
             ('no vlan {segmentation_id}',),
             segmentation_id=33)
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
             ('interface {port}', 'switchport access vlan {segmentation_id}'),
             port=3333, segmentation_id=33)
 
-
-class TestCiscoIosExecFormat(test_base_switch.TestBaseSwitchExecFormat):
-    def setUp(self):
-        super(TestCiscoIosExecFormat, self).setUp()
-        self.switch = cisco_ios.generic_switch_device("cisco_ios")
-
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
-            cisco_ios.generic_switch_device.ADD_NETWORK,
+            cisco.CiscoIos.ADD_NETWORK,
             segmentation_id=22,
             network_id=22)
         self.assertEqual(cmd_set, ['vlan 22', 'name 22'])
 
         cmd_set = self.switch._format_commands(
-            cisco_ios.generic_switch_device.DELETE_NETWORK,
+            cisco.CiscoIos.DELETE_NETWORK,
             segmentation_id=22,
             network_id=22)
         self.assertEqual(cmd_set, ['no vlan 22'])
 
         cmd_set = self.switch._format_commands(
-            cisco_ios.generic_switch_device.PLUG_PORT_TO_NETWORK,
+            cisco.CiscoIos.PLUG_PORT_TO_NETWORK,
             port=3333,
             segmentation_id=33)
         self.assertEqual(cmd_set,
                          ['interface 3333', 'switchport access vlan 33'])
-
-    def test__exec_commands(self):
-        pass

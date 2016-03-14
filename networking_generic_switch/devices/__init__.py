@@ -12,83 +12,58 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import netmiko
-from neutron.i18n import _LI
+import abc
+
 from oslo_log import log as logging
-from oslo_utils import importutils
+import six
+import stevedore
 
-from networking_generic_switch import config as gsw_conf
-from networking_generic_switch import exceptions as exc
+from networking_generic_switch import exceptions as gsw_exc
 
+
+GENERIC_SWITCH_NAMESPACE = 'generic_switch.devices'
 LOG = logging.getLogger(__name__)
 
 
-def get_device(device_id):
-    conn_info = gsw_conf.get_config_for_device(device_id)
-    device_type = conn_info.get('device_type')
-    # NOTE(pas-ha) fail early if given device type is not supported
-    # by installed Netmiko library at all
-    if device_type not in netmiko.platforms:
-        raise exc.GenericSwitchNotSupported(
-            device_type=device_type, lib="netmiko")
-    module_path = '.'.join((__name__, device_type))
-    device_module = importutils.try_import(module_path)
-    if not device_module:
-        raise exc.GenericSwitchNotSupported(
-            device_type=device_type, lib='networking-generic-switch')
-    return device_module.generic_switch_device(conn_info)
+def device_manager(device_cfg):
+    device_type = device_cfg.get('device_type')
+    try:
+        mgr = stevedore.driver.DriverManager(
+            namespace=GENERIC_SWITCH_NAMESPACE,
+            name=device_type,
+            invoke_on_load=True,
+            invoke_args=(device_cfg,),
+            on_load_failure_callback=_load_failure_hook
+        )
+    except stevedore.exception.NoUniqueMatch as exc:
+        raise gsw_exc.GenericSwitchEntrypointLoadError(
+            ep='.'.join((GENERIC_SWITCH_NAMESPACE, device_type)),
+            err=exc)
+    return mgr.driver
 
 
-class GenericSwitch(object):
+def _load_failure_hook(manager, entrypoint, exception):
+    LOG.error("Driver manager %s failed to load device plugin %s: %s" % (
+        manager, entrypoint, exception))
+    raise gsw_exc.GenericSwitchEntrypointLoadError(
+        ep=entrypoint,
+        err=exception)
 
-    ADD_NETWORK = None
 
-    DELETE_NETWORK = None
+@six.add_metaclass(abc.ABCMeta)
+class GenericSwitchDevice(object):
 
-    PLUG_PORT_TO_NETWORK = None
+    def __init__(self, device_cfg):
+        self.config = device_cfg
 
-    def __init__(self, conn_info):
-        self.conn_info = conn_info
-
-    def _exec_commands(self, commands, **kwargs):
-        if not commands:
-            LOG.debug("Nothing to execute")
-            return
-        cmd_set = self._format_commands(commands, **kwargs)
-        net_connect = netmiko.ConnectHandler(**self.conn_info)
-        net_connect.enable()
-        output = net_connect.send_config_set(config_commands=cmd_set)
-        LOG.debug(output)
-
-    def _format_commands(self, commands, **kwargs):
-        if not all(kwargs.values()):
-            raise exc.GenericSwitchMethodError(cmds=commands, args=kwargs)
-        try:
-            cmd_set = [cmd.format(**kwargs) for cmd in commands]
-        except KeyError:
-            raise exc.GenericSwitchMethodError(cmds=commands, args=kwargs)
-        except TypeError:
-            raise exc.GenericSwitchMethodError(cmds=commands, args=kwargs)
-        return cmd_set
-
+    @abc.abstractmethod
     def add_network(self, segmentation_id, network_id):
-        self._exec_commands(
-            self.ADD_NETWORK,
-            segmentation_id=segmentation_id,
-            network_id=network_id)
-        LOG.info(_LI('Network %s has been added'), network_id)
+        pass
 
+    @abc.abstractmethod
     def del_network(self, segmentation_id):
-        self._exec_commands(
-            self.DELETE_NETWORK,
-            segmentation_id=segmentation_id)
-        LOG.info(_LI('Network %s has been deleted'), segmentation_id)
+        pass
 
-    def plug_port_to_network(self, port, segmentation_id):
-        self._exec_commands(
-            self.PLUG_PORT_TO_NETWORK,
-            port=port,
-            segmentation_id=segmentation_id)
-        LOG.info(_LI("Port %(port)s has been added to vlan "
-                     "%(segmentation_id)d"),
-                 {'port': port, 'segmentation_id': segmentation_id})
+    @abc.abstractmethod
+    def plug_port_to_network(self, segmentation_id, port):
+        pass

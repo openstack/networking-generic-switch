@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 from neutron.common import constants as const
 from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api
@@ -66,10 +67,10 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         segmentation_id = network['provider:segmentation_id']
 
         if provider_type == 'vlan' and segmentation_id:
-
             # Create vlan on all switches from this driver
-            for device in gsw_conf.get_device_list():
-                switch = devices.get_device(device_id=device)
+            gsw_devices = gsw_conf.get_devices()
+            for device_cfg in gsw_devices.values():
+                switch = devices.device_manager(device_cfg)
                 switch.add_network(segmentation_id, network_id)
 
     def update_network_precommit(self, context):
@@ -139,8 +140,10 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         segmentation_id = network['provider:segmentation_id']
 
         if provider_type == 'vlan' and segmentation_id:
-            for device in gsw_conf.get_device_list():
-                switch = devices.get_device(device_id=device)
+            # Delete vlan on all switches from this driver
+            gsw_devices = gsw_conf.get_devices()
+            for device_cfg in gsw_devices.values():
+                switch = devices.device_manager(device_cfg)
                 switch.del_network(segmentation_id)
 
     def create_subnet_precommit(self, context):
@@ -368,8 +371,9 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                                                      False)
         vnic_type = port['binding:vnic_type']
         if vnic_type == 'baremetal' and local_link_information:
+            gsw_devices = gsw_conf.get_devices()
             switch_info = local_link_information[0].get('switch_info')
-            if switch_info not in gsw_conf.get_device_list():
+            if switch_info not in gsw_devices:
                 raise exc.GenericSwitchConfigError(switch=switch_info)
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
@@ -382,7 +386,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                           port=port_id,
                           switch_info=switch_info,
                           segmentation_id=segmentation_id))
-            switch = devices.get_device(device_id=switch_info)
+            switch = devices.device_manager(gsw_devices[switch_info])
             # Move port to network
             switch.plug_port_to_network(port_id, segmentation_id)
             context.set_binding(segments[0][driver_api.ID],
