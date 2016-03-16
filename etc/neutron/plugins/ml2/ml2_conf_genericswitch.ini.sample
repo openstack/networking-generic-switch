@@ -1,0 +1,6 @@
+[genericswitch:c2970G]
+device_type=cisco_ios
+ip=1.2.3.4
+username=user
+password=cisco_password
+secret=enable_password
