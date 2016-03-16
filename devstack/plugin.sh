@@ -1,8 +1,8 @@
 # plugin.sh - DevStack plugin.sh dispatch script template
 
-GENERIC_SWITCH_DIR=${GENERIC_SWITCH_DIR:-$DEST/generic_switch}
+GENERIC_SWITCH_DIR=${GENERIC_SWITCH_DIR:-$DEST/networking-generic-switch}
 GENERIC_SWITCH_INI_FILE='/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini'
-GENERIC_SWITCH_SSH_KEY_FILENAME="generic_switch"
+GENERIC_SWITCH_SSH_KEY_FILENAME="networking-generic-switch"
 GENERIC_SWITCH_KEY_DIR="$DATA_DIR/neutron"
 GENERIC_SWITCH_KEY_FILE="$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"
 GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
