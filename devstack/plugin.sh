@@ -3,7 +3,8 @@
 GENERIC_SWITCH_DIR=${GENERIC_SWITCH_DIR:-$DEST/networking-generic-switch}
 GENERIC_SWITCH_INI_FILE='/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini'
 GENERIC_SWITCH_SSH_KEY_FILENAME="networking-generic-switch"
-GENERIC_SWITCH_KEY_DIR="$DATA_DIR/neutron"
+GENERIC_SWITCH_DATA_DIR=""$DATA_DIR/networking-generic-switch""
+GENERIC_SWITCH_KEY_DIR="$GENERIC_SWITCH_DATA_DIR/keys"
 GENERIC_SWITCH_KEY_FILE="$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"
 GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
 GENERIC_SWITCH_TEST_BRIDGE=genericswitch
@@ -51,6 +52,20 @@ function configure_generic_switch {
     done
 }
 
+function cleanup_networking_generic_switch {
+    rm -f $GENERIC_SWITCH_INI_FILE
+    if [[ -f $GENERIC_SWITCH_KEY_FILE ]]; then
+        local key
+        key=$(cat $GENERIC_SWITCH_KEY_FILE.pub)
+        # remove public key from authorized_keys
+        grep -v "$key" $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE > temp && mv temp $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+        chmod 0600 $IRONIC_AUTHORIZED_KEYS_FILE
+    fi
+    sudo ovs-vsctl --if-exists del-br $GENERIC_SWITCH_TEST_BRIDGE
+
+    rm -rf $GENERIC_SWITCH_DATA_DIR
+}
+
 # check for service enabled
 if is_service_enabled generic_switch; then
 
@@ -63,5 +78,10 @@ if is_service_enabled generic_switch; then
         # Configure after the other layer 1 and 2 services have been configured
         echo_summary "Configuring Generic_swtich Ml2"
         configure_generic_switch
+    fi
+
+    if [[ "$1" == "unstack" ]]; then
+        echo_summary "Cleaning Networking-generic-switch"
+        cleanup_networking_generic_switch
     fi
 fi
