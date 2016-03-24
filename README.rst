@@ -1,66 +1,42 @@
-GenericSwitch ML2 Mechanism driver from ML2 plugin
+Networking-generic-switch Neutron ML2 driver
 ============================================
 
-* ML2 driver uses Netmiko library
+This is a Modular Layer 2 `Neutron Mechanism driver
+<https://wiki.openstack.org/wiki/Neutron/ML2>`_. The mechanism driver is
+responsible for applying configuration information to hardware equipment.
+``GenericSwitch`` uses `Netmiko <https://github.com/ktbyers/netmiko>`_ library
+as the backend to configure network equipment. It has pluggable mechanism of
+adding new SSH-enabled devices support.
 
-* Issues/Questions/Bugs: vsaienko@mirantis.com
+.. contents:: Contents:
+   :local:
 
- Supported Devices:
-   1. Cisco IOS switches
+Supported Devices
+-----------------
+* Cisco IOS switches
+* Openvswitch
 
-ML2 plugin requires mechanism driver to support configuring of hardware switches.
-GenericSwitch Mechanism for ML2 uses Netmiko library, that uses SSH as the backend
-to configure the switch. This ML2 is PoC and any switch that supports SSH can be added.
-
-                                 Neutron
-                                  v2.0
-                                    |
-                                    |
-                              +------------+
-                              |            |
-                              | Openstack  |
-                              | Neutron    |
-                              | ML2        |
-                              | Plugin     |
-                              |            |
-                              +------------+
-                                    |
-                                    |
-                              +------------+
-                              |            |
-                              | Generic    |
-                              | Mechanism  |
-                              | Driver     |
-                              |            |
-                              +------------+
-                                    |
-                                    | SSH
-                                    |
-                              +------------+
-                              |   Switch   |
-                              +------------+
 
 Configuration
+-------------
 
-In order to use this mechnism the generic configuration file needs to be edited with the appropriate
-configuration information:
+In order to use this mechnism the generic configuration file needs to be
+updated with the appropriate configuration information. Here is an example
+of ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``::
 
-        % cat /etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini
-        [genericswitch:sw-hostname]
-        device_type = cisco_ios
-        username = admin
-        password = password
-        secret = secret
-        ip = <switch mgmt ip address>
+    [genericswitch:sw-hostname]
+    device_type = cisco_ios
+    username = admin
+    password = password
+    secret = secret
+    ip = <switch mgmt ip address>
 
-Additionally the GenericSwitch mechanism driver needs to be enabled from the ml2 config file:
+Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
+the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
-       % cat /etc/neutron/plugins/ml2/ml2_conf.ini
-
-       [ml2]
-       tenant_network_types = vlan
-       type_drivers = local,flat,vlan,gre,vxlan
-       mechanism_drivers = openvswitch,genericswitch
-       # OR mechanism_drivers = openvswitch,linuxbridge,hyperv,genericswitch
-       ...
-       ...
+   [ml2]
+   tenant_network_types = vlan
+   type_drivers = local,flat,vlan,gre,vxlan
+   mechanism_drivers = openvswitch,genericswitch
+   ...
+   ...
