@@ -6,6 +6,7 @@ GENERIC_SWITCH_SSH_KEY_FILENAME="networking-generic-switch"
 GENERIC_SWITCH_KEY_DIR="$DATA_DIR/neutron"
 GENERIC_SWITCH_KEY_FILE="$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"
 GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
+GENERIC_SWITCH_TEST_BRIDGE=genericswitch
 
 function install_generic_switch {
     setup_develop $GENERIC_SWITCH_DIR
@@ -39,13 +40,15 @@ function configure_generic_switch {
     configure_generic_switch_ssh_keypair
 
     # Create generic_switch ml2 config
-    local cfg_sec="genericswitch:$IRONIC_VM_NETWORK_BRIDGE"
-    if ! is_ironic_hardware; then
-        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec key_file=$GENERIC_SWITCH_KEY_FILE
-        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec username=$STACK_USER
-        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec ip=localhost
-        populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec device_type=ovs_linux
-    fi
+    for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
+        local cfg_sec="genericswitch:$switch"
+        if ! is_ironic_hardware; then
+            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec key_file=$GENERIC_SWITCH_KEY_FILE
+            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec username=$STACK_USER
+            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec ip=localhost
+            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec device_type=ovs_linux
+        fi
+    done
 }
 
 # check for service enabled
