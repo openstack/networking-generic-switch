@@ -13,10 +13,10 @@
 #    under the License.
 
 import netmiko
-from neutron.i18n import _
-from neutron.i18n import _LI
 from oslo_log import log as logging
 
+from networking_generic_switch._i18n import _
+from networking_generic_switch._i18n import _LI
 from networking_generic_switch import devices
 from networking_generic_switch import exceptions as exc
 

@@ -12,8 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.i18n import _
 from neutron.plugins.ml2.common import exceptions as ml2_exc
+
+from networking_generic_switch._i18n import _
 
 
 class GenericSwitchException(ml2_exc.MechanismDriverError):
