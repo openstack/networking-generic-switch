@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Many of neutron's repos suffer from the problem of depending on neutron,
 # but it not existing on pypi. This ensures its installed into the test environment.
