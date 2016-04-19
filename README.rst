@@ -55,6 +55,15 @@ for the Cisco IOS device::
     secret = secret
     ip = <switch mgmt ip address>
 
+for the Huawei device::
+
+    [genericswitch:sw-hostname]
+    device_type = netmiko_huawei
+    username = admin
+    password = password
+    secret = secret
+    ip = <switch mgmt ip address>
+
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
