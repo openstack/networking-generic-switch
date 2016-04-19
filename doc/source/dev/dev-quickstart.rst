@@ -91,7 +91,7 @@ config ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini`` and
 restart Neutron server::
 
     [genericswitch:cisco_switch_1]
-    device_type = cisco_ios
+    device_type = netmiko_cisco_ios
     ip = 1.2.3.4
     username = cisco
     password = cisco
