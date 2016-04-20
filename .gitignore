@@ -29,5 +29,6 @@ develop-eggs
 cover
 
 # Others
+.*.swp
 AUTHORS
 ChangeLog
