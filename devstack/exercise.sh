@@ -11,7 +11,27 @@ function clear_resources {
     if neutron port-show $NEUTRON_GENERIC_SWITCH_TEST_PORT_NAME; then
         neutron port-delete $NEUTRON_GENERIC_SWITCH_TEST_PORT_NAME
     fi
+}
 
+function wait_for_openvswitch_agent {
+    local openvswitch_agent
+    local retries=10
+    local retry_delay=20;
+    local status=false
+    openvswitch_agent="Open vSwitch agent"
+
+    while [[ $retries -ge 0 ]]; do
+        if neutron agent-list --fields agent_type | grep -q "Open vSwitch agent"; then
+            status=true
+            break
+        fi
+        retries=$((retries - 1))
+        echo "$openvswitch_agent is not yet registered. $retries left."
+        sleep $retry_delay
+    done
+    if ! $status; then
+        echo "$openvswitch_agent is not started in $((retries * retry_delay))"
+    fi
 }
 
 clear_resources
@@ -22,6 +42,8 @@ sudo ovs-vsctl add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT_NA
 sudo ovs-vsctl clear port $GENERIC_SWITCH_TEST_PORT_NAME tag
 
 switch_id=$(ip link show dev $GENERIC_SWITCH_TEST_BRIDGE | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
+
+wait_for_openvswitch_agent
 
 # create and update Neutron port
 expected_tag=$(python ${DIR}/exercise.py --switch_name $GENERIC_SWITCH_TEST_BRIDGE --port $GENERIC_SWITCH_TEST_PORT_NAME --switch_id=$switch_id)
