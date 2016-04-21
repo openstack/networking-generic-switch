@@ -24,6 +24,7 @@ Supported Devices
 
 * Cisco IOS switches
 * OpenVSwitch
+* Arista EOS
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.
@@ -63,6 +64,13 @@ for the Huawei device::
     password = password
     secret = secret
     ip = <switch mgmt ip address>
+
+for the Arista EOS device::
+    [genericswitch:arista-hostname]
+    device_type = netmiko_arista_eos
+    ip = <switch mgmt ip address>
+    username = admin
+    key_file = /opt/data/arista_key
 
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
