@@ -23,6 +23,7 @@ Supported Devices
 =================
 
 * Cisco IOS switches
+* Huawei switches
 * OpenVSwitch
 
 This Mechanism Driver architecture allows easily to add more devices
