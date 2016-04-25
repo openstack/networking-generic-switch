@@ -66,6 +66,7 @@ for the Huawei device::
     ip = <switch mgmt ip address>
 
 for the Arista EOS device::
+
     [genericswitch:arista-hostname]
     device_type = netmiko_arista_eos
     ip = <switch mgmt ip address>
