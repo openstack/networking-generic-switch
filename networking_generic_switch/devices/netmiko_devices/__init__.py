@@ -31,6 +31,10 @@ class GenericSwitchNetmikoNotSupported(exc.GenericSwitchException):
     message = _("Netmiko does not support device type %(device_type)s")
 
 
+class GenericSwitchNetmikoConnectError(exc.GenericSwitchException):
+    message = _("Netmiko connected error: %(config)s")
+
+
 class NetmikoSwitch(devices.GenericSwitchDevice):
 
     ADD_NETWORK = None
@@ -54,7 +58,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             LOG.debug("Nothing to execute")
             return
         cmd_set = self._format_commands(commands, **kwargs)
-        net_connect = netmiko.ConnectHandler(**self.config)
+        try:
+            net_connect = netmiko.ConnectHandler(**self.config)
+        except Exception:
+            raise GenericSwitchNetmikoConnectError(config=self.config)
         net_connect.enable()
         output = net_connect.send_config_set(config_commands=cmd_set)
         LOG.debug(output)
