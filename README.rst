@@ -45,6 +45,18 @@ Configuration
 
 In order to use this mechanism the generic configuration file needs to be
 created/updated with the appropriate configuration information.
+
+Switch configuration format::
+
+    [genericswitch:<switch name>]
+    device_type = <netmiko device type>
+    ip = <IP address of switch>
+    port = <ssh port>
+    username = <credential username>
+    password = <credential password>
+    key_file = <ssh key file>
+    secret = <enable secret>
+
 Here is an example of
 ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``
 for the Cisco IOS device::
@@ -62,6 +74,7 @@ for the Huawei device::
     device_type = netmiko_huawei
     username = admin
     password = password
+    port = 8222
     secret = secret
     ip = <switch mgmt ip address>
 
