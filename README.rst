@@ -23,6 +23,7 @@ Supported Devices
 =================
 
 * Cisco IOS switches
+* Huawei switches
 * OpenVSwitch
 * Arista EOS
 
