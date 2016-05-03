@@ -367,8 +367,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
 
         port = context.current
         binding_profile = port['binding:profile']
-        local_link_information = binding_profile.get('local_link_information',
-                                                     False)
+        local_link_information = binding_profile.get('local_link_information')
         vnic_type = port['binding:vnic_type']
         if vnic_type == 'baremetal' and local_link_information:
             gsw_devices = gsw_conf.get_devices()
@@ -377,7 +376,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                 raise exc.GenericSwitchConfigError(switch=switch_info)
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
-            segmentation_id = segments[0]['segmentation_id']
+            segmentation_id = segments[0].get('segmentation_id')
             # If segmentation ID is None, set vlan 1
             if not segmentation_id:
                 segmentation_id = '1'
