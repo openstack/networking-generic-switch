@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 
 
 def device_manager(device_cfg):
-    device_type = device_cfg.get('device_type')
+    device_type = device_cfg.get('device_type', '')
     try:
         mgr = stevedore.driver.DriverManager(
             namespace=GENERIC_SWITCH_NAMESPACE,
