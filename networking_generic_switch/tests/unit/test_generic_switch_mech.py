@@ -35,6 +35,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     def test_create_network_postcommit(self, m_list):
         driver = gsm.GenericSwitchDriver()
+        driver.initialize()
         mock_context = mock.create_autospec(driver_context.NetworkContext)
         mock_context.current = {'id': 22,
                                 'provider:network_type': 'vlan',
@@ -45,6 +46,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     def test_delete_network_postcommit(self, m_list):
         driver = gsm.GenericSwitchDriver()
+        driver.initialize()
         mock_context = mock.create_autospec(driver_context.NetworkContext)
         mock_context.current = {'id': 22,
                                 'provider:network_type': 'vlan',
@@ -55,6 +57,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     def test_bind_port(self, m_list):
         driver = gsm.GenericSwitchDriver()
+        driver.initialize()
         mock_context = mock.create_autospec(driver_context.PortContext)
         mock_context.current = {'binding:profile':
                                 {'local_link_information':
@@ -81,6 +84,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     def test_empty_methods(self, m_list):
         driver = gsm.GenericSwitchDriver()
+        driver.initialize()
         mock_context = mock.create_autospec(driver_context.NetworkContext)
         mock_context.current = {'id': 22,
                                 'provider:network_type': 'vlan',
