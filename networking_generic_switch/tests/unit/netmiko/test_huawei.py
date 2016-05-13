@@ -29,7 +29,7 @@ class TestNetmikoHuawei(test_netmiko_base.NetmikoSwitchTestBase):
     def test_add_network(self, m_exec):
         self.switch.add_network(33, 33)
         m_exec.assert_called_with(
-            ('vlan {segmentation_id}', 'name {network_id}'),
+            ('vlan {segmentation_id}',),
             network_id=33, segmentation_id=33)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -53,7 +53,7 @@ class TestNetmikoHuawei(test_netmiko_base.NetmikoSwitchTestBase):
             huawei.Huawei.ADD_NETWORK,
             segmentation_id=22,
             network_id=22)
-        self.assertEqual(cmd_set, ['vlan 22', 'name 22'])
+        self.assertEqual(cmd_set, ['vlan 22'])
 
         cmd_set = self.switch._format_commands(
             huawei.Huawei.DELETE_NETWORK,
