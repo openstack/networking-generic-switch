@@ -57,8 +57,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
 
         cmd_set = self.switch._format_commands(
             arista.AristaEos.DELETE_NETWORK,
-            segmentation_id=22,
-            network_id=22)
+            segmentation_id=22)
         self.assertEqual(cmd_set, ['no vlan 22'])
 
         cmd_set = self.switch._format_commands(
