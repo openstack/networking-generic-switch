@@ -113,7 +113,8 @@ Cisco IOS device::
 Run exercise.py to create/update Neutron port. It will print VLAN id to be
 assigned::
 
-    $ python ~/networking-generic-switch/devstack/exercise.py --switch_name cisco_switch_1 --port Gig0/12 --switch_id=06:58:1f:e7:b4:44
+    $ neutron net-create test
+    $ python ~/networking-generic-switch/devstack/exercise.py --switch_name cisco_switch_1 --port Gig0/12 --switch_id=06:58:1f:e7:b4:44 --network test
     126
 
 
