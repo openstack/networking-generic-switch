@@ -14,6 +14,7 @@
 
 import netmiko
 from oslo_log import log as logging
+import uuid
 
 from networking_generic_switch._i18n import _
 from networking_generic_switch._i18n import _LI
@@ -76,6 +77,9 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         return cmd_set
 
     def add_network(self, segmentation_id, network_id):
+        # NOTE(zhenguo): Remove dashes from uuid as on most devices 32 chars
+        # is the max length of vlan name.
+        network_id = uuid.UUID(network_id).hex
         self._exec_commands(
             self.ADD_NETWORK,
             segmentation_id=segmentation_id,

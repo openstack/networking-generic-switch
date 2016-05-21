@@ -27,10 +27,11 @@ class TestNetmikoHuawei(test_netmiko_base.NetmikoSwitchTestBase):
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch._exec_commands')
     def test_add_network(self, m_exec):
-        self.switch.add_network(33, 33)
+        self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
             ('vlan {segmentation_id}',),
-            network_id=33, segmentation_id=33)
+            network_id='0ae071f55be943e480eae41fefe85b21',
+            segmentation_id=33)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch._exec_commands')
