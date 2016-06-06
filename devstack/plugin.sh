@@ -4,6 +4,7 @@
 GENERIC_SWITCH_DIR=${GENERIC_SWITCH_DIR:-$DEST/networking-generic-switch}
 GENERIC_SWITCH_INI_FILE='/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini'
 GENERIC_SWITCH_SSH_KEY_FILENAME="networking-generic-switch"
+GENERIC_SWITCH_SSH_PORT=${GENERIC_SWITCH_SSH_PORT:-}
 GENERIC_SWITCH_DATA_DIR=""$DATA_DIR/networking-generic-switch""
 GENERIC_SWITCH_KEY_DIR="$GENERIC_SWITCH_DATA_DIR/keys"
 GENERIC_SWITCH_KEY_FILE="$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"
@@ -49,6 +50,9 @@ function configure_generic_switch {
             populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec username=$STACK_USER
             populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec ip=localhost
             populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec device_type=netmiko_ovs_linux
+            if [[ -n "$GENERIC_SWITCH_SSH_PORT" ]]; then
+                populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec port=$GENERIC_SWITCH_SSH_PORT
+            fi
         fi
     done
 }
