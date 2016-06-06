@@ -27,8 +27,10 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch._exec_commands')
     def test_add_network(self, m_exec):
-        self.switch.add_network(44, 44)
-        m_exec.assert_called_with(None, network_id=44, segmentation_id=44)
+        self.switch.add_network(44, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        m_exec.assert_called_with(
+            None, network_id='0ae071f55be943e480eae41fefe85b21',
+            segmentation_id=44)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch._exec_commands')
