@@ -9,7 +9,8 @@ GENERIC_SWITCH_DATA_DIR=""$DATA_DIR/networking-generic-switch""
 GENERIC_SWITCH_KEY_DIR="$GENERIC_SWITCH_DATA_DIR/keys"
 GENERIC_SWITCH_KEY_FILE="$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"
 GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
-GENERIC_SWITCH_TEST_BRIDGE=genericswitch
+GENERIC_SWITCH_TEST_BRIDGE="genericswitch"
+GENERIC_SWITCH_TEST_PORT="gs_port_01"
 
 function install_generic_switch {
     setup_develop $GENERIC_SWITCH_DIR
@@ -71,6 +72,16 @@ function cleanup_networking_generic_switch {
     rm -rf $GENERIC_SWITCH_DATA_DIR
 }
 
+function ngs_configure_tempest {
+    sudo ovs-vsctl --may-exist add-br $GENERIC_SWITCH_TEST_BRIDGE
+    ip link show gs_port_01 || sudo ip link add gs_port_01 type dummy
+    sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT
+
+    iniset $TEMPEST_CONFIG service_available ngs True
+    iniset $TEMPEST_CONFIG ngs bridge_name $GENERIC_SWITCH_TEST_BRIDGE
+    iniset $TEMPEST_CONFIG ngs port_name $GENERIC_SWITCH_TEST_PORT
+}
+
 # check for service enabled
 if is_service_enabled generic_switch; then
 
@@ -83,6 +94,11 @@ if is_service_enabled generic_switch; then
         # Configure after the other layer 1 and 2 services have been configured
         echo_summary "Configuring Generic_swtich Ml2"
         configure_generic_switch
+    elif [[ "$1" == "stack" && "$2" == "test-config" ]]; then
+        if is_service_enabled tempest; then
+            echo_summary "Configuring Tempest NGS"
+            ngs_configure_tempest
+        fi
     fi
 
     if [[ "$1" == "unstack" ]]; then
