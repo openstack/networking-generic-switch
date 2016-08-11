@@ -13,7 +13,6 @@
 #    under the License.
 
 
-from neutron.common import constants as const
 from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api
 from oslo_log import log as logging
@@ -391,5 +390,4 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             self.switches[switch_info].plug_port_to_network(port_id,
                                                             segmentation_id)
             context.set_binding(segments[0][driver_api.ID],
-                                portbindings.VIF_TYPE_OTHER, {},
-                                status=const.PORT_STATUS_ACTIVE)
+                                portbindings.VIF_TYPE_OTHER, {})

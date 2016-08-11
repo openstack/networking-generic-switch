@@ -79,8 +79,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         driver.bind_port(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once_with(
             2222, '1')
-        mock_context.set_binding.assert_called_with(123, 'other', {},
-                                                    status='ACTIVE')
+        mock_context.set_binding.assert_called_with(123, 'other', {})
 
     def test_empty_methods(self, m_list):
         driver = gsm.GenericSwitchDriver()
