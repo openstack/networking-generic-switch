@@ -20,7 +20,6 @@ from oslo_log import log as logging
 from networking_generic_switch._i18n import _LI
 from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
-from networking_generic_switch import exceptions as exc
 
 LOG = logging.getLogger(__name__)
 
@@ -374,7 +373,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         if vnic_type == 'baremetal' and local_link_information:
             switch_info = local_link_information[0].get('switch_info')
             if switch_info not in self.switches:
-                raise exc.GenericSwitchConfigError(switch=switch_info)
+                return
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
             segmentation_id = segments[0].get('segmentation_id')

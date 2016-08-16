@@ -23,7 +23,3 @@ class GenericSwitchException(ml2_exc.MechanismDriverError):
 
 class GenericSwitchEntrypointLoadError(GenericSwitchException):
     message = _("Failed to load entrypoint %(ep)s: %(err)s")
-
-
-class GenericSwitchConfigError(GenericSwitchException):
-    message = _("Can not find configuration for switch %(switch)s")
