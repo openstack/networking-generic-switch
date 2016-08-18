@@ -81,6 +81,29 @@ class TestGenericSwitchDriver(unittest.TestCase):
             2222, '1')
         mock_context.set_binding.assert_called_with(123, 'other', {})
 
+    def test_bind_port_unknown_switch(self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context.current = {'binding:profile':
+                                {'local_link_information':
+                                    [
+                                        {
+                                            'switch_info': 'bar',
+                                            'port_id': 2222
+                                        }
+                                    ]
+                                 },
+                                'binding:vnic_type': 'baremetal'}
+        mock_context.segments_to_bind = [
+            {
+                'segmentation_id': None,
+                'id': 123
+            }
+        ]
+        self.assertIsNone(driver.bind_port(mock_context))
+        self.switch_mock.plug_port_to_network.assert_not_called()
+
     def test_empty_methods(self, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
