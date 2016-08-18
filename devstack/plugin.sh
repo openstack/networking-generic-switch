@@ -27,6 +27,10 @@ function configure_generic_switch_ssh_keypair {
         fi
         echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $GENERIC_SWITCH_KEY_FILE
     fi
+    # NOTE(vsaienko) check for new line character, add if doesn't exist.
+    if [[ "$(tail -c1 $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE | wc -l)" == "0" ]]; then
+        echo "" >> $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+    fi
     cat $GENERIC_SWITCH_KEY_FILE.pub | tee -a $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
 }
 
