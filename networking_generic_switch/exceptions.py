@@ -12,13 +12,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from neutron.plugins.ml2.common import exceptions as ml2_exc
+from neutron_lib import exceptions
 
 from networking_generic_switch._i18n import _
 
 
-class GenericSwitchException(ml2_exc.MechanismDriverError):
-    pass
+class GenericSwitchException(exceptions.NeutronException):
+    message = _("%(method)s failed.")
 
 
 class GenericSwitchEntrypointLoadError(GenericSwitchException):
