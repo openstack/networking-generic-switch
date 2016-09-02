@@ -32,6 +32,8 @@ function configure_generic_switch_ssh_keypair {
         echo "" >> $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
     fi
     cat $GENERIC_SWITCH_KEY_FILE.pub | tee -a $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+    # remove duplicate keys.
+    sort -u -o $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
 }
 
 function configure_generic_switch {
