@@ -7,7 +7,7 @@ GENERIC_SWITCH_SSH_KEY_FILENAME="networking-generic-switch"
 GENERIC_SWITCH_SSH_PORT=${GENERIC_SWITCH_SSH_PORT:-}
 GENERIC_SWITCH_DATA_DIR=""$DATA_DIR/networking-generic-switch""
 GENERIC_SWITCH_KEY_DIR="$GENERIC_SWITCH_DATA_DIR/keys"
-GENERIC_SWITCH_KEY_FILE="$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"
+GENERIC_SWITCH_KEY_FILE=${GENERIC_SWITCH_KEY_FILE:-"$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"}
 GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
 GENERIC_SWITCH_TEST_BRIDGE="genericswitch"
 GENERIC_SWITCH_TEST_PORT="gs_port_01"
@@ -51,17 +51,39 @@ function configure_generic_switch {
 
     # Create generic_switch ml2 config
     for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
-        local cfg_sec="genericswitch:$switch"
-        if ! is_ironic_hardware; then
-            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec key_file=$GENERIC_SWITCH_KEY_FILE
-            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec username=$STACK_USER
-            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec ip=localhost
-            populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec device_type=netmiko_ovs_linux
-            if [[ -n "$GENERIC_SWITCH_SSH_PORT" ]]; then
-                populate_ml2_config $GENERIC_SWITCH_INI_FILE $cfg_sec port=$GENERIC_SWITCH_SSH_PORT
-            fi
-        fi
+        switch="genericswitch:$switch"
+        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $STACK_USER localhost netmiko_ovs_linux "$GENERIC_SWITCH_SSH_PORT"
     done
+    echo "HOST_TOPOLOGY: $HOST_TOPOLOGY"
+    echo "HOST_TOPOLOGY_SUBNODES: $HOST_TOPOLOGY_SUBNODES"
+    if [ -n "$HOST_TOPOLOGY_SUBNODES" ]; then
+        # NOTE(vsaienko) with multinode topology we need to add switches from all
+        # the subnodes to the config on primary node
+        local cnt=0
+        local section
+        for node in $HOST_TOPOLOGY_SUBNODES; do
+            cnt=$((cnt+1))
+            section="genericswitch:sub${cnt}${IRONIC_VM_NETWORK_BRIDGE}"
+            add_generic_switch_to_ml2_config $section $GENERIC_SWITCH_KEY_FILE $STACK_USER $node netmiko_ovs_linux "$GENERIC_SWITCH_SSH_PORT"
+        done
+    fi
+}
+
+function add_generic_switch_to_ml2_config {
+    local switch_name=$1
+    local key_file=$2
+    local username=$3
+    local ip=$4
+    local device_type=$5
+    local port=$6
+
+    populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name key_file=$key_file
+    populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name username=$username
+    populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name ip=$ip
+    populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name device_type=$device_type
+    if [[ -n "$port" ]]; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name port=$port
+    fi
 }
 
 function cleanup_networking_generic_switch {
