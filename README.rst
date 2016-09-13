@@ -26,6 +26,7 @@ Supported Devices
 * Huawei switches
 * OpenVSwitch
 * Arista EOS
+* Dell (S4810)
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.
@@ -86,6 +87,14 @@ for the Arista EOS device::
     ip = <switch mgmt ip address>
     username = admin
     key_file = /opt/data/arista_key
+
+for the Dell device::
+    [genericswitch:dell-hostname]
+    device_type = netmiko_dell_force10
+    ip = <switch mgmt ip address>
+    username = admin
+    password = password
+    secret = secret
 
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
