@@ -46,6 +46,14 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
             ('ovs-vsctl set port {port} tag={segmentation_id}',),
             port=4444, segmentation_id=44)
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
+    def test_delete_port(self, mock_exec):
+        self.switch.delete_port(4444, 44)
+        mock_exec.assert_called_with(
+            ('ovs-vsctl clear port {port} tag',),
+            port=4444, segmentation_id=44)
+
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
             ovs.OvsLinux.PLUG_PORT_TO_NETWORK,
@@ -53,3 +61,10 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
             segmentation_id=33)
         self.assertEqual(cmd_set,
                          ['ovs-vsctl set port 3333 tag=33'])
+
+        cmd_set = self.switch._format_commands(
+            ovs.OvsLinux.DELETE_PORT,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set,
+                         ['ovs-vsctl clear port 3333 tag'])

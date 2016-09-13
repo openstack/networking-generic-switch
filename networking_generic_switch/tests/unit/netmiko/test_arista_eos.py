@@ -48,6 +48,15 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
             ('interface {port}', 'switchport access vlan {segmentation_id}'),
             port=3333, segmentation_id=33)
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._exec_commands')
+    def test_delete_port(self, mock_exec):
+        self.switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            ('interface {port}',
+             'no switchport access vlan {segmentation_id}'),
+            port=3333, segmentation_id=33)
+
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
             arista.AristaEos.ADD_NETWORK,
@@ -66,3 +75,10 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
             segmentation_id=33)
         self.assertEqual(cmd_set,
                          ['interface 3333', 'switchport access vlan 33'])
+
+        cmd_set = self.switch._format_commands(
+            arista.AristaEos.DELETE_PORT,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set,
+                         ['interface 3333', 'no switchport access vlan 33'])

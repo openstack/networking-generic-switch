@@ -322,7 +322,27 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         expected, and will not prevent the resource from being
         deleted.
         """
-        pass
+
+        port = context.current
+        binding_profile = port['binding:profile']
+        local_link_information = binding_profile.get('local_link_information')
+        vnic_type = port['binding:vnic_type']
+        if vnic_type == 'baremetal' and local_link_information:
+            switch_info = local_link_information[0].get('switch_info')
+            if switch_info not in self.switches:
+                return
+            port_id = local_link_information[0].get('port_id')
+            network = context.network.current
+            segmentation_id = network['provider:segmentation_id']
+            # If segmentation ID is None, set vlan 1
+            if not segmentation_id:
+                segmentation_id = '1'
+            LOG.debug("Deleting port {port} on {switch_info} from vlan: "
+                      "{segmentation_id}".format(
+                          port=port_id,
+                          switch_info=switch_info,
+                          segmentation_id=segmentation_id))
+            self.switches[switch_info].delete_port(port_id, segmentation_id)
 
     def bind_port(self, context):
         """Attempt to bind a port.

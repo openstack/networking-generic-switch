@@ -16,6 +16,7 @@ import netifaces
 
 from tempest.api.network import base as net_base
 from tempest import config
+from tempest.lib import exceptions
 from tempest import test
 from tempest_plugin.tests.common import ovs_lib
 
@@ -47,12 +48,19 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
         mac_address = netifaces.ifaddresses(bridge_name).get('addr')
         return mac_address
 
+    def cleanup_port(self, port_id):
+        """Remove Neutron port and skip NotFound exceptions."""
+        try:
+            self.admin_ports_client.delete_port(port_id)
+        except exceptions.NotFound:
+            pass
+
     def create_neutron_port(self):
         net_id = self.admin_networks_client.list_networks(
             name=CONF.compute.fixed_network_name
         )['networks'][0]['id']
         port = self.admin_ports_client.create_port(network_id=net_id)['port']
-        self.addCleanup(self.admin_ports_client.delete_port, port['id'])
+        self.addCleanup(self.cleanup_port, port['id'])
 
         host = self.admin_agents_client.list_agents(
             agent_type='Open vSwitch agent'
@@ -79,15 +87,26 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
             **update_args
         )
 
+        return port
+
     def ovs_get_tag(self):
-        return int(ovs_lib.get_port_tag_dict(CONF.ngs.port_name))
+        try:
+            tag = int(ovs_lib.get_port_tag_dict(CONF.ngs.port_name))
+        except (ValueError, TypeError):
+            tag = None
+        return tag
 
     @test.idempotent_id('59cb81a5-3fd5-4ad3-8c4a-c0b27435cb9c')
     @test.services('network')
     def test_ngs_basic_ops(self):
-        self.create_neutron_port()
+        port = self.create_neutron_port()
         net_tag = self.admin_networks_client.list_networks(
             name=CONF.compute.fixed_network_name
             )['networks'][0]['provider:segmentation_id']
         ovs_tag = self.ovs_get_tag()
         self.assertEqual(net_tag, ovs_tag)
+
+        # Ensure that tag is removed when port is deleted
+        self.admin_ports_client.delete_port(port['id'])
+        ovs_tag = self.ovs_get_tag()
+        self.assertIsNone(ovs_tag)

@@ -20,3 +20,7 @@ class OvsLinux(netmiko_devices.NetmikoSwitch):
         PLUG_PORT_TO_NETWORK = (
             'ovs-vsctl set port {port} tag={segmentation_id}',
         )
+
+        DELETE_PORT = (
+            'ovs-vsctl clear port {port} tag',
+        )

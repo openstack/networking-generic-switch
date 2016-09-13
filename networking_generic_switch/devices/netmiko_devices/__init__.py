@@ -44,6 +44,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     PLUG_PORT_TO_NETWORK = None
 
+    DELETE_PORT = None
+
     def __init__(self, device_cfg):
         super(NetmikoSwitch, self).__init__(device_cfg)
         device_type = self.config.get('device_type', '')
@@ -98,5 +100,14 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             port=port,
             segmentation_id=segmentation_id)
         LOG.info(_LI("Port %(port)s has been added to vlan "
+                     "%(segmentation_id)d"),
+                 {'port': port, 'segmentation_id': segmentation_id})
+
+    def delete_port(self, port, segmentation_id):
+        self._exec_commands(
+            self.DELETE_PORT,
+            port=port,
+            segmentation_id=segmentation_id)
+        LOG.info(_LI("Port %(port)s has been removed from vlan "
                      "%(segmentation_id)d"),
                  {'port': port, 'segmentation_id': segmentation_id})

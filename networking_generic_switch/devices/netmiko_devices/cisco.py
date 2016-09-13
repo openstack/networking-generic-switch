@@ -29,3 +29,8 @@ class CiscoIos(netmiko_devices.NetmikoSwitch):
             'interface {port}',
             'switchport access vlan {segmentation_id}',
         )
+
+        DELETE_PORT = (
+            'interface {port}',
+            'no switchport access vlan {segmentation_id}'
+        )
