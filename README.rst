@@ -89,6 +89,7 @@ for the Arista EOS device::
     key_file = /opt/data/arista_key
 
 for the Dell device::
+
     [genericswitch:dell-hostname]
     device_type = netmiko_dell_force10
     ip = <switch mgmt ip address>
