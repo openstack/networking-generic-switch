@@ -35,4 +35,7 @@ NGSGroup = [
     cfg.StrOpt('port_name',
                default='gs_port_01',
                help='Port name to use.'),
+    cfg.StrOpt('network_name',
+               default='private',
+               help='Test network name to use.')
 ]

@@ -57,7 +57,7 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
 
     def create_neutron_port(self):
         net_id = self.admin_networks_client.list_networks(
-            name=CONF.compute.fixed_network_name
+            name=CONF.ngs.network_name
         )['networks'][0]['id']
         port = self.admin_ports_client.create_port(network_id=net_id)['port']
         self.addCleanup(self.cleanup_port, port['id'])
@@ -101,7 +101,7 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
     def test_ngs_basic_ops(self):
         port = self.create_neutron_port()
         net_tag = self.admin_networks_client.list_networks(
-            name=CONF.compute.fixed_network_name
+            name=CONF.ngs.network_name
             )['networks'][0]['provider:segmentation_id']
         ovs_tag = self.ovs_get_tag()
         self.assertEqual(net_tag, ovs_tag)
