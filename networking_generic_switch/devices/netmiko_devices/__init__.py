@@ -16,8 +16,7 @@ import netmiko
 from oslo_log import log as logging
 import uuid
 
-from networking_generic_switch._i18n import _
-from networking_generic_switch._i18n import _LI
+from networking_generic_switch._i18n import _, _LI
 from networking_generic_switch import devices
 from networking_generic_switch import exceptions as exc
 
