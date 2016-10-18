@@ -17,7 +17,7 @@ from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api
 from oslo_log import log as logging
 
-from networking_generic_switch._i18n import _LI
+from networking_generic_switch._i18n import _LI, _LE
 from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
 
@@ -74,7 +74,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         if provider_type == 'vlan' and segmentation_id:
             # Create vlan on all switches from this driver
             for switch in self.switches.values():
-                switch.add_network(segmentation_id, network_id)
+                try:
+                    switch.add_network(segmentation_id, network_id)
+                except Exception as e:
+                    LOG.error(_LE("Failed to create network %(net_id)s "
+                                  "on device: %(switch)s, reason: %(exc)s"),
+                              {'net_id': network_id,
+                               'switch': switch.config['ip'],
+                               'exc': e})
 
     def update_network_precommit(self, context):
         """Update resources of a network.
@@ -145,7 +152,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         if provider_type == 'vlan' and segmentation_id:
             # Delete vlan on all switches from this driver
             for switch in self.switches.values():
-                switch.del_network(segmentation_id)
+                try:
+                    switch.del_network(segmentation_id)
+                except Exception as e:
+                    LOG.error(_LE("Failed to delete network %(net_id)s "
+                                  "on device: %(switch)s, reason: %(exc)s"),
+                              {'net_id': network['id'],
+                               'switch': switch.config['ip'],
+                               'exc': e})
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.
