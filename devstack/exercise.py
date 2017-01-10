@@ -41,7 +41,7 @@ parser.add_argument('--network',
                     help='Neutron network name to create port in')
 parser.add_argument('--auth-url',
                     type=str,
-                    default='http://127.0.0.1:5000/v2.0',
+                    default='http://127.0.0.1:5000/v3',
                     help='Keystone auth URL endpoint')
 parser.add_argument('--username',
                     type=str,
@@ -55,6 +55,12 @@ parser.add_argument('--project-name',
                     type=str,
                     default='admin',
                     help='Keystone user project name, must have admin access')
+parser.add_argument('--user-domain-id',
+                    type=str,
+                    help='Keystone user domain ID')
+parser.add_argument('--project-domain-id',
+                    type=str,
+                    help='Keystone project domain ID')
 opts = parser.parse_args()
 
 auth_params = {
@@ -63,8 +69,17 @@ auth_params = {
     "tenant_name": os.environ.get("OS_PROJECT_NAME", opts.project_name),
 }
 
-auth = identity.V2Password(os.environ.get("OS_AUTH_URL", opts.auth_url),
-                           **auth_params)
+user_domain_id = os.environ.get("OS_USER_DOMAIN_ID", opts.user_domain_id)
+if user_domain_id:
+    auth_params["user_domain_id"] = user_domain_id
+project_domain_id = os.environ.get("OS_PROJECT_DOMAIN_ID",
+                                   opts.project_domain_id)
+if project_domain_id:
+    auth_params["project_domain_id"] = project_domain_id
+
+
+auth = identity.Password(os.environ.get("OS_AUTH_URL", opts.auth_url),
+                         **auth_params)
 try:
     sess = session.Session(auth=auth)
     nc = client.Client(session=sess)

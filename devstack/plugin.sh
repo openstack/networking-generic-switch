@@ -12,6 +12,10 @@ GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
 GENERIC_SWITCH_TEST_BRIDGE="genericswitch"
 GENERIC_SWITCH_TEST_PORT="gs_port_01"
 
+# REMOVE ME! for testing on ironic gates until project config change is merged
+Q_PLUGIN_EXTRA_CONF_PATH=
+Q_PLUGIN_EXTRA_CONF_FILES=
+
 function install_generic_switch {
     setup_develop $GENERIC_SWITCH_DIR
 }
@@ -67,6 +71,9 @@ function configure_generic_switch {
             add_generic_switch_to_ml2_config $section $GENERIC_SWITCH_KEY_FILE $STACK_USER $node netmiko_ovs_linux "$GENERIC_SWITCH_SSH_PORT"
         done
     fi
+
+    neutron_server_config_add $GENERIC_SWITCH_INI_FILE
+
 }
 
 function add_generic_switch_to_ml2_config {
