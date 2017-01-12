@@ -12,10 +12,6 @@ GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
 GENERIC_SWITCH_TEST_BRIDGE="genericswitch"
 GENERIC_SWITCH_TEST_PORT="gs_port_01"
 
-# REMOVE ME! for testing on ironic gates until project config change is merged
-Q_PLUGIN_EXTRA_CONF_PATH=
-Q_PLUGIN_EXTRA_CONF_FILES=
-
 function install_generic_switch {
     setup_develop $GENERIC_SWITCH_DIR
 }
