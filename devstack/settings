@@ -1,2 +1,6 @@
 # settings file for generic_switch
 enable_service generic_switch
+
+# Needed for stable branches
+Q_PLUGIN_EXTRA_CONF_PATH=/etc/neutron/plugins/ml2
+Q_PLUGIN_EXTRA_CONF_FILES['networking-generic-switch']=ml2_conf_genericswitch.ini
