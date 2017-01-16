@@ -2,9 +2,12 @@
 Contributing to Networking-generic-switch
 #########################################
 
-If you're interested in contributing to the GenericSwitch project,
-the following will help get you started.
+If you would like to contribute to the development of GenericSwitch project, you must follow the
+general OpenStack community procedures documented at:
 
+   http://docs.openstack.org/infra/manual/developers.html#development-workflow
+
+Pull requests submitted through GitHub will be ignored.
 
 Contributor License Agreement
 =============================
