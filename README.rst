@@ -97,6 +97,14 @@ for the Dell device::
     password = password
     secret = secret
 
+for the Brocade FastIron (ICX) device::
+    [genericswitch:hostname-for-fast-iron]
+    device_type = netmiko_brocade_fastiron
+    ip = <switch mgmt ip address>
+    username = admin
+    password = password
+
+
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
