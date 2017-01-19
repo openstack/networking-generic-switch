@@ -14,8 +14,8 @@
 
 from neutron.callbacks import resources
 from neutron.db import provisioning_blocks
-from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api
+from neutron_lib.api.definitions import portbindings
 from oslo_log import log as logging
 
 from networking_generic_switch import config as gsw_conf
