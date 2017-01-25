@@ -12,7 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+from neutron.callbacks import resources
+from neutron.db import provisioning_blocks
 from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api
 from oslo_log import log as logging
@@ -22,6 +23,8 @@ from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
 
 LOG = logging.getLogger(__name__)
+
+GENERIC_SWITCH_ENTITY = 'GENERICSWITCH'
 
 
 class GenericSwitchDriver(driver_api.MechanismDriver):
@@ -310,7 +313,21 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         state. It is up to the mechanism driver to ignore state or
         state changes that it does not know or care about.
         """
-        pass
+        port = context.current
+        vnic_type = port['binding:vnic_type']
+        if (vnic_type == 'baremetal' and
+                port[portbindings.VIF_TYPE] == portbindings.VIF_TYPE_OTHER):
+            binding_profile = port['binding:profile']
+            local_link_information = binding_profile.get(
+                'local_link_information')
+            if not local_link_information:
+                return
+            switch_info = local_link_information[0].get('switch_info')
+            if switch_info not in self.switches:
+                return
+            provisioning_blocks.provisioning_complete(
+                context._plugin_context, port['id'], resources.PORT,
+                GENERIC_SWITCH_ENTITY)
 
     def delete_port_precommit(self, context):
         """Delete resources of a port.
@@ -414,6 +431,9 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             # If segmentation ID is None, set vlan 1
             if not segmentation_id:
                 segmentation_id = '1'
+            provisioning_blocks.add_provisioning_component(
+                context._plugin_context, port['id'], resources.PORT,
+                GENERIC_SWITCH_ENTITY)
             LOG.debug("Putting port {port} on {switch_info} to vlan: "
                       "{segmentation_id}".format(
                           port=port_id,
