@@ -16,6 +16,7 @@ import netifaces
 
 from tempest.api.network import base as net_base
 from tempest import config
+from tempest.lib import decorators
 from tempest.lib import exceptions
 from tempest import test
 from tempest_plugin.tests.common import ovs_lib
@@ -96,7 +97,7 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
             tag = None
         return tag
 
-    @test.idempotent_id('59cb81a5-3fd5-4ad3-8c4a-c0b27435cb9c')
+    @decorators.idempotent_id('59cb81a5-3fd5-4ad3-8c4a-c0b27435cb9c')
     @test.services('network')
     def test_ngs_basic_ops(self):
         port = self.create_neutron_port()
