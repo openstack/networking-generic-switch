@@ -430,7 +430,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             segmentation_id = segments[0].get('segmentation_id')
             # If segmentation ID is None, set vlan 1
             if not segmentation_id:
-                segmentation_id = '1'
+                segmentation_id = 1
             provisioning_blocks.add_provisioning_component(
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
