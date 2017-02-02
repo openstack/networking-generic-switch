@@ -26,12 +26,12 @@ elif [ -x $ZUUL_CLONER ]; then
         --cache-dir /opt/git \
         --workspace /tmp \
         --branch $BRANCH_NAME \
-        git://git.openstack.org openstack/neutron
+        https://git.openstack.org openstack/neutron
     cd /tmp/openstack/neutron
     $install_cmd -e .
 else
     if [ -z "$NEUTRON_PIP_LOCATION" ]; then
-        NEUTRON_PIP_LOCATION="git+git://git.openstack.org/openstack/neutron@$BRANCH_NAME#egg=neutron"
+        NEUTRON_PIP_LOCATION="git+https://git.openstack.org/openstack/neutron@$BRANCH_NAME#egg=neutron"
     fi
     $install_cmd -U -e ${NEUTRON_PIP_LOCATION}
 fi
