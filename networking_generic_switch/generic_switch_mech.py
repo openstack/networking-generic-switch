@@ -43,6 +43,8 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             switch = devices.device_manager(device_cfg)
             self.switches[switch_info] = switch
         LOG.info(_LI('Devices %s have been loaded'), self.switches.keys())
+        if not self.switches:
+            LOG.error(_LE('No devices have been loaded'))
 
     def create_network_precommit(self, context):
         """Allocate resources for a new network.
