@@ -20,6 +20,7 @@ from neutron.callbacks import resources
 from neutron.db import provisioning_blocks
 from neutron.plugins.ml2 import driver_context
 
+from networking_generic_switch import exceptions
 from networking_generic_switch import generic_switch_mech as gsm
 
 
@@ -103,19 +104,42 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                         }
                                     ]
                                  },
-                                'binding:vnic_type': 'baremetal'}
+                                'binding:vnic_type': 'baremetal',
+                                'id': 'aaaa-bbbb-cccc'}
         mock_context.network = mock.Mock()
-        mock_context.network.current = {'provider:segmentation_id': 123}
-        mock_context.segments_to_bind = [
-            {
-                'segmentation_id': None,
-                'id': 123
-            }
-        ]
+        mock_context.network.current = {'provider:segmentation_id': 123,
+                                        'id': 'aaaa-bbbb-cccc'}
+        mock_context.segments_to_bind = [mock_context.network.current]
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.delete_port.assert_called_once_with(
             '2222', 123)
+
+    def test_delete_port_postcommit_failure(self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        self.switch_mock.delete_port.side_effect = \
+            exceptions.GenericSwitchNetmikoMethodError()
+        mock_context.current = {'binding:profile':
+                                {'local_link_information':
+                                    [
+                                        {
+                                            'switch_info': 'foo',
+                                            'port_id': '2222'
+                                        }
+                                    ]
+                                 },
+                                'binding:vnic_type': 'baremetal',
+                                'id': 'aaaa-bbbb-cccc'}
+        mock_context.network = mock.Mock()
+        mock_context.network.current = {'provider:segmentation_id': 123,
+                                        'id': 'aaaa-bbbb-cccc'}
+        mock_context.segments_to_bind = [mock_context.network.current]
+
+        self.assertRaises(exceptions.GenericSwitchNetmikoMethodError,
+                          driver.delete_port_postcommit,
+                          mock_context)
 
     def test_delete_port_potcommit_unknown_switch(self, m_list):
         driver = gsm.GenericSwitchDriver()

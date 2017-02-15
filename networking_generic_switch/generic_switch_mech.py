@@ -78,15 +78,18 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
 
         if provider_type == 'vlan' and segmentation_id:
             # Create vlan on all switches from this driver
-            for switch in self.switches.values():
+            for switch_name, switch in self.switches.items():
                 try:
                     switch.add_network(segmentation_id, network_id)
                 except Exception as e:
                     LOG.error(_LE("Failed to create network %(net_id)s "
                                   "on device: %(switch)s, reason: %(exc)s"),
                               {'net_id': network_id,
-                               'switch': switch.config['ip'],
+                               'switch': switch_name,
                                'exc': e})
+                LOG.info(_LI('Network %(net_id)s has been added on device '
+                             '%(device)s'), {'net_id': network['id'],
+                                             'device': switch_name})
 
     def update_network_precommit(self, context):
         """Update resources of a network.
@@ -156,15 +159,18 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
 
         if provider_type == 'vlan' and segmentation_id:
             # Delete vlan on all switches from this driver
-            for switch in self.switches.values():
+            for switch_name, switch in self.switches.items():
                 try:
                     switch.del_network(segmentation_id)
                 except Exception as e:
                     LOG.error(_LE("Failed to delete network %(net_id)s "
                                   "on device: %(switch)s, reason: %(exc)s"),
                               {'net_id': network['id'],
-                               'switch': switch.config['ip'],
+                               'switch': switch_name,
                                'exc': e})
+                LOG.info(_LI('Network %(net_id)s has been deleted on device '
+                             '%(device)s'), {'net_id': network['id'],
+                                             'device': switch_name})
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.
@@ -366,16 +372,26 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                 return
             port_id = local_link_information[0].get('port_id')
             network = context.network.current
-            segmentation_id = network['provider:segmentation_id']
-            # If segmentation ID is None, set vlan 1
-            if not segmentation_id:
-                segmentation_id = '1'
+            segmentation_id = network.get('provider:segmentation_id', '1')
             LOG.debug("Deleting port {port} on {switch_info} from vlan: "
                       "{segmentation_id}".format(
                           port=port_id,
                           switch_info=switch_info,
                           segmentation_id=segmentation_id))
-            self.switches[switch_info].delete_port(port_id, segmentation_id)
+            try:
+                self.switches[switch_info].delete_port(port_id,
+                                                       segmentation_id)
+            except Exception as e:
+                LOG.error(_LE("Failed to delete port %(port_id)s "
+                              "on device: %(switch)s from network %(net_id)s "
+                              "reason: %(exc)s"),
+                          {'port_id': port['id'], 'net_id': network['id'],
+                           'switch': switch_info, 'exc': e})
+                raise e
+            LOG.info(_LI('Port %(port_id)s has been deleted from network '
+                         ' %(net_id)s on device %(device)s'),
+                     {'port_id': port['id'], 'net_id': network['id'],
+                      'device': switch_info})
 
     def bind_port(self, context):
         """Attempt to bind a port.
@@ -444,5 +460,9 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             # Move port to network
             self.switches[switch_info].plug_port_to_network(port_id,
                                                             segmentation_id)
+            LOG.info(_LI("Successfully bound port %(port_id)s in segment "
+                         " %(segment_id)s on device %(device)s"),
+                     {'port_id': port['id'], 'device': switch_info,
+                      'segment_id': segmentation_id})
             context.set_binding(segments[0][driver_api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
