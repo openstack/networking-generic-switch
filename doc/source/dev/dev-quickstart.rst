@@ -4,7 +4,7 @@
 Developer Quick-Start
 =====================
 
-This is a quick walkthrough to get you started developing code for
+This is a quick walk through to get you started developing code for
 Networking-generic-switch. This assumes you are already familiar with
 submitting code reviews to an OpenStack project.
 
@@ -51,8 +51,6 @@ Networking-generic-switch. Here is and example of local.conf::
     enable_plugin networking-generic-switch https://review.openstack.org/openstack/networking-generic-switch
 
     # Configure Neutron
-    Q_PLUGIN_EXTRA_CONF_PATH=/etc/neutron/plugins/ml2
-    Q_PLUGIN_EXTRA_CONF_FILES['networking-generic-switch']=ml2_conf_genericswitch.ini
     OVS_PHYSICAL_BRIDGE=brbm
     PHYSICAL_NETWORK=mynetwork
     Q_PLUGIN=ml2
