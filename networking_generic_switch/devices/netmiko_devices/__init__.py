@@ -12,9 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import uuid
+
 import netmiko
 from oslo_log import log as logging
-import uuid
 
 from networking_generic_switch._i18n import _, _LI
 from networking_generic_switch import devices
