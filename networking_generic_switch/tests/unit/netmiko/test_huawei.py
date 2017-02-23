@@ -25,29 +25,25 @@ class TestNetmikoHuawei(test_netmiko_base.NetmikoSwitchTestBase):
         return huawei.Huawei(device_cfg)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch._exec_commands')
+                'NetmikoSwitch.send_commands_to_device')
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
-            ('vlan {segmentation_id}',),
-            network_id='0ae071f55be943e480eae41fefe85b21',
-            segmentation_id=33)
+            ['vlan 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch._exec_commands')
+                'NetmikoSwitch.send_commands_to_device')
     def test_del_network(self, mock_exec):
         self.switch.del_network(33)
         mock_exec.assert_called_with(
-            ('undo vlan {segmentation_id}',),
-            segmentation_id=33)
+            ['undo vlan 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch._exec_commands')
+                'NetmikoSwitch.send_commands_to_device')
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
-            ('interface {port}', 'port default vlan {segmentation_id}'),
-            port=3333, segmentation_id=33)
+            ['interface 3333', 'port default vlan 33'])
 
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(

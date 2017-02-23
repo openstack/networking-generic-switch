@@ -29,45 +29,42 @@ class NetmikoSwitchTestBase(unittest.TestCase):
             netmiko_devices.netmiko, 'platforms', new=['base'])
         patcher.start()
         self.addCleanup(patcher.stop)
-        device_cfg = {'device_type': 'netmiko_base'}
+        device_cfg = {'device_type': 'netmiko_base',
+                      'ip': 'host'}
         return netmiko_devices.NetmikoSwitch(device_cfg)
 
 
 class TestNetmikoSwitch(NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch._exec_commands')
-    def test_add_network(self, m_exec):
+                'NetmikoSwitch.send_commands_to_device')
+    def test_add_network(self, m_sctd):
         self.switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_exec.assert_called_with(
-            None, network_id='0ae071f55be943e480eae41fefe85b21',
-            segmentation_id=22)
+        m_sctd.assert_called_with(None)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch._exec_commands')
-    def test_del_network(self, m_exec):
+                'NetmikoSwitch.send_commands_to_device')
+    def test_del_network(self, m_sctd):
         self.switch.del_network(22)
-        m_exec.assert_called_with(None, segmentation_id=22)
+        m_sctd.assert_called_with(None)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch._exec_commands')
-    def test_plug_port_to_network(self, m_exec):
+                'NetmikoSwitch.send_commands_to_device')
+    def test_plug_port_to_network(self, m_sctd):
         self.switch.plug_port_to_network(2222, 22)
-        m_exec.assert_called_with(None, port=2222, segmentation_id=22)
+        m_sctd.assert_called_with(None)
 
     def test__format_commands(self):
-        self.assertRaises(
-            netmiko_devices.GenericSwitchNetmikoMethodError,
-            self.switch._format_commands,
+        self.switch._format_commands(
             netmiko_devices.NetmikoSwitch.ADD_NETWORK,
-            segmentation_id=22,
-            network_id=22)
+            segmentation_id=22, network_id=22)
 
     @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
-    def test__exec_commands(self, nm_mock):
+    def test_send_commands_to_device(self, nm_mock):
         connect_mock = mock.Mock()
         nm_mock.return_value = connect_mock
-        self.switch._exec_commands(['spam ham {eggs}'], eggs='vikings')
-        nm_mock.assert_called_once_with(device_type='base')
+        self.switch.send_commands_to_device(['spam ham aaaa'])
+        nm_mock.assert_called_once_with(device_type='base',
+                                        ip='host')
         connect_mock.send_config_set.assert_called_once_with(
-            config_commands=['spam ham vikings'])
+            config_commands=['spam ham aaaa'])

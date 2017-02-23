@@ -23,3 +23,15 @@ class GenericSwitchException(exceptions.NeutronException):
 
 class GenericSwitchEntrypointLoadError(GenericSwitchException):
     message = _("Failed to load entrypoint %(ep)s: %(err)s")
+
+
+class GenericSwitchNetmikoMethodError(GenericSwitchException):
+    message = _("Can not parse arguments: commands %(cmds)s, args %(args)s")
+
+
+class GenericSwitchNetmikoNotSupported(GenericSwitchException):
+    message = _("Netmiko does not support device type %(device_type)s")
+
+
+class GenericSwitchNetmikoConnectError(GenericSwitchException):
+    message = _("Netmiko connection error: %(config)s, error: %(error)s")

@@ -27,10 +27,13 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
 
         PLUG_PORT_TO_NETWORK = (
             'interface {port}',
+            'switchport mode access',
             'switchport access vlan {segmentation_id}',
         )
 
         DELETE_PORT = (
             'interface {port}',
-            'no switchport access vlan {segmentation_id}'
+            'no switchport access vlan {segmentation_id}',
+            'no switchport mode trunk',
+            'switchport trunk allowed vlan none'
         )

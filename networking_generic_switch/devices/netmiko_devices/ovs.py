@@ -18,9 +18,12 @@ from networking_generic_switch.devices import netmiko_devices
 class OvsLinux(netmiko_devices.NetmikoSwitch):
 
         PLUG_PORT_TO_NETWORK = (
+            'ovs-vsctl set port {port} vlan_mode=access',
             'ovs-vsctl set port {port} tag={segmentation_id}',
         )
 
         DELETE_PORT = (
             'ovs-vsctl clear port {port} tag',
+            'ovs-vsctl clear port {port} trunks',
+            'ovs-vsctl clear port {port} vlan_mode'
         )
