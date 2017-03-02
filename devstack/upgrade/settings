@@ -1,7 +1,5 @@
 register_project_for_upgrade networking-generic-switch
 
-devstack_localrc base enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch
 devstack_localrc base enable_service generic_switch
 
-devstack_localrc target enable_plugin networking-generic-switch https://git.openstack.org/openstack/networking-generic-switch
 devstack_localrc target enable_service generic_switch
