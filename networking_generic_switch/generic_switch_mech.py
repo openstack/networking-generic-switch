@@ -18,7 +18,6 @@ from neutron.extensions import portbindings
 from neutron.plugins.ml2 import driver_api
 from oslo_log import log as logging
 
-from networking_generic_switch._i18n import _LI, _LE
 from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
 
@@ -42,9 +41,9 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         for switch_info, device_cfg in gsw_devices.items():
             switch = devices.device_manager(device_cfg)
             self.switches[switch_info] = switch
-        LOG.info(_LI('Devices %s have been loaded'), self.switches.keys())
+        LOG.info('Devices %s have been loaded', self.switches.keys())
         if not self.switches:
-            LOG.error(_LE('No devices have been loaded'))
+            LOG.error('No devices have been loaded')
 
     def create_network_precommit(self, context):
         """Allocate resources for a new network.
@@ -82,14 +81,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                 try:
                     switch.add_network(segmentation_id, network_id)
                 except Exception as e:
-                    LOG.error(_LE("Failed to create network %(net_id)s "
-                                  "on device: %(switch)s, reason: %(exc)s"),
+                    LOG.error("Failed to create network %(net_id)s "
+                              "on device: %(switch)s, reason: %(exc)s",
                               {'net_id': network_id,
                                'switch': switch_name,
                                'exc': e})
-                LOG.info(_LI('Network %(net_id)s has been added on device '
-                             '%(device)s'), {'net_id': network['id'],
-                                             'device': switch_name})
+                LOG.info('Network %(net_id)s has been added on device '
+                         '%(device)s', {'net_id': network['id'],
+                                        'device': switch_name})
 
     def update_network_precommit(self, context):
         """Update resources of a network.
@@ -163,14 +162,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                 try:
                     switch.del_network(segmentation_id)
                 except Exception as e:
-                    LOG.error(_LE("Failed to delete network %(net_id)s "
-                                  "on device: %(switch)s, reason: %(exc)s"),
+                    LOG.error("Failed to delete network %(net_id)s "
+                              "on device: %(switch)s, reason: %(exc)s",
                               {'net_id': network['id'],
                                'switch': switch_name,
                                'exc': e})
-                LOG.info(_LI('Network %(net_id)s has been deleted on device '
-                             '%(device)s'), {'net_id': network['id'],
-                                             'device': switch_name})
+                LOG.info('Network %(net_id)s has been deleted on device '
+                         '%(device)s', {'net_id': network['id'],
+                                        'device': switch_name})
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.
@@ -382,14 +381,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                 self.switches[switch_info].delete_port(port_id,
                                                        segmentation_id)
             except Exception as e:
-                LOG.error(_LE("Failed to delete port %(port_id)s "
-                              "on device: %(switch)s from network %(net_id)s "
-                              "reason: %(exc)s"),
+                LOG.error("Failed to delete port %(port_id)s "
+                          "on device: %(switch)s from network %(net_id)s "
+                          "reason: %(exc)s",
                           {'port_id': port['id'], 'net_id': network['id'],
                            'switch': switch_info, 'exc': e})
                 raise e
-            LOG.info(_LI('Port %(port_id)s has been deleted from network '
-                         ' %(net_id)s on device %(device)s'),
+            LOG.info('Port %(port_id)s has been deleted from network '
+                     ' %(net_id)s on device %(device)s',
                      {'port_id': port['id'], 'net_id': network['id'],
                       'device': switch_info})
 
@@ -460,8 +459,8 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             # Move port to network
             self.switches[switch_info].plug_port_to_network(port_id,
                                                             segmentation_id)
-            LOG.info(_LI("Successfully bound port %(port_id)s in segment "
-                         " %(segment_id)s on device %(device)s"),
+            LOG.info("Successfully bound port %(port_id)s in segment "
+                     " %(segment_id)s on device %(device)s",
                      {'port_id': port['id'], 'device': switch_info,
                       'segment_id': segmentation_id})
             context.set_binding(segments[0][driver_api.ID],

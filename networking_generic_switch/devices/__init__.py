@@ -18,7 +18,6 @@ from oslo_log import log as logging
 import six
 import stevedore
 
-from networking_generic_switch._i18n import _LE
 from networking_generic_switch import exceptions as gsw_exc
 
 
@@ -44,8 +43,8 @@ def device_manager(device_cfg):
 
 
 def _load_failure_hook(manager, entrypoint, exception):
-    LOG.error(_LE("Driver manager %(manager)s failed to load device plugin "
-                  "%(entrypoint)s: %(exp)s"),
+    LOG.error("Driver manager %(manager)s failed to load device plugin "
+              "%(entrypoint)s: %(exp)s",
               {'manager': manager, 'entrypoint': entrypoint, 'exp': exception})
     raise gsw_exc.GenericSwitchEntrypointLoadError(
         ep=entrypoint,
