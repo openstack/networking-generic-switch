@@ -46,7 +46,8 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
             raise cls.skipException('Networking Generic Switch is required.')
 
     def get_local_port_mac(self, bridge_name):
-        mac_address = netifaces.ifaddresses(bridge_name).get('addr')
+        mac_address = netifaces.ifaddresses(
+            bridge_name)[netifaces.AF_LINK][0].get('addr')
         return mac_address
 
     def cleanup_port(self, port_id):
@@ -56,7 +57,7 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
         except exceptions.NotFound:
             pass
 
-    def create_neutron_port(self):
+    def create_neutron_port(self, llc=None):
         net_id = self.admin_networks_client.list_networks(
             name=CONF.ngs.network_name
         )['networks'][0]['id']
@@ -67,6 +68,11 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
             agent_type='Open vSwitch agent'
         )['agents'][0]['host']
 
+        if llc is None:
+            llc = [{'switch_info': CONF.ngs.bridge_name,
+                    'switch_id': self.get_local_port_mac(CONF.ngs.bridge_name),
+                    'port_id': CONF.ngs.port_name}]
+
         update_args = {
             'device_owner': 'baremetal:none',
             'device_id': 'fake-instance-uuid',
@@ -74,13 +80,7 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
             'binding:vnic_type': 'baremetal',
             'binding:host_id': host,
             'binding:profile': {
-                'local_link_information': [{
-                    'switch_info': CONF.ngs.bridge_name,
-                    'switch_id': self.get_local_port_mac(
-                                 CONF.ngs.bridge_name
-                        ),
-                    'port_id': CONF.ngs.port_name}
-                    ]
+                'local_link_information': llc
             }
         }
         self.admin_ports_client.update_port(
@@ -101,6 +101,23 @@ class NGSBasicOps(net_base.BaseAdminNetworkTest):
     @test.services('network')
     def test_ngs_basic_ops(self):
         port = self.create_neutron_port()
+        net_tag = self.admin_networks_client.list_networks(
+            name=CONF.ngs.network_name
+            )['networks'][0]['provider:segmentation_id']
+        ovs_tag = self.ovs_get_tag()
+        self.assertEqual(net_tag, ovs_tag)
+
+        # Ensure that tag is removed when port is deleted
+        self.admin_ports_client.delete_port(port['id'])
+        ovs_tag = self.ovs_get_tag()
+        self.assertIsNone(ovs_tag)
+
+    @decorators.idempotent_id('282a513d-cc01-486c-aa12-1c45f7b6e5a8')
+    @test.services('network')
+    def test_ngs_basic_ops_switch_id(self):
+        llc = [{'switch_id': self.get_local_port_mac(CONF.ngs.bridge_name),
+                'port_id': CONF.ngs.port_name}]
+        port = self.create_neutron_port(llc=llc)
         net_tag = self.admin_networks_client.list_networks(
             name=CONF.ngs.network_name
             )['networks'][0]['provider:segmentation_id']

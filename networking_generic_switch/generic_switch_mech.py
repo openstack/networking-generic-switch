@@ -20,6 +20,7 @@ from oslo_log import log as logging
 
 from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
+from networking_generic_switch.devices import utils as device_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -330,7 +331,11 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             if not local_link_information:
                 return
             switch_info = local_link_information[0].get('switch_info')
-            if switch_info not in self.switches:
+            switch_id = local_link_information[0].get('switch_id')
+            switch = device_utils.get_switch_device(
+                self.switches, switch_info=switch_info,
+                ngs_mac_address=switch_id)
+            if not switch:
                 return
             provisioning_blocks.provisioning_complete(
                 context._plugin_context, port['id'], resources.PORT,
@@ -367,7 +372,11 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         vnic_type = port['binding:vnic_type']
         if vnic_type == 'baremetal' and local_link_information:
             switch_info = local_link_information[0].get('switch_info')
-            if switch_info not in self.switches:
+            switch_id = local_link_information[0].get('switch_id')
+            switch = device_utils.get_switch_device(
+                self.switches, switch_info=switch_info,
+                ngs_mac_address=switch_id)
+            if not switch:
                 return
             port_id = local_link_information[0].get('port_id')
             network = context.network.current
@@ -378,8 +387,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                           switch_info=switch_info,
                           segmentation_id=segmentation_id))
             try:
-                self.switches[switch_info].delete_port(port_id,
-                                                       segmentation_id)
+                switch.delete_port(port_id, segmentation_id)
             except Exception as e:
                 LOG.error("Failed to delete port %(port_id)s "
                           "on device: %(switch)s from network %(net_id)s "
@@ -440,7 +448,11 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         vnic_type = port['binding:vnic_type']
         if vnic_type == 'baremetal' and local_link_information:
             switch_info = local_link_information[0].get('switch_info')
-            if switch_info not in self.switches:
+            switch_id = local_link_information[0].get('switch_id')
+            switch = device_utils.get_switch_device(
+                self.switches, switch_info=switch_info,
+                ngs_mac_address=switch_id)
+            if not switch:
                 return
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
@@ -457,8 +469,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                           switch_info=switch_info,
                           segmentation_id=segmentation_id))
             # Move port to network
-            self.switches[switch_info].plug_port_to_network(port_id,
-                                                            segmentation_id)
+            switch.plug_port_to_network(port_id, segmentation_id)
             LOG.info("Successfully bound port %(port_id)s in segment "
                      " %(segment_id)s on device %(device)s",
                      {'port_id': port['id'], 'device': switch_info,

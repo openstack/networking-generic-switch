@@ -7,7 +7,7 @@ GENERIC_SWITCH_TEST_PORT_NAME=${GENERIC_SWITCH_PORT_NAME:-p_01}
 NEUTRON_GENERIC_SWITCH_TEST_PORT_NAME=generic_switch_test
 
 function clear_resources {
-    sudo ovs-vsctl --if-exists del-br $GENERIC_SWITCH_TEST_BRIDGE
+    sudo ovs-vsctl --if-exists del-port $GENERIC_SWITCH_TEST_PORT_NAME
     if neutron port-show $NEUTRON_GENERIC_SWITCH_TEST_PORT_NAME; then
         neutron port-delete $NEUTRON_GENERIC_SWITCH_TEST_PORT_NAME
     fi
@@ -36,8 +36,6 @@ function wait_for_openvswitch_agent {
 
 clear_resources
 
-# create bridge with its default port and remember and clear tag on that port
-sudo ovs-vsctl add-br $GENERIC_SWITCH_TEST_BRIDGE
 sudo ovs-vsctl add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT_NAME
 sudo ovs-vsctl clear port $GENERIC_SWITCH_TEST_PORT_NAME tag
 

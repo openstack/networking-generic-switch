@@ -61,7 +61,7 @@ class TestDeviceManager(unittest.TestCase):
         device_cfg = {"device_type": 'netmiko_ovs_linux'}
         device = devices.device_manager(device_cfg)
         self.assertIsInstance(device, devices.GenericSwitchDevice)
-        self.assertEqual(device.config, device_cfg)
+        self.assertEqual({'device_type': 'ovs_linux'}, device.config)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.__init__')
@@ -82,3 +82,12 @@ class TestDeviceManager(unittest.TestCase):
             device = devices.device_manager(device_cfg)
         self.assertIn("fake_device", ex.exception.msg)
         self.assertIsNone(device)
+
+    def test_driver_ngs_config(self):
+        device_cfg = {"device_type": 'netmiko_ovs_linux',
+                      "ngs_mac_address": 'aa:bb:cc:dd:ee:ff'}
+        device = devices.device_manager(device_cfg)
+        self.assertIsInstance(device, devices.GenericSwitchDevice)
+        self.assertNotIn('ngs_mac_address', device.config)
+        self.assertEqual('aa:bb:cc:dd:ee:ff',
+                         device.ngs_config['ngs_mac_address'])

@@ -49,10 +49,16 @@ function configure_generic_switch {
     # Generate SSH keypair
     configure_generic_switch_ssh_keypair
 
+    sudo ovs-vsctl --may-exist add-br $GENERIC_SWITCH_TEST_BRIDGE
+    ip link show gs_port_01 || sudo ip link add gs_port_01 type dummy
+    sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT
+
     # Create generic_switch ml2 config
     for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
+        local bridge_mac
+        bridge_mac=$(ip link show dev $switch | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
         switch="genericswitch:$switch"
-        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $STACK_USER localhost netmiko_ovs_linux "$GENERIC_SWITCH_SSH_PORT"
+        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $STACK_USER localhost netmiko_ovs_linux "$GENERIC_SWITCH_SSH_PORT" "$bridge_mac"
     done
     echo "HOST_TOPOLOGY: $HOST_TOPOLOGY"
     echo "HOST_TOPOLOGY_SUBNODES: $HOST_TOPOLOGY_SUBNODES"
@@ -79,6 +85,7 @@ function add_generic_switch_to_ml2_config {
     local ip=$4
     local device_type=$5
     local port=$6
+    local ngs_mac_address=$7
 
     populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name key_file=$key_file
     populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name username=$username
@@ -86,6 +93,9 @@ function add_generic_switch_to_ml2_config {
     populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name device_type=$device_type
     if [[ -n "$port" ]]; then
         populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name port=$port
+    fi
+    if [[ -n $ngs_mac_address ]]; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name ngs_mac_address=$ngs_mac_address
     fi
 }
 
@@ -104,10 +114,6 @@ function cleanup_networking_generic_switch {
 }
 
 function ngs_configure_tempest {
-    sudo ovs-vsctl --may-exist add-br $GENERIC_SWITCH_TEST_BRIDGE
-    ip link show gs_port_01 || sudo ip link add gs_port_01 type dummy
-    sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT
-
     iniset $TEMPEST_CONFIG service_available ngs True
     iniset $TEMPEST_CONFIG ngs bridge_name $GENERIC_SWITCH_TEST_BRIDGE
     iniset $TEMPEST_CONFIG ngs port_name $GENERIC_SWITCH_TEST_PORT

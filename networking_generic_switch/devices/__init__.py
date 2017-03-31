@@ -20,9 +20,11 @@ import stevedore
 
 from networking_generic_switch import exceptions as gsw_exc
 
-
 GENERIC_SWITCH_NAMESPACE = 'generic_switch.devices'
 LOG = logging.getLogger(__name__)
+
+# Internal ngs options will not be passed to driver.
+NGS_INTERNAL_OPTS = ['ngs_mac_address']
 
 
 def device_manager(device_cfg):
@@ -55,6 +57,12 @@ def _load_failure_hook(manager, entrypoint, exception):
 class GenericSwitchDevice(object):
 
     def __init__(self, device_cfg):
+        self.ngs_config = {}
+        self.config = {}
+        # Do not expose NGS internal options to device config.
+        for opt in NGS_INTERNAL_OPTS:
+            if opt in device_cfg.keys():
+                self.ngs_config[opt] = device_cfg.pop(opt)
         self.config = device_cfg
 
     @abc.abstractmethod
