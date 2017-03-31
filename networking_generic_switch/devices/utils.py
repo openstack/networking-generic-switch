@@ -18,7 +18,8 @@ def get_switch_device(switches, switch_info=None,
     """Return switch device by specified identifier.
 
     Returns switch device from switches array that matched with any of
-    passed identifiers. ngs_mac_address takes precedence over switch_info.
+    passed identifiers. ngs_mac_address takes precedence over switch_info,
+    if didn't match any address based on mac fallback to switch_info.
 
     :param switch_info: hostname of the switch or any other switch identifier.
     :param ngs_mac_address: Normalized mac address of the switch.
@@ -26,9 +27,9 @@ def get_switch_device(switches, switch_info=None,
     """
 
     if ngs_mac_address:
-        for switch_info, switch in switches.items():
+        for sw_info, switch in switches.items():
             mac_address = switch.ngs_config.get('ngs_mac_address')
             if mac_address and mac_address == ngs_mac_address:
                 return switch
-    elif switch_info:
+    if switch_info:
         return switches.get(switch_info)

@@ -47,3 +47,8 @@ class TestDevices(unittest.TestCase):
             self.devices, switch_info='C'))
         self.assertIsNone(device_utils.get_switch_device(
             self.devices, ngs_mac_address='11:22:33:44:55:66'))
+
+    def test_get_switch_device_fallback_to_switch_info(self):
+        self.assertEqual(self.devices['A'], device_utils.get_switch_device(
+            self.devices, switch_info='A',
+            ngs_mac_address='11:22:33:44:55:77'))
