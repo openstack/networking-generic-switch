@@ -98,6 +98,7 @@ for the Dell device::
     secret = secret
 
 for the Brocade FastIron (ICX) device::
+
     [genericswitch:hostname-for-fast-iron]
     device_type = netmiko_brocade_fastiron
     ip = <switch mgmt ip address>
