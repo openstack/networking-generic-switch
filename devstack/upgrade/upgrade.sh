@@ -61,7 +61,7 @@ fi
 set -o xtrace
 
 
-stack_install_service networking-generic-switch
+stack_install_service generic_switch
 
 # calls upgrade-networking-generic-switch for specific release
 upgrade_project networking-generic-switch $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
