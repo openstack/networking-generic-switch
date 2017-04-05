@@ -13,26 +13,43 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_log import log as logging
+
+CONF = cfg.CONF
+LOG = logging.getLogger(__name__)
 
 
+# NOTE(pas-ha) as this was a public method before (why, og why..)
+# we can not simply drop it without proper deprecation
+# TODO(pas-ha) remove n Queens
 def get_config():
-    CONF = cfg.CONF
+    LOG.warning("Usage of networking_generic_switch.config.get_config method "
+                "is deprecated and this method will be removed after the Pike "
+                "release or any time earlier if MultiConfigParser is removed "
+                "from oslo_config. Use get_devices method directly.")
     multi_parser = cfg.MultiConfigParser()
     multi_parser.read(CONF.config_file)
-
     return multi_parser.parsed
 
 
 def get_devices():
+    """Parse supplied config files and fetch defined supported devices."""
 
     device_tag = 'genericswitch:'
     devices = {}
 
-    for parsed_file in get_config():
-        for parsed_item, parsed_value in parsed_file.items():
+    for filename in CONF.config_file:
+        sections = {}
+        parser = cfg.ConfigParser(filename, sections)
+        try:
+            parser.parse()
+        except IOError:
+            continue
+        for parsed_item, parsed_value in sections.items():
             if parsed_item.startswith(device_tag):
                 dev_id = parsed_item.partition(device_tag)[2]
                 device_cfg = {k: v[0] for k, v
                               in parsed_value.items()}
                 devices[dev_id] = device_cfg
+
     return devices
