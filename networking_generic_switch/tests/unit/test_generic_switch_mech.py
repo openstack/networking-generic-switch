@@ -119,8 +119,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
         mock_context = mock.create_autospec(driver_context.PortContext)
-        self.switch_mock.delete_port.side_effect = \
-            exceptions.GenericSwitchNetmikoMethodError()
+        self.switch_mock.delete_port.side_effect = (
+            exceptions.GenericSwitchNetmikoMethodError(cmds='foo',
+                                                       args='bar'))
         mock_context.current = {'binding:profile':
                                 {'local_link_information':
                                     [
