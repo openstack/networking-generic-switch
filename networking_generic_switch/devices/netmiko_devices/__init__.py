@@ -62,13 +62,12 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             return
 
         try:
-            net_connect = netmiko.ConnectHandler(**self.config)
-            net_connect.enable()
-            output = net_connect.send_config_set(config_commands=cmd_set)
+            with netmiko.ConnectHandler(**self.config) as net_connect:
+                net_connect.enable()
+                output = net_connect.send_config_set(config_commands=cmd_set)
         except Exception as e:
             raise exc.GenericSwitchNetmikoConnectError(config=self.config,
                                                        error=e)
-
         LOG.debug(output)
 
     def add_network(self, segmentation_id, network_id):

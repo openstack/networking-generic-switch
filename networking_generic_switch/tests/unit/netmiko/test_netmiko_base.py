@@ -61,7 +61,8 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
 
     @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
     def test_send_commands_to_device(self, nm_mock):
-        connect_mock = mock.Mock()
+        connect_mock = mock.MagicMock()
+        connect_mock.__enter__.return_value = connect_mock
         nm_mock.return_value = connect_mock
         self.switch.send_commands_to_device(['spam ham aaaa'])
         nm_mock.assert_called_once_with(device_type='base',
