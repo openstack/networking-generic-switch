@@ -62,10 +62,12 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         cmd_set = self._format_commands(commands, **kwargs)
         try:
             net_connect = netmiko.ConnectHandler(**self.config)
+            net_connect.enable()
+            output = net_connect.send_config_set(config_commands=cmd_set)
         except Exception as e:
             raise GenericSwitchNetmikoConnectError(config=self.config, error=e)
-        net_connect.enable()
-        output = net_connect.send_config_set(config_commands=cmd_set)
+        finally:
+            net_connect.disconnect()
         LOG.debug(output)
 
     def _format_commands(self, commands, **kwargs):
