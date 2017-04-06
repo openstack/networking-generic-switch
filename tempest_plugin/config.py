@@ -35,6 +35,11 @@ NGSGroup = [
     cfg.StrOpt('port_name',
                default='gs_port_01',
                help='Port name to use.'),
+    cfg.IntOpt('port_dlm_concurrency',
+               default=0,
+               min=0,
+               help='Concurrency to run the DLM tests with. '
+                    'With default values DLM tests are skipped.'),
     cfg.StrOpt('network_name',
                default='private',
                help='Test network name to use.')

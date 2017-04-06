@@ -118,6 +118,13 @@ function configure_generic_switch {
     sudo ovs-vsctl --may-exist add-br $GENERIC_SWITCH_TEST_BRIDGE
     ip link show gs_port_01 || sudo ip link add gs_port_01 type dummy
     sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT
+    if [[ "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]]; then
+        # NOTE(pas-ha) these are used for concurrent tests in tempest plugin
+        N_PORTS=$(($GENERIC_SWITCH_USER_MAX_SESSIONS * 2))
+        for ((n=0;n<$N_PORTS;n++)); do
+            sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE ${GENERIC_SWITCH_TEST_PORT}_${n}
+        done
+    fi
 
     # Create generic_switch ml2 config
     for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
@@ -194,6 +201,9 @@ function ngs_configure_tempest {
     iniset $TEMPEST_CONFIG service_available ngs True
     iniset $TEMPEST_CONFIG ngs bridge_name $GENERIC_SWITCH_TEST_BRIDGE
     iniset $TEMPEST_CONFIG ngs port_name $GENERIC_SWITCH_TEST_PORT
+    if [ $GENERIC_SWITCH_USER_MAX_SESSIONS -gt 0 ]; then
+        iniset $TEMPEST_CONFIG ngs port_dlm_concurrency $(($GENERIC_SWITCH_USER_MAX_SESSIONS * 2))
+    fi
 }
 
 # check for service enabled
