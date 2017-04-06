@@ -22,6 +22,7 @@ and handling ``local_link_information`` field of Neutron port.
 Supported Devices
 =================
 
+* Cisco 300-series switches
 * Cisco IOS switches
 * Huawei switches
 * OpenVSwitch
@@ -61,6 +62,14 @@ Switch configuration format::
 
 Here is an example of
 ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``
+for the Cisco 300 series device::
+
+    [genericswitch:sw-hostname]
+    device_type = netmiko_cisco_s300
+    username = admin
+    password = password
+    ip = <switch mgmt ip address>
+
 for the Cisco IOS device::
 
     [genericswitch:sw-hostname]
