@@ -15,11 +15,10 @@
 
 import fixtures
 import mock
-
-from networking_generic_switch import config
-
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
+
+from networking_generic_switch import config
 
 CONF = cfg.CONF
 
