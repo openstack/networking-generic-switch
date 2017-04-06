@@ -18,4 +18,5 @@ flake8-import-order==0.11 # LGPLv3
 sphinx>=1.5.1 # BSD
 sphinxcontrib-pecanwsme>=0.8 # Apache-2.0
 sphinxcontrib-seqdiag # BSD
+os-testr>=0.8.0 # Apache-2.0
 oslosphinx>=4.7.0 # Apache-2.0
