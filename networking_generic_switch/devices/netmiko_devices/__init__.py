@@ -33,6 +33,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     DELETE_PORT = None
 
+    SAVE_CONFIGURATION = None
+
     def __init__(self, device_cfg):
         super(NetmikoSwitch, self).__init__(device_cfg)
         device_type = self.config.get('device_type', '')
@@ -65,6 +67,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             with netmiko.ConnectHandler(**self.config) as net_connect:
                 net_connect.enable()
                 output = net_connect.send_config_set(config_commands=cmd_set)
+                # NOTE (vsaienko) always save configuration when configuration
+                # is applied successfully.
+                if self.SAVE_CONFIGURATION:
+                    net_connect.send_command(self.SAVE_CONFIGURATION)
         except Exception as e:
             raise exc.GenericSwitchNetmikoConnectError(config=self.config,
                                                        error=e)

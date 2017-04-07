@@ -26,6 +26,9 @@ class TestNetmikoBrocadeFastIron(test_netmiko_base.NetmikoSwitchTestBase):
         device_cfg = {'device_type': 'netmiko_brocade_fastiron'}
         return brocade.BrocadeFastIron(device_cfg)
 
+    def test_constants(self):
+        self.assertIsNone(self.switch.SAVE_CONFIGURATION)
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
     def test_add_network(self, m_exec):

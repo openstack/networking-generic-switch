@@ -60,8 +60,17 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
             segmentation_id=22, network_id=22)
 
     @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
-    def test_send_commands_to_device(self, nm_mock):
+    def test_send_commands_to_device_empty(self, nm_mock):
         connect_mock = mock.MagicMock()
+        connect_mock.__enter__.return_value = connect_mock
+        nm_mock.return_value = connect_mock
+        self.assertIsNone(self.switch.send_commands_to_device([]))
+        self.assertFalse(connect_mock.send_config_set.called)
+        self.assertFalse(connect_mock.send_command.called)
+
+    @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
+    def test_send_commands_to_device(self, nm_mock):
+        connect_mock = mock.MagicMock(SAVE_CONFIGURATION=None)
         connect_mock.__enter__.return_value = connect_mock
         nm_mock.return_value = connect_mock
         self.switch.send_commands_to_device(['spam ham aaaa'])
@@ -69,3 +78,14 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                                         ip='host')
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'])
+        self.assertFalse(connect_mock.send_command.called)
+
+    @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
+    def test_send_commands_to_device_save_configuration(self, nm_mock):
+        connect_mock = mock.MagicMock(SAVE_CONFIGURAION='save me')
+        connect_mock.__enter__.return_value = connect_mock
+        nm_mock.return_value = connect_mock
+        self.switch.send_commands_to_device(['spam ham aaaa'])
+        connect_mock.send_config_set.assert_called_once_with(
+            config_commands=['spam ham aaaa'])
+        connect_mock.send_command.called_once_with('save me')
