@@ -12,52 +12,53 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 import fixtures
 import mock
-from oslo_config import cfg
 from oslo_config import fixture as config_fixture
+import six
 
 from networking_generic_switch import config
 
-CONF = cfg.CONF
+
+fake_config = """
+[genericswitch:foo]
+device_type = foo_device
+spam = eggs
+
+[genericswitch:bar]
+device_type = bar_device
+ham = vikings
+"""
 
 
 class TestConfig(fixtures.TestWithFixtures):
     def setUp(self):
         super(TestConfig, self).setUp()
-        CONF.reset()
-        CONF.config_file = 'The path'
-        self.cfg = self.useFixture(config_fixture.Config(CONF))
+        self.cfg = self.useFixture(config_fixture.Config())
+        self._patch_open()
+        self.cfg.conf(args=["--config-file=/some/config/path"])
+
+    def _patch_open(self):
+        m = mock.mock_open(read_data=fake_config)
+        # NOTE(pas-ha) mocks and iterators work differently in Py2 and Py3
+        # http://bugs.python.org/issue21258
+        if six.PY3:
+            m.return_value.__iter__ = lambda self: self
+            m.return_value.__next__ = lambda self: next(iter(self.readline,
+                                                             ''))
+        else:
+            m.return_value.__iter__ = lambda self: iter(self.readline, '')
+        patcher = mock.patch('oslo_config.cfg.open', m)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     @mock.patch('oslo_config.cfg.MultiConfigParser.read')
     def test_get_config(self, m_read):
         config.get_config()
-        m_read.assert_called_with('The path')
+        m_read.assert_called_with(["/some/config/path"])
 
-    @mock.patch('networking_generic_switch.config.get_config')
-    def test_get_devices(self, m_get_config):
-        # get_config array
-        m_get_config.return_value = [  # parsed_file dict
-            {  # parsed_item str
-                'genericswitch:foo':  # device_tag
-                {  # parsed_file[device].items() dict
-                    'device_type': ['foo_device'],  # {k: v[0] for k, v
-                    'spam': ['eggs']
-                },
-                'genericswitch:bar':  # device_tag
-                {  # parsed_file[device].items() dict
-                    'device_type': ['bar_device'],  # {k: v[0] for k, v
-                    'ham': ['vikings']
-                }
-            },
-            {
-                'other_driver:bar': {}
-            }
-
-        ]
+    def test_get_devices(self):
         device_list = config.get_devices()
-        m_get_config.assert_called_with()
         self.assertEqual(set(device_list), set(['foo', 'bar']))
         self.assertEqual({"device_type": "foo_device", "spam": "eggs"},
                          device_list['foo'])
