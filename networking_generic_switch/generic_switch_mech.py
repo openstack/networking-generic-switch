@@ -322,9 +322,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         state changes that it does not know or care about.
         """
         port = context.current
-        vnic_type = port['binding:vnic_type']
-        if (vnic_type == 'baremetal' and
-                port[portbindings.VIF_TYPE] == portbindings.VIF_TYPE_OTHER):
+        if self._is_port_bound(port):
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(
                 'local_link_information')
@@ -340,6 +338,12 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             provisioning_blocks.provisioning_complete(
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
+        elif self._is_port_bound(context.original):
+            # The port has been unbound. This will cause the local link
+            # information to be lost, so remove the port from the network on
+            # the switch now while we have the required information.
+            self._unplug_port_from_network(context.original,
+                                           context.network.current)
 
     def delete_port_precommit(self, context):
         """Delete resources of a port.
@@ -367,38 +371,8 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         """
 
         port = context.current
-        binding_profile = port['binding:profile']
-        local_link_information = binding_profile.get('local_link_information')
-        vnic_type = port['binding:vnic_type']
-        if vnic_type == 'baremetal' and local_link_information:
-            switch_info = local_link_information[0].get('switch_info')
-            switch_id = local_link_information[0].get('switch_id')
-            switch = device_utils.get_switch_device(
-                self.switches, switch_info=switch_info,
-                ngs_mac_address=switch_id)
-            if not switch:
-                return
-            port_id = local_link_information[0].get('port_id')
-            network = context.network.current
-            segmentation_id = network.get('provider:segmentation_id', '1')
-            LOG.debug("Deleting port {port} on {switch_info} from vlan: "
-                      "{segmentation_id}".format(
-                          port=port_id,
-                          switch_info=switch_info,
-                          segmentation_id=segmentation_id))
-            try:
-                switch.delete_port(port_id, segmentation_id)
-            except Exception as e:
-                LOG.error("Failed to delete port %(port_id)s "
-                          "on device: %(switch)s from network %(net_id)s "
-                          "reason: %(exc)s",
-                          {'port_id': port['id'], 'net_id': network['id'],
-                           'switch': switch_info, 'exc': e})
-                raise e
-            LOG.info('Port %(port_id)s has been deleted from network '
-                     ' %(net_id)s on device %(device)s',
-                     {'port_id': port['id'], 'net_id': network['id'],
-                      'device': switch_info})
+        if self._is_port_bound(port):
+            self._unplug_port_from_network(port, context.network.current)
 
     def bind_port(self, context):
         """Attempt to bind a port.
@@ -445,8 +419,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         port = context.current
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
-        vnic_type = port['binding:vnic_type']
-        if vnic_type == 'baremetal' and local_link_information:
+        if self._is_port_supported(port) and local_link_information:
             switch_info = local_link_information[0].get('switch_info')
             switch_id = local_link_information[0].get('switch_id')
             switch = device_utils.get_switch_device(
@@ -476,3 +449,72 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                       'segment_id': segmentation_id})
             context.set_binding(segments[0][driver_api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
+
+    @staticmethod
+    def _is_port_supported(port):
+        """Return whether a port is supported by this driver.
+
+        Ports supported by this driver have a VNIC type of 'baremetal'.
+
+        :param port: The port to check
+        :returns: Whether the port is supported by the NGS driver
+        """
+        vnic_type = port[portbindings.VNIC_TYPE]
+        return vnic_type == portbindings.VNIC_BAREMETAL
+
+    @staticmethod
+    def _is_port_bound(port):
+        """Return whether a port is bound by this driver.
+
+        Ports bound by this driver have their VIF type set to 'other'.
+
+        :param port: The port to check
+        :returns: Whether the port is bound by the NGS driver
+        """
+        if not GenericSwitchDriver._is_port_supported(port):
+            return False
+
+        vif_type = port[portbindings.VIF_TYPE]
+        return vif_type == portbindings.VIF_TYPE_OTHER
+
+    def _unplug_port_from_network(self, port, network):
+        """Unplug a port from a network.
+
+        If the configuration required to unplug the port is not present
+        (e.g. local link information), the port will not be unplugged and no
+        exception will be raised.
+
+        :param port: The port to unplug
+        :param network: The network from which to unplug the port
+        """
+        binding_profile = port['binding:profile']
+        local_link_information = binding_profile.get('local_link_information')
+        if not local_link_information:
+            return
+        switch_info = local_link_information[0].get('switch_info')
+        switch_id = local_link_information[0].get('switch_id')
+        switch = device_utils.get_switch_device(
+            self.switches, switch_info=switch_info,
+            ngs_mac_address=switch_id)
+        if not switch:
+            return
+        port_id = local_link_information[0].get('port_id')
+        segmentation_id = network.get('provider:segmentation_id', '1')
+        LOG.debug("Unplugging port {port} on {switch_info} from vlan: "
+                  "{segmentation_id}".format(
+                      port=port_id,
+                      switch_info=switch_info,
+                      segmentation_id=segmentation_id))
+        try:
+            switch.delete_port(port_id, segmentation_id)
+        except Exception as e:
+            LOG.error("Failed to unplug port %(port_id)s "
+                      "on device: %(switch)s from network %(net_id)s "
+                      "reason: %(exc)s",
+                      {'port_id': port['id'], 'net_id': network['id'],
+                       'switch': switch_info, 'exc': e})
+            raise e
+        LOG.info('Port %(port_id)s has been unplugged from network '
+                 ' %(net_id)s on device %(device)s',
+                 {'port_id': port['id'], 'net_id': network['id'],
+                  'device': switch_info})

@@ -105,6 +105,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                     ]
                                  },
                                 'binding:vnic_type': 'baremetal',
+                                'binding:vif_type': 'other',
                                 'id': 'aaaa-bbbb-cccc'}
         mock_context.network = mock.Mock()
         mock_context.network.current = {'provider:segmentation_id': 123,
@@ -132,6 +133,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                     ]
                                  },
                                 'binding:vnic_type': 'baremetal',
+                                'binding:vif_type': 'other',
                                 'id': 'aaaa-bbbb-cccc'}
         mock_context.network = mock.Mock()
         mock_context.network.current = {'provider:segmentation_id': 123,
@@ -155,7 +157,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                         }
                                     ]
                                  },
-                                'binding:vnic_type': 'baremetal'}
+                                'binding:vnic_type': 'baremetal',
+                                'binding:vif_type': 'other'}
         mock_context.segments_to_bind = [
             {
                 'segmentation_id': None,
@@ -183,6 +186,10 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'id': '123',
                                 'binding:vif_type': 'unbound'}
+        mock_context.original = {'binding:profile': {},
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'unbound'}
         driver.update_port_postcommit(mock_context)
         self.assertFalse(m_pc.called)
 
@@ -204,6 +211,10 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'mcvtap',
                                 'id': '123',
                                 'binding:vif_type': 'other'}
+        mock_context.original = {'binding:profile': {},
+                                 'binding:vnic_type': 'mcvtap',
+                                 'id': '123',
+                                 'binding:vif_type': 'unbound'}
         driver.update_port_postcommit(mock_context)
         self.assertFalse(m_pc.called)
 
@@ -217,6 +228,10 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'id': '123',
                                 'binding:vif_type': 'other'}
+        mock_context.original = {'binding:profile': {},
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'unbound'}
         driver.update_port_postcommit(mock_context)
         self.assertFalse(m_pc.called)
 
@@ -238,6 +253,10 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'id': '123',
                                 'binding:vif_type': 'other'}
+        mock_context.original = {'binding:profile': {},
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'unbound'}
         driver.update_port_postcommit(mock_context)
         self.assertFalse(m_pc.called)
 
@@ -259,12 +278,140 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'id': '123',
                                 'binding:vif_type': 'other'}
+        mock_context.original = {'binding:profile': {},
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'unbound'}
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_not_called()
         m_pc.assert_called_once_with(mock_context._plugin_context,
                                      mock_context.current['id'],
                                      resources.PORT,
                                      'GENERICSWITCH')
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    def test_update_port_postcommit_unbind_not_bound(self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile': {},
+                                'binding:vnic_type': 'baremetal',
+                                'id': '123',
+                                'binding:vif_type': 'unbound'}
+        mock_context.original = {'binding:profile': {},
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'unbound'}
+
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.delete_port.assert_not_called()
+        m_pc.assert_not_called()
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    def test_update_port_postcommit_unbind_not_baremetal(self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile': {},
+                                'binding:vnic_type': 'mcvtap',
+                                'id': '123',
+                                'binding:vif_type': 'unbound'}
+        mock_context.original = {'binding:profile':
+                                 {'local_link_information':
+                                     [
+                                         {
+                                             'switch_info': 'foo',
+                                             'port_id': 2222
+                                         }
+                                     ]
+                                  },
+                                 'binding:vnic_type': 'mcvtap',
+                                 'id': '123',
+                                 'binding:vif_type': 'other'}
+
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.delete_port.assert_not_called()
+        m_pc.assert_not_called()
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    def test_update_port_postcommit_unbind_no_llc(self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile': {},
+                                'binding:vnic_type': 'baremetal',
+                                'id': '123',
+                                'binding:vif_type': 'unbound'}
+        mock_context.original = {'binding:profile': {},
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'other'}
+
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.delete_port.assert_not_called()
+        m_pc.assert_not_called()
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    def test_update_port_postcommit_unbind_not_managed_by_ngs(self, m_pc,
+                                                              m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile': {},
+                                'binding:vnic_type': 'baremetal',
+                                'id': '123',
+                                'binding:vif_type': 'unbound'}
+        mock_context.original = {'binding:profile':
+                                 {'local_link_information':
+                                     [
+                                         {
+                                             'switch_info': 'ughh',
+                                             'port_id': 2222
+                                         }
+                                     ]
+                                  },
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'other'}
+
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.delete_port.assert_not_called()
+        m_pc.assert_not_called()
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    def test_update_port_postcommit_unbind(self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile': {},
+                                'binding:vnic_type': 'baremetal',
+                                'id': '123',
+                                'binding:vif_type': 'unbound'}
+        mock_context.original = {'binding:profile':
+                                 {'local_link_information':
+                                     [
+                                         {
+                                             'switch_info': 'foo',
+                                             'port_id': 2222
+                                         }
+                                     ]
+                                  },
+                                 'binding:vnic_type': 'baremetal',
+                                 'id': '123',
+                                 'binding:vif_type': 'other'}
+        mock_context.network = mock.Mock()
+        mock_context.network.current = {'provider:segmentation_id': 123,
+                                        'id': 'aaaa-bbbb-cccc'}
+        mock_context.segments_to_bind = [mock_context.network.current]
+
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.delete_port.assert_called_once_with(2222, 123)
+        m_pc.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
     def test_bind_port(self, m_apc, m_list):
