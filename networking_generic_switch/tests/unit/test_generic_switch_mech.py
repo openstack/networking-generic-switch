@@ -242,7 +242,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.assertFalse(m_pc.called)
 
     @mock.patch.object(provisioning_blocks, 'provisioning_complete')
-    def test_update_port_postcommit_complete_provisioning(self, _pc, m_list):
+    def test_update_port_postcommit_complete_provisioning(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
         mock_context = mock.create_autospec(driver_context.PortContext)
@@ -260,6 +260,11 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'id': '123',
                                 'binding:vif_type': 'other'}
         driver.update_port_postcommit(mock_context)
+        self.switch_mock.plug_port_to_network.assert_not_called()
+        m_pc.assert_called_once_with(mock_context._plugin_context,
+                                     mock_context.current['id'],
+                                     resources.PORT,
+                                     'GENERICSWITCH')
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
     def test_bind_port(self, m_apc, m_list):
