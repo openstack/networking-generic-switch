@@ -6,20 +6,75 @@ GENERIC_SWITCH_INI_FILE='/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini'
 GENERIC_SWITCH_SSH_KEY_FILENAME="networking-generic-switch"
 GENERIC_SWITCH_SSH_PORT=${GENERIC_SWITCH_SSH_PORT:-}
 GENERIC_SWITCH_DATA_DIR=""$DATA_DIR/networking-generic-switch""
+# NOTE(pas-ha) NEVER SET THIS TO ANY EXISTING USER!
+# you might get locked out of SSH when limitinig SSH sessions is enabled for this user,
+# AND THIS USER WILL BE DELETED TOGETHER WITH ITS HOME DIR ON UNSTACK/CLEANUP!!!
+# this is why it is left unconfigurable
+GENERIC_SWITCH_USER="ngs_ovs_manager"
+GENERIC_SWITCH_USER_HOME="$GENERIC_SWITCH_DATA_DIR/$GENERIC_SWITCH_USER"
+GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$GENERIC_SWITCH_USER_HOME/.ssh/authorized_keys"
+
 GENERIC_SWITCH_KEY_DIR="$GENERIC_SWITCH_DATA_DIR/keys"
 GENERIC_SWITCH_KEY_FILE=${GENERIC_SWITCH_KEY_FILE:-"$GENERIC_SWITCH_KEY_DIR/$GENERIC_SWITCH_SSH_KEY_FILENAME"}
-GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE="$HOME/.ssh/authorized_keys"
 GENERIC_SWITCH_TEST_BRIDGE="genericswitch"
 GENERIC_SWITCH_TEST_PORT="gs_port_01"
+# 0 means unlimited
+GENERIC_SWITCH_USER_MAX_SESSIONS=${GENERIC_SWITCH_USER_MAX_SESSIONS:-0}
+# 0 would mean wait forever
+GENERIC_SWITCH_DLM_ACQUIRE_TIMEOUT=${GENERIC_SWITCH_DLM_ACQUIRE_TIMEOUT:-120}
+
+if ( [[ "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]] ) && (! is_service_enabled etcd3); then
+    die $LINENO "etcd3 service must be enabled to use coordination features of networking-generic-switch"
+fi
 
 function install_generic_switch {
     setup_develop $GENERIC_SWITCH_DIR
 }
 
+# NOTE(pas-ha) almost verbatim copy of devstack/tools/create-stack-user.sh
+# adapted to be started w/o sudo from the start
+function create_ovs_manager_user {
+
+    # Give the non-root user the ability to run as **root** via ``sudo``
+    is_package_installed sudo || install_package sudo
+
+    if ! getent group $GENERIC_SWITCH_USER >/dev/null; then
+        echo "Creating a group called $GENERIC_SWITCH_USER"
+        sudo groupadd $GENERIC_SWITCH_USER
+    fi
+
+    if ! getent passwd $GENERIC_SWITCH_USER >/dev/null; then
+        echo "Creating a user called $GENERIC_SWITCH_USER"
+        mkdir -p $GENERIC_SWITCH_USER_HOME
+        sudo useradd -g $GENERIC_SWITCH_USER -s /bin/bash -d $GENERIC_SWITCH_USER_HOME -m $GENERIC_SWITCH_USER
+    fi
+
+    echo "Giving $GENERIC_SWITCH_USER user passwordless sudo privileges"
+    # UEC images ``/etc/sudoers`` does not have a ``#includedir``, add one
+    sudo grep -q "^#includedir.*/etc/sudoers.d" /etc/sudoers ||
+        echo "#includedir /etc/sudoers.d" | sudo tee -a /etc/sudoers
+    ( umask 226 && echo "$GENERIC_SWITCH_USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/99_ngs_ovs_manager )
+
+}
+
+function configure_for_dlm {
+    # limit number of ssh connections for generic-switch user
+    ( umask 226 && echo "$GENERIC_SWITCH_USER hard maxlogins $GENERIC_SWITCH_USER_MAX_SESSIONS" | sudo tee /etc/security/limits.d/ngs_ovs_manager.conf )
+    # set lock acquire timeout
+    populate_ml2_config $GENERIC_SWITCH_INI_FILE ngs_coordination acquire_timeout=$GENERIC_SWITCH_DLM_ACQUIRE_TIMEOUT
+    # set ectd3 backend
+    populate_ml2_config $GENERIC_SWITCH_INI_FILE ngs_coordination backend_url="etcd3+http://${SERVICE_HOST}:${ETCD_PORT:-2379}"
+    }
+
 function configure_generic_switch_ssh_keypair {
-    if [[ ! -d $HOME/.ssh ]]; then
-        mkdir -p $HOME/.ssh
-        chmod 700 $HOME/.ssh
+    if [[ ! -d $GENERIC_SWITCH_USER_HOME/.ssh ]]; then
+        sudo mkdir -p $GENERIC_SWITCH_USER_HOME/.ssh
+        sudo chmod 700 $GENERIC_SWITCH_USER_HOME/.ssh
+    fi
+    # copy over stack user's authorized_keys to GENERIC_SWITCH_USER
+    # mostly needed for multinode gate job
+    if [[ -e "$HOME/.ssh/authorized_keys" ]];then
+        cat "$HOME/.ssh/authorized_keys" | sudo tee -a $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
     fi
     if [[ ! -e $GENERIC_SWITCH_KEY_FILE ]]; then
         if [[ ! -d $(dirname $GENERIC_SWITCH_KEY_FILE) ]]; then
@@ -28,12 +83,23 @@ function configure_generic_switch_ssh_keypair {
         echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $GENERIC_SWITCH_KEY_FILE
     fi
     # NOTE(vsaienko) check for new line character, add if doesn't exist.
-    if [[ "$(tail -c1 $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE | wc -l)" == "0" ]]; then
-        echo "" >> $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+    if [[ "$(sudo tail -c1 $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE | wc -l)" == "0" ]]; then
+        echo "" | sudo tee -a $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
     fi
-    cat $GENERIC_SWITCH_KEY_FILE.pub | tee -a $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+    cat $GENERIC_SWITCH_KEY_FILE.pub | sudo tee -a $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
     # remove duplicate keys.
-    sort -u -o $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+    sudo sort -u -o $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+    sudo chown $GENERIC_SWITCH_USER:$GENERIC_SWITCH_USER $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+    sudo chown -R $GENERIC_SWITCH_USER:$GENERIC_SWITCH_USER $GENERIC_SWITCH_USER_HOME
+}
+
+function configure_generic_switch_user {
+    create_ovs_manager_user
+    configure_generic_switch_ssh_keypair
+    if [[ "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]]; then
+        configure_for_dlm
+    fi
+
 }
 
 function configure_generic_switch {
@@ -47,7 +113,7 @@ function configure_generic_switch {
     populate_ml2_config /$Q_PLUGIN_CONF_FILE ml2 mechanism_drivers=$Q_ML2_PLUGIN_MECHANISM_DRIVERS
 
     # Generate SSH keypair
-    configure_generic_switch_ssh_keypair
+    configure_generic_switch_user
 
     sudo ovs-vsctl --may-exist add-br $GENERIC_SWITCH_TEST_BRIDGE
     ip link show gs_port_01 || sudo ip link add gs_port_01 type dummy
@@ -58,7 +124,7 @@ function configure_generic_switch {
         local bridge_mac
         bridge_mac=$(ip link show dev $switch | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
         switch="genericswitch:$switch"
-        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $STACK_USER localhost netmiko_ovs_linux "$GENERIC_SWITCH_SSH_PORT" "$bridge_mac"
+        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER localhost netmiko_ovs_linux "$GENERIC_SWITCH_PORT" "$bridge_mac"
     done
     echo "HOST_TOPOLOGY: $HOST_TOPOLOGY"
     echo "HOST_TOPOLOGY_SUBNODES: $HOST_TOPOLOGY_SUBNODES"
@@ -70,7 +136,7 @@ function configure_generic_switch {
         for node in $HOST_TOPOLOGY_SUBNODES; do
             cnt=$((cnt+1))
             section="genericswitch:sub${cnt}${IRONIC_VM_NETWORK_BRIDGE}"
-            add_generic_switch_to_ml2_config $section $GENERIC_SWITCH_KEY_FILE $STACK_USER $node netmiko_ovs_linux "$GENERIC_SWITCH_SSH_PORT"
+            add_generic_switch_to_ml2_config $section $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER $node netmiko_ovs_linux "$GENERIC_SWITCH_PORT"
         done
     fi
 
@@ -97,6 +163,10 @@ function add_generic_switch_to_ml2_config {
     if [[ -n $ngs_mac_address ]]; then
         populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name ngs_mac_address=$ngs_mac_address
     fi
+
+    if [[ "$device_type" =~ "netmiko" && "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]]; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name ngs_max_connections=$GENERIC_SWITCH_USER_MAX_SESSIONS
+    fi
 }
 
 function cleanup_networking_generic_switch {
@@ -105,12 +175,19 @@ function cleanup_networking_generic_switch {
         local key
         key=$(cat $GENERIC_SWITCH_KEY_FILE.pub)
         # remove public key from authorized_keys
-        grep -v "$key" $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE > temp && mv temp $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
-        chmod 0600 $IRONIC_AUTHORIZED_KEYS_FILE
+        sudo grep -v "$key" $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE > temp && sudo mv -f temp $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+        sudo chown $GENERIC_SWITCH_USER:$GENERIC_SWITCH_USER $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
+        sudo chmod 0600 $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
     fi
     sudo ovs-vsctl --if-exists del-br $GENERIC_SWITCH_TEST_BRIDGE
 
-    rm -rf $GENERIC_SWITCH_DATA_DIR
+    # remove generic switch user, its permissions and limits
+    sudo rm -f /etc/sudoers.d/99_ngs_ovs_manager
+    sudo rm -f /etc/security/limits.d/ngs_ovs_manager.conf
+    sudo deluser $GENERIC_SWITCH_USER --remove-home --quiet
+    sudo delgroup $GENERIC_SWITCH_USER --quiet
+
+    sudo rm -rf $GENERIC_SWITCH_DATA_DIR
 }
 
 function ngs_configure_tempest {
