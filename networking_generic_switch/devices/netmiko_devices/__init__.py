@@ -12,10 +12,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+import time
 import uuid
 
 import netmiko
 from oslo_log import log as logging
+import paramiko
+import tenacity
 
 from networking_generic_switch import devices
 from networking_generic_switch import exceptions as exc
@@ -58,22 +62,72 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                                       args=kwargs)
         return cmd_set
 
+    @contextlib.contextmanager
+    def _get_connection(self):
+        """Context manager providing a netmiko SSH connection object.
+
+        This function hides the complexities of gracefully handling retrying
+        failed connection attempts.
+        """
+        retry_exc_types = (paramiko.SSHException, EOFError)
+
+        # Use tenacity to handle retrying.
+        @tenacity.retry(
+            # Log a message after each failed attempt.
+            after=tenacity.after_log(LOG, logging.DEBUG),
+            # Reraise exceptions if our final attempt fails.
+            reraise=True,
+            # Retry on SSH connection errors.
+            retry=tenacity.retry_if_exception_type(retry_exc_types),
+            # Stop after the configured timeout.
+            stop=tenacity.stop_after_delay(
+                int(self.ngs_config['ngs_ssh_connect_timeout'])),
+            # Wait for the configured interval between attempts.
+            wait=tenacity.wait_fixed(
+                int(self.ngs_config['ngs_ssh_connect_interval'])),
+            # Override the default sleep to allow for easier unit testing.
+            sleep=self._sleep,
+        )
+        def _create_connection():
+            return netmiko.ConnectHandler(**self.config)
+
+        # First, create a connection.
+        try:
+            net_connect = _create_connection()
+        except tenacity.RetryError as e:
+            LOG.error("Reached maximum SSH connection attempts, not retrying")
+            raise exc.GenericSwitchNetmikoConnectError(
+                config=self.config, error=e)
+        except Exception as e:
+            LOG.error("Unexpected exception during SSH connection")
+            raise exc.GenericSwitchNetmikoConnectError(
+                config=self.config, error=e)
+
+        # Now yield the connection to the caller.
+        with net_connect:
+            yield net_connect
+
+    @staticmethod
+    def _sleep(time_s):
+        """Helper function to simplify unit testing of the retry logic."""
+        return time.sleep(time_s)
+
     def send_commands_to_device(self, cmd_set):
         if not cmd_set:
             LOG.debug("Nothing to execute")
             return
 
-        try:
-            with netmiko.ConnectHandler(**self.config) as net_connect:
+        with self._get_connection() as net_connect:
+            try:
                 net_connect.enable()
                 output = net_connect.send_config_set(config_commands=cmd_set)
                 # NOTE (vsaienko) always save configuration when configuration
                 # is applied successfully.
                 if self.SAVE_CONFIGURATION:
                     net_connect.send_command(self.SAVE_CONFIGURATION)
-        except Exception as e:
-            raise exc.GenericSwitchNetmikoConnectError(config=self.config,
-                                                       error=e)
+            except Exception as e:
+                raise exc.GenericSwitchNetmikoConnectError(config=self.config,
+                                                           error=e)
         LOG.debug(output)
 
     def add_network(self, segmentation_id, network_id):

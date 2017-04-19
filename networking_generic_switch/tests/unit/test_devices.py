@@ -85,9 +85,23 @@ class TestDeviceManager(unittest.TestCase):
 
     def test_driver_ngs_config(self):
         device_cfg = {"device_type": 'netmiko_ovs_linux',
-                      "ngs_mac_address": 'aa:bb:cc:dd:ee:ff'}
+                      "ngs_mac_address": 'aa:bb:cc:dd:ee:ff',
+                      "ngs_ssh_connect_timeout": "120",
+                      "ngs_ssh_connect_interval": "20"}
         device = devices.device_manager(device_cfg)
         self.assertIsInstance(device, devices.GenericSwitchDevice)
         self.assertNotIn('ngs_mac_address', device.config)
+        self.assertNotIn('ngs_ssh_connect_timeout', device.config)
+        self.assertNotIn('ngs_ssh_connect_interval', device.config)
         self.assertEqual('aa:bb:cc:dd:ee:ff',
                          device.ngs_config['ngs_mac_address'])
+        self.assertEqual('120', device.ngs_config['ngs_ssh_connect_timeout'])
+        self.assertEqual('20', device.ngs_config['ngs_ssh_connect_interval'])
+
+    def test_driver_ngs_config_defaults(self):
+        device_cfg = {"device_type": 'netmiko_ovs_linux'}
+        device = devices.device_manager(device_cfg)
+        self.assertIsInstance(device, devices.GenericSwitchDevice)
+        self.assertNotIn('ngs_mac_address', device.ngs_config)
+        self.assertEqual(60, device.ngs_config['ngs_ssh_connect_timeout'])
+        self.assertEqual(10, device.ngs_config['ngs_ssh_connect_interval'])
