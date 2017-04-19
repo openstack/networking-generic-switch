@@ -12,20 +12,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest
-
+import fixtures
 import mock
 import netmiko
+from oslo_config import fixture as config_fixture
 import paramiko
 import tenacity
+from tooz import coordination
 
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch import exceptions as exc
 
 
-class NetmikoSwitchTestBase(unittest.TestCase):
+class NetmikoSwitchTestBase(fixtures.TestWithFixtures):
     def setUp(self):
         super(NetmikoSwitchTestBase, self).setUp()
+        self.cfg = self.useFixture(config_fixture.Config())
         self.switch = self._make_switch_device()
 
     def _make_switch_device(self, extra_cfg={}):
@@ -144,3 +146,32 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'])
         connect_mock.send_command.called_once_with('save me')
+
+    @mock.patch.object(netmiko_devices.ngs_lock, 'PoolLock', autospec=True)
+    @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
+    @mock.patch.object(coordination, 'get_coordinator', autospec=True)
+    def test_switch_send_commands_with_coordinator(self, get_coord_mock,
+                                                   nm_mock, lock_mock):
+        self.cfg.config(acquire_timeout=120, backend_url='mysql://localhost',
+                        group='ngs_coordination')
+        self.cfg.config(host='viking')
+        coord = mock.Mock()
+        get_coord_mock.return_value = coord
+
+        switch = self._make_switch_device(
+            extra_cfg={'ngs_max_connections': 2})
+        self.assertEqual(coord, switch.locker)
+        get_coord_mock.assert_called_once_with('mysql://localhost',
+                                               'ngs-viking'.encode('ascii'))
+
+        connect_mock = mock.MagicMock(SAVE_CONFIGURATION=None)
+        connect_mock.__enter__.return_value = connect_mock
+        nm_mock.return_value = connect_mock
+        lock_mock.return_value.__enter__.return_value = lock_mock
+        switch.send_commands_to_device(['spam ham'])
+
+        lock_mock.assert_called_once_with(coord, locks_pool_size=2,
+                                          locks_prefix='host',
+                                          timeout=120)
+        lock_mock.return_value.__exit__.assert_called_once()
+        lock_mock.return_value.__enter__.assert_called_once()

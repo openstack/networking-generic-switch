@@ -12,18 +12,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import atexit
 import contextlib
 import uuid
 
 import netmiko
+from oslo_config import cfg
 from oslo_log import log as logging
 import paramiko
 import tenacity
+from tooz import coordination
 
 from networking_generic_switch import devices
 from networking_generic_switch import exceptions as exc
+from networking_generic_switch import locking as ngs_lock
 
 LOG = logging.getLogger(__name__)
+CONF = cfg.CONF
 
 
 class NetmikoSwitch(devices.GenericSwitchDevice):
@@ -47,6 +52,20 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             raise exc.GenericSwitchNetmikoNotSupported(
                 device_type=device_type)
         self.config['device_type'] = device_type
+
+        self.locker = None
+        if CONF.ngs_coordination.backend_url:
+            self.locker = coordination.get_coordinator(
+                CONF.ngs_coordination.backend_url,
+                ('ngs-' + CONF.host).encode('ascii'))
+            self.locker.start()
+            atexit.register(self.locker.stop)
+
+        self.lock_kwargs = {
+            'locks_pool_size': int(self.ngs_config['ngs_max_connections']),
+            'locks_prefix': self.config.get(
+                'host', '') or self.config.get('ip', ''),
+            'timeout': CONF.ngs_coordination.acquire_timeout}
 
     def _format_commands(self, commands, **kwargs):
         if not commands:
@@ -109,17 +128,20 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             LOG.debug("Nothing to execute")
             return
 
-        with self._get_connection() as net_connect:
-            try:
-                net_connect.enable()
-                output = net_connect.send_config_set(config_commands=cmd_set)
-                # NOTE (vsaienko) always save configuration when configuration
-                # is applied successfully.
-                if self.SAVE_CONFIGURATION:
-                    net_connect.send_command(self.SAVE_CONFIGURATION)
-            except Exception as e:
-                raise exc.GenericSwitchNetmikoConnectError(config=self.config,
-                                                           error=e)
+        try:
+            with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
+                with self._get_connection() as net_connect:
+                    net_connect.enable()
+                    output = net_connect.send_config_set(
+                        config_commands=cmd_set)
+                    # NOTE (vsaienko) always save configuration
+                    # when configuration is applied successfully.
+                    if self.SAVE_CONFIGURATION:
+                        net_connect.send_command(self.SAVE_CONFIGURATION)
+        except Exception as e:
+            raise exc.GenericSwitchNetmikoConnectError(config=self.config,
+                                                       error=e)
+
         LOG.debug(output)
         return output
 

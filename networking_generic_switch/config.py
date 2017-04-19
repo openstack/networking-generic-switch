@@ -18,6 +18,18 @@ from oslo_log import log as logging
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
+coordination_opts = [
+    cfg.StrOpt('backend_url',
+               help='The backend URL to use for distributed coordination.'),
+    cfg.IntOpt('acquire_timeout',
+               min=0,
+               default=60,
+               help='Timeout is second after which an attempt to grab a lock '
+                    'is failed. Value of 0 is forever.'),
+]
+
+CONF.register_opts(coordination_opts, group='ngs_coordination')
+
 
 # NOTE(pas-ha) as this was a public method before (why, og why..)
 # we can not simply drop it without proper deprecation
