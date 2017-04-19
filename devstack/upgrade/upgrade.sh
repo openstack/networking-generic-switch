@@ -39,6 +39,8 @@ set -o errexit
 # Duplicate some setup bits from target DevStack
 source $TARGET_DEVSTACK_DIR/stackrc
 source $TARGET_DEVSTACK_DIR/lib/tls
+source $TARGET_DEVSTACK_DIR/lib/nova
+source $TARGET_DEVSTACK_DIR/lib/apache
 source $TARGET_DEVSTACK_DIR/lib/keystone
 source $TARGET_DEVSTACK_DIR/lib/neutron
 source $TARGET_DEVSTACK_DIR/lib/neutron-legacy
@@ -72,6 +74,16 @@ stop_neutron
 # Start neutron and agents
 start_neutron_service_and_check
 start_neutron_agents
+
+
+sleep 30
+
+# NOTE(vsaienko) restarting neutron may cause n-cpu start failure
+# restart it after neutron is ready
+stop_nova_compute || true
+start_nova_compute
+
+sleep 30
 
 echo "*********************************************************************"
 echo "SUCCESS: End $0"
