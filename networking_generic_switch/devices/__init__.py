@@ -26,6 +26,8 @@ LOG = logging.getLogger(__name__)
 # Internal ngs options will not be passed to driver.
 NGS_INTERNAL_OPTS = [
     {'name': 'ngs_mac_address'},
+    # Comma-separated list of names of interfaces to be added to each network.
+    {'name': 'ngs_trunk_ports'},
     {'name': 'ngs_ssh_connect_timeout', 'default': 60},
     {'name': 'ngs_ssh_connect_interval', 'default': 10},
     {'name': 'ngs_max_connections', 'default': 1},
@@ -72,6 +74,13 @@ class GenericSwitchDevice(object):
             elif 'default' in opt:
                 self.ngs_config[opt_name] = opt['default']
         self.config = device_cfg
+
+    def _get_trunk_ports(self):
+        """Return a list of trunk ports on this switch."""
+        trunk_ports = self.ngs_config.get('ngs_trunk_ports')
+        if not trunk_ports:
+            return []
+        return trunk_ports.split(',')
 
     @abc.abstractmethod
     def add_network(self, segmentation_id, network_id):

@@ -32,13 +32,13 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
                 'NetmikoSwitch.send_commands_to_device')
     def test_add_network(self, m_exec):
         self.switch.add_network(44, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_exec.assert_called_with(None)
+        m_exec.assert_called_with([])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
     def test_del_network(self, mock_exec):
         self.switch.del_network(44)
-        mock_exec.assert_called_with(None)
+        mock_exec.assert_called_with([])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')

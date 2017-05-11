@@ -47,19 +47,33 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                 'NetmikoSwitch.send_commands_to_device')
     def test_add_network(self, m_sctd):
         self.switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_sctd.assert_called_with(None)
+        m_sctd.assert_called_with([])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_add_network_with_trunk_ports(self, m_sctd):
+        switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
+        switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        m_sctd.assert_called_with([])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
     def test_del_network(self, m_sctd):
         self.switch.del_network(22)
-        m_sctd.assert_called_with(None)
+        m_sctd.assert_called_with([])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_del_network_with_trunk_ports(self, m_sctd):
+        switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
+        switch.del_network(22)
+        m_sctd.assert_called_with([])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
     def test_plug_port_to_network(self, m_sctd):
         self.switch.plug_port_to_network(2222, 22)
-        m_sctd.assert_called_with(None)
+        m_sctd.assert_called_with([])
 
     def test__format_commands(self):
         self.switch._format_commands(
