@@ -19,18 +19,34 @@ class DellNos(netmiko_devices.NetmikoSwitch):
         ADD_NETWORK = (
             'interface vlan {segmentation_id}',
             'name {network_id}',
+            'exit',
         )
 
         DELETE_NETWORK = (
             'no interface vlan {segmentation_id}',
+            'exit',
         )
 
         PLUG_PORT_TO_NETWORK = (
             'interface vlan {segmentation_id}',
-            'untagged {port}'
+            'untagged {port}',
+            'exit',
         )
 
         DELETE_PORT = (
             'interface vlan {segmentation_id}',
-            'no untagged {port}'
+            'no untagged {port}',
+            'exit',
+        )
+
+        ADD_NETWORK_TO_TRUNK = (
+            'interface vlan {segmentation_id}',
+            'tagged {port}',
+            'exit',
+        )
+
+        REMOVE_NETWORK_FROM_TRUNK = (
+            'interface vlan {segmentation_id}',
+            'no tagged {port}',
+            'exit',
         )
