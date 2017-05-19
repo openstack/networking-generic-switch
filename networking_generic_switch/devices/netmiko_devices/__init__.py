@@ -13,7 +13,6 @@
 #    under the License.
 
 import contextlib
-import time
 import uuid
 
 import netmiko
@@ -85,8 +84,6 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             # Wait for the configured interval between attempts.
             wait=tenacity.wait_fixed(
                 int(self.ngs_config['ngs_ssh_connect_interval'])),
-            # Override the default sleep to allow for easier unit testing.
-            sleep=self._sleep,
         )
         def _create_connection():
             return netmiko.ConnectHandler(**self.config)
@@ -106,11 +103,6 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         # Now yield the connection to the caller.
         with net_connect:
             yield net_connect
-
-    @staticmethod
-    def _sleep(time_s):
-        """Helper function to simplify unit testing of the retry logic."""
-        return time.sleep(time_s)
 
     def send_commands_to_device(self, cmd_set):
         if not cmd_set:
