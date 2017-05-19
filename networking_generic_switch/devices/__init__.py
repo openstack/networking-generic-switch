@@ -24,7 +24,11 @@ GENERIC_SWITCH_NAMESPACE = 'generic_switch.devices'
 LOG = logging.getLogger(__name__)
 
 # Internal ngs options will not be passed to driver.
-NGS_INTERNAL_OPTS = ['ngs_mac_address']
+NGS_INTERNAL_OPTS = [
+    {'name': 'ngs_mac_address'},
+    {'name': 'ngs_ssh_connect_timeout', 'default': 60},
+    {'name': 'ngs_ssh_connect_interval', 'default': 10},
+]
 
 
 def device_manager(device_cfg):
@@ -61,8 +65,11 @@ class GenericSwitchDevice(object):
         self.config = {}
         # Do not expose NGS internal options to device config.
         for opt in NGS_INTERNAL_OPTS:
-            if opt in device_cfg.keys():
-                self.ngs_config[opt] = device_cfg.pop(opt)
+            opt_name = opt['name']
+            if opt_name in device_cfg.keys():
+                self.ngs_config[opt_name] = device_cfg.pop(opt_name)
+            elif 'default' in opt:
+                self.ngs_config[opt_name] = opt['default']
         self.config = device_cfg
 
     @abc.abstractmethod
