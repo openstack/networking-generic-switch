@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add HPE device type to enable communication with the HPE 5900 series switches
+    that use comware5 netconf.

@@ -30,6 +30,7 @@ Supported Devices
 * Dell Force10
 * Brocade ICX (FastIron)
 * Ruijie switches
+* HPE 5900 Series switches
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.
@@ -152,6 +153,14 @@ for the Ruijie device::
     username = admin
     password = password
     secret = secret
+    ip = <switch mgmt ip address>
+
+for the HPE 5900 Series device::
+
+    [genericswitch:sw-hostname]
+    device_type = netmiko_hpe_comware
+    username = admin
+    password = password
     ip = <switch mgmt ip address>
 
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
