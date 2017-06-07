@@ -121,6 +121,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 raise exc.GenericSwitchNetmikoConnectError(config=self.config,
                                                            error=e)
         LOG.debug(output)
+        return output
 
     def add_network(self, segmentation_id, network_id):
         # NOTE(zhenguo): Remove dashes from uuid as on most devices 32 chars

@@ -12,25 +12,71 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
+import re
+
+from oslo_log import log as logging
+
 from networking_generic_switch.devices import netmiko_devices
 
 
+LOG = logging.getLogger(__name__)
+
+
 class BrocadeFastIron(netmiko_devices.NetmikoSwitch):
-        ADD_NETWORK = (
-            'vlan {segmentation_id} by port',
-            'name {network_id}',
-        )
+    ADD_NETWORK = (
+        'vlan {segmentation_id} by port',
+        'name {network_id}',
+    )
 
-        DELETE_NETWORK = (
-            'no vlan {segmentation_id}',
-        )
+    DELETE_NETWORK = (
+        'no vlan {segmentation_id}',
+    )
 
-        PLUG_PORT_TO_NETWORK = (
-            'vlan {segmentation_id} by port',
-            'untagged ether {port}',
-        )
+    PLUG_PORT_TO_NETWORK = (
+        'vlan {segmentation_id} by port',
+        'untagged ether {port}',
+    )
 
-        DELETE_PORT = (
-            'vlan {segmentation_id} by port',
-            'no untagged ether {port}',
+    DELETE_PORT = (
+        'vlan {segmentation_id} by port',
+        'no untagged ether {port}',
+    )
+
+    QUERY_PORT = (
+        'show interfaces ether {port} | include VLAN',
+    )
+
+    @staticmethod
+    def _process_raw_output(raw_output):
+        PATTERN = "Member of L2 VLAN ID (\d+), port is untagged"
+        match = re.search(PATTERN, raw_output)
+        if not match:
+            return None
+        return match.group(1)  # vlan_id
+
+    def get_wrong_vlan(self, port):
+        raw_output = self.send_commands_to_device(
+            self._format_commands(self.QUERY_PORT, port=port)
         )
+        return self._process_raw_output(str(raw_output))
+
+    def clean_port_vlan_if_necessary(self, port):
+        wrong_vlan = self.get_wrong_vlan(port)
+        if not wrong_vlan:
+            return
+        if str(wrong_vlan) == '1':
+            return
+        LOG.warning(
+            'Port %s is used in a wrong vlan %s, clean it',
+            port,
+            str(wrong_vlan)
+        )
+        self.delete_port(port, wrong_vlan)
+
+    def plug_port_to_network(self, port, segmentation_id):
+        self.clean_port_vlan_if_necessary(port)
+        self.send_commands_to_device(
+            self._format_commands(self.PLUG_PORT_TO_NETWORK,
+                                  port=port,
+                                  segmentation_id=segmentation_id))

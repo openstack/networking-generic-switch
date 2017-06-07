@@ -49,6 +49,19 @@ class TestNetmikoBrocadeFastIron(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             ['vlan 33 by port', 'untagged ether 3333'])
 
+    def test_plug_port_to_network_with_cleaning(self):
+        with mock.patch(
+            'networking_generic_switch.devices.netmiko_devices.'
+            'NetmikoSwitch.send_commands_to_device'
+        ) as m_exec:
+            m_exec.return_value = "Member of L2 VLAN ID 22, port is untagged."
+            self.switch.plug_port_to_network(3333, 33)
+            m_exec.assert_has_calls([
+                mock.call(['show interfaces ether 3333 | include VLAN']),
+                mock.call(['vlan 22 by port', 'no untagged ether 3333']),
+                mock.call(['vlan 33 by port', 'untagged ether 3333']),
+            ])
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
     def test_delete_port(self, mock_exec):
@@ -67,3 +80,16 @@ class TestNetmikoBrocadeFastIron(test_netmiko_base.NetmikoSwitchTestBase):
             brocade.BrocadeFastIron.DELETE_NETWORK,
             segmentation_id=22)
         self.assertEqual(cmd_set, ['no vlan 22'])
+
+    def test__process_raw_output_empty(self):
+        self.assertIsNone(self.switch._process_raw_output(''))
+
+    def test__process_raw_output_tagged(self):
+        self.assertIsNone(self.switch._process_raw_output(
+            '  Member of 1 L2 VLANs, port is tagged, port state is FORWARDING'
+        ))
+
+    def test__process_raw_output_untagged(self):
+        self.assertEqual(self.switch._process_raw_output(
+            ' Member of L2 VLAN ID 22, port is untagged, port state is...'
+        ), '22')
