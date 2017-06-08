@@ -27,6 +27,7 @@ Supported Devices
 * OpenVSwitch
 * Arista EOS
 * Dell (S4810)
+* Brocade ICX (FastIron)
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.
