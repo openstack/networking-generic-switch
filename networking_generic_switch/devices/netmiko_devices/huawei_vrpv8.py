@@ -16,16 +16,19 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class Huawei(netmiko_devices.NetmikoSwitch):
-    """For Huawei Network Operating System VRP V3 and V5."""
+    """For Huawei Next-Generation Network Operating System VRP V8."""
     ADD_NETWORK = (
         'vlan {segmentation_id}',
+        'commit',
     )
 
     DELETE_NETWORK = (
         'undo vlan {segmentation_id}',
+        'commit',
     )
 
     PLUG_PORT_TO_NETWORK = (
         'interface {port}',
         'port default vlan {segmentation_id}',
+        'commit',
     )
