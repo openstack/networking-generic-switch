@@ -22,4 +22,4 @@ sphinxcontrib-seqdiag # BSD
 oslosphinx>=4.7.0 # Apache-2.0
 
 # Tempest plugin requirements
-futurist>=0.11.0,!=0.15.0  # Apache-2.0
+futurist!=0.15.0,>=0.11.0 # Apache-2.0
