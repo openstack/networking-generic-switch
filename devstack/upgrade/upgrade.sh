@@ -81,7 +81,7 @@ sleep 30
 # NOTE(vsaienko) restarting neutron may cause n-cpu start failure
 # restart it after neutron is ready
 stop_nova_compute || true
-start_nova_compute
+start_nova_compute nomulticell
 
 sleep 30
 
