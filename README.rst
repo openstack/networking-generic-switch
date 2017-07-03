@@ -71,10 +71,20 @@ for the Cisco IOS device::
     secret = secret
     ip = <switch mgmt ip address>
 
-for the Huawei device::
+for the Huawei VRPV3 or VRPV5 device::
 
     [genericswitch:sw-hostname]
     device_type = netmiko_huawei
+    username = admin
+    password = password
+    port = 8222
+    secret = secret
+    ip = <switch mgmt ip address>
+
+for the Huawei VRPV8 device::
+
+    [genericswitch:sw-hostname]
+    device_type = netmiko_huawei_vrpv8
     username = admin
     password = password
     port = 8222
