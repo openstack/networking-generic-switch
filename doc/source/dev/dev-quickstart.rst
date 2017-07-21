@@ -20,7 +20,7 @@ running Ubuntu 14.04 (or later) or Fedora 20 (or later).
 
 .. seealso::
 
-    http://docs.openstack.org/developer/devstack/
+    https://docs.openstack.org/devstack/latest/
 
 Devstack will no longer create the user 'stack' with the desired
 permissions, but does provide a script to perform the task::

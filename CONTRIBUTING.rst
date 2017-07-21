@@ -5,7 +5,7 @@ Contributing to Networking-generic-switch
 If you would like to contribute to the development of GenericSwitch project, you must follow the
 general OpenStack community procedures documented at:
 
-   http://docs.openstack.org/infra/manual/developers.html#development-workflow
+   https://docs.openstack.org/infra/manual/developers.html#development-workflow
 
 Pull requests submitted through GitHub will be ignored.
 
@@ -20,8 +20,8 @@ signed OpenStack's contributor's agreement.
 
 .. seealso::
 
-   * http://docs.openstack.org/infra/manual/developers.html
-   * http://wiki.openstack.org/CLA
+   * https://docs.openstack.org/infra/manual/developers.html
+   * https://wiki.openstack.org/CLA
 
 
 LaunchPad Project
@@ -47,7 +47,7 @@ Project Hosting Details
 =======================
 
 Bug tracker
-    http://launchpad.net/networking-generic-switch
+    https://launchpad.net/networking-generic-switch
 
 Code Hosting
     https://git.openstack.org/cgit/openstack/networking-generic-switch
