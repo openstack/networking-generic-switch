@@ -37,7 +37,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
     def test_del_network(self, mock_exec):
-        self.switch.del_network(33)
+        self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(['no vlan 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'

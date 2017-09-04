@@ -163,14 +163,18 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                           segmentation_id=segmentation_id)
         self.send_commands_to_device(cmds)
 
-    def del_network(self, segmentation_id):
+    def del_network(self, segmentation_id, network_id):
+        # NOTE(zhenguo): Remove dashes from uuid as on most devices 32 chars
+        # is the max length of vlan name.
+        network_id = uuid.UUID(network_id).hex
         cmds = []
         for port in self._get_trunk_ports():
             cmds += self._format_commands(self.REMOVE_NETWORK_FROM_TRUNK,
                                           port=port,
                                           segmentation_id=segmentation_id)
         cmds += self._format_commands(self.DELETE_NETWORK,
-                                      segmentation_id=segmentation_id)
+                                      segmentation_id=segmentation_id,
+                                      network_id=network_id)
         self.send_commands_to_device(cmds)
 
     def plug_port_to_network(self, port, segmentation_id):
