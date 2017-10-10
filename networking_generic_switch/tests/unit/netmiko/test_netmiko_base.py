@@ -144,14 +144,25 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertFalse(connect_mock.send_command.called)
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'send_config_set')
     @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
-    def test_send_commands_to_device(self, save_mock, gc_mock):
+    def test_send_commands_to_device(self, save_mock, send_mock, gc_mock):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
         gc_mock.return_value.__enter__.return_value = connect_mock
-        self.switch.send_commands_to_device(['spam ham aaaa'])
+        send_mock.return_value = 'fake output'
+        result = self.switch.send_commands_to_device(['spam ham aaaa'])
+        send_mock.assert_called_once_with(connect_mock, ['spam ham aaaa'])
+        self.assertEqual('fake output', result)
+        save_mock.assert_called_once_with(connect_mock)
+
+    def test_send_config_set(self):
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
+        connect_mock.send_config_set.return_value = 'fake output'
+        result = self.switch.send_config_set(connect_mock, ['spam ham aaaa'])
+        connect_mock.enable.assert_called_once_with()
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'])
-        save_mock.assert_called_once_with(connect_mock)
+        self.assertEqual('fake output', result)
 
     def test_save_configuration(self):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
