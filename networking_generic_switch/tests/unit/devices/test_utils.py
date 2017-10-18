@@ -52,3 +52,9 @@ class TestDevices(unittest.TestCase):
         self.assertEqual(self.devices['A'], device_utils.get_switch_device(
             self.devices, switch_info='A',
             ngs_mac_address='11:22:33:44:55:77'))
+
+    def test_sanitise_config(self):
+        config = {'username': 'fake-user', 'password': 'fake-password'}
+        result = device_utils.sanitise_config(config)
+        expected = {'username': 'fake-user', 'password': '******'}
+        self.assertEqual(expected, result)

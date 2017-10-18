@@ -33,3 +33,16 @@ def get_switch_device(switches, switch_info=None,
                 return switch
     if switch_info:
         return switches.get(switch_info)
+
+
+def sanitise_config(config):
+    """Return a sanitised configuration of a switch device.
+
+    :param config: a configuration dict to sanitise.
+    :returns: a copy of the configuration, with sensitive fields removed.
+    """
+    sanitised_fields = {"password"}
+    return {
+        key: "******" if key in sanitised_fields else value
+        for key, value in config.items()
+    }
