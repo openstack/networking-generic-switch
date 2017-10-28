@@ -1,8 +1,8 @@
 - job:
     name: networking-generic-switch-tempest-dsvm
     parent: legacy-dsvm-base
-    run: playbooks/legacy/networking-generic-switch-tempest-dsvm/run
-    post-run: playbooks/legacy/networking-generic-switch-tempest-dsvm/post
+    run: playbooks/legacy/networking-generic-switch-tempest-dsvm/run.yaml
+    post-run: playbooks/legacy/networking-generic-switch-tempest-dsvm/post.yaml
     timeout: 4800
     required-projects:
       - openstack-infra/devstack-gate
