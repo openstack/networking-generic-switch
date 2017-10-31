@@ -82,5 +82,5 @@ class GenericSwitchDevice(object):
         pass
 
     @abc.abstractmethod
-    def plug_port_to_network(self, segmentation_id, port):
+    def plug_port_to_network(self, port, segmentation_id):
         pass
