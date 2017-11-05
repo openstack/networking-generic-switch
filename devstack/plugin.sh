@@ -211,12 +211,12 @@ if is_service_enabled generic_switch; then
 
     if [[ "$1" == "stack" && "$2" == "install" ]]; then
         # Perform installation of service source
-        echo_summary "Installing Generic_swtich ML2"
+        echo_summary "Installing Generic_switch ML2"
         install_generic_switch
 
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured
-        echo_summary "Configuring Generic_swtich Ml2"
+        echo_summary "Configuring Generic_switch ML2"
         configure_generic_switch
     elif [[ "$1" == "stack" && "$2" == "test-config" ]]; then
         if is_service_enabled tempest; then
