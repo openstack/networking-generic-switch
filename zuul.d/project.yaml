@@ -1,0 +1,17 @@
+- project:
+    name: openstack/networking-generic-switch
+    check:
+      jobs:
+        - networking-generic-switch-tempest-dsvm
+        - ironic-tempest-dsvm-multitenant-network:
+            irrelevant-files:
+              - ^(test-|)requirements.txt$
+              - ^setup.cfg$
+    gate:
+      jobs:
+        - networking-generic-switch-tempest-dsvm
+        - ironic-tempest-dsvm-multitenant-network:
+            irrelevant-files:
+              - ^(test-|)requirements.txt$
+              - ^setup.cfg$
+
