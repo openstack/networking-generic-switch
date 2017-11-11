@@ -14,8 +14,8 @@
 
 from neutron.callbacks import resources
 from neutron.db import provisioning_blocks
-from neutron.plugins.ml2 import driver_api
 from neutron_lib.api.definitions import portbindings
+from neutron_lib.plugins.ml2 import api
 from oslo_log import log as logging
 
 from networking_generic_switch import config as gsw_conf
@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 GENERIC_SWITCH_ENTITY = 'GENERICSWITCH'
 
 
-class GenericSwitchDriver(driver_api.MechanismDriver):
+class GenericSwitchDriver(api.MechanismDriver):
 
     def initialize(self):
         """Perform driver initialization.
@@ -447,7 +447,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                      " %(segment_id)s on device %(device)s",
                      {'port_id': port['id'], 'device': switch_info,
                       'segment_id': segmentation_id})
-            context.set_binding(segments[0][driver_api.ID],
+            context.set_binding(segments[0][api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
 
     @staticmethod
