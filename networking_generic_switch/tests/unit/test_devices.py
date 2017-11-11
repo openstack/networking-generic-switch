@@ -33,7 +33,10 @@ class FakeDevice(devices.GenericSwitchDevice):
     def del_network(s):
         pass
 
-    def plug_port_to_network(s, p):
+    def plug_port_to_network(p, s):
+        pass
+
+    def delete_port(p, s):
         pass
 
 
