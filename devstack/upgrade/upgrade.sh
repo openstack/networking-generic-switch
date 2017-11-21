@@ -75,16 +75,6 @@ stop_neutron
 start_neutron_service_and_check
 start_neutron_agents
 
-
-sleep 30
-
-# NOTE(vsaienko) restarting neutron may cause n-cpu start failure
-# restart it after neutron is ready
-stop_nova_compute || true
-start_nova_compute
-
-sleep 30
-
 echo "*********************************************************************"
 echo "SUCCESS: End $0"
 echo "*********************************************************************"
