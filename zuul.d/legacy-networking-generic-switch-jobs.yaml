@@ -1,6 +1,14 @@
 - job:
     name: networking-generic-switch-tempest-dsvm-dlm
     parent: legacy-dsvm-base
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^networking_generic_switch/tests/.*$
+      - ^setup.cfg$
+      - ^test-requirements.txt$
+      - ^tools/.*$
+      - ^tox.ini$
     run: playbooks/legacy/networking-generic-switch-tempest-dsvm-dlm/run.yaml
     post-run: playbooks/legacy/networking-generic-switch-tempest-dsvm-dlm/post.yaml
     timeout: 4800
