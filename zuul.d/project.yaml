@@ -7,6 +7,7 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
+        - ironic-grenade-dsvm-multinode-multitenant
     gate:
       jobs:
         - networking-generic-switch-tempest-dsvm-dlm
@@ -14,3 +15,4 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
+        - ironic-grenade-dsvm-multinode-multitenant
