@@ -76,10 +76,11 @@ class GenericSwitchDriver(api.MechanismDriver):
         network_id = network['id']
         provider_type = network['provider:network_type']
         segmentation_id = network['provider:segmentation_id']
+        physnet = network['provider:physical_network']
 
         if provider_type == 'vlan' and segmentation_id:
             # Create vlan on all switches from this driver
-            for switch_name, switch in self.switches.items():
+            for switch_name, switch in self._get_devices_by_physnet(physnet):
                 try:
                     switch.add_network(segmentation_id, network_id)
                 except Exception as e:
@@ -157,10 +158,11 @@ class GenericSwitchDriver(api.MechanismDriver):
         network = context.current
         provider_type = network['provider:network_type']
         segmentation_id = network['provider:segmentation_id']
+        physnet = network['provider:physical_network']
 
         if provider_type == 'vlan' and segmentation_id:
             # Delete vlan on all switches from this driver
-            for switch_name, switch in self.switches.items():
+            for switch_name, switch in self._get_devices_by_physnet(physnet):
                 try:
                     # NOTE(mgoddard): The del_network method was modified to
                     # accept the network ID. The switch object may still be
@@ -443,6 +445,15 @@ class GenericSwitchDriver(api.MechanismDriver):
                 ngs_mac_address=switch_id)
             if not switch:
                 return
+            network = context.network.current
+            physnet = network['provider:physical_network']
+            switch_physnets = switch._get_physical_networks()
+            if switch_physnets and physnet not in switch_physnets:
+                LOG.error("Cannot bind port %(port)s as device %(device)s is "
+                          "not on physical network %(physnet)",
+                          {'port_id': port['id'], 'device': switch_info,
+                           'physnet': physnet})
+                return
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
             segmentation_id = segments[0].get('segmentation_id')
@@ -534,3 +545,17 @@ class GenericSwitchDriver(api.MechanismDriver):
                  '%(net_id)s on device %(device)s',
                  {'port_id': port['id'], 'net_id': network['id'],
                   'device': switch_info})
+
+    def _get_devices_by_physnet(self, physnet):
+        """Generator yielding switches on a particular physical network.
+
+        :param physnet: Physical network to filter by.
+        :returns: Yields 2-tuples containing the name of the switch and the
+            switch device object.
+        """
+        for switch_name, switch in self.switches.items():
+            physnets = switch._get_physical_networks()
+            # NOTE(mgoddard): If the switch has no physical networks then
+            # follow the old behaviour of mapping all networks to it.
+            if not physnets or physnet in physnets:
+                yield switch_name, switch
