@@ -444,7 +444,7 @@ class GenericSwitchDriver(api.MechanismDriver):
             # Move port to network
             switch.plug_port_to_network(port_id, segmentation_id)
             LOG.info("Successfully bound port %(port_id)s in segment "
-                     " %(segment_id)s on device %(device)s",
+                     "%(segment_id)s on device %(device)s",
                      {'port_id': port['id'], 'device': switch_info,
                       'segment_id': segmentation_id})
             context.set_binding(segments[0][api.ID],
@@ -515,6 +515,6 @@ class GenericSwitchDriver(api.MechanismDriver):
                        'switch': switch_info, 'exc': e})
             raise e
         LOG.info('Port %(port_id)s has been unplugged from network '
-                 ' %(net_id)s on device %(device)s',
+                 '%(net_id)s on device %(device)s',
                  {'port_id': port['id'], 'net_id': network['id'],
                   'device': switch_info})
