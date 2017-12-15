@@ -27,7 +27,7 @@ Supported Devices
 * Huawei switches
 * OpenVSwitch
 * Arista EOS
-* Dell (S4810)
+* Dell Force10
 * Brocade ICX (FastIron)
 
 This Mechanism Driver architecture allows easily to add more devices
@@ -108,7 +108,7 @@ for the Arista EOS device::
     username = admin
     key_file = /opt/data/arista_key
 
-for the Dell device::
+for the Dell Force10 device::
 
     [genericswitch:dell-hostname]
     device_type = netmiko_dell_force10
