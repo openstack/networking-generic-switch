@@ -16,9 +16,9 @@
 import unittest
 
 import mock
-from neutron.callbacks import resources
 from neutron.db import provisioning_blocks
 from neutron.plugins.ml2 import driver_context
+from neutron_lib.callbacks import resources
 
 from networking_generic_switch import exceptions
 from networking_generic_switch import generic_switch_mech as gsm
