@@ -142,6 +142,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                     # NOTE (vsaienko) always save configuration
                     # when configuration is applied successfully.
                     self.save_configuration(net_connect)
+        except exc.GenericSwitchException:
+            # Reraise without modification exceptions originating from this
+            # module.
+            raise
         except Exception as e:
             raise exc.GenericSwitchNetmikoConnectError(
                 config=device_utils.sanitise_config(self.config), error=e)
