@@ -16,15 +16,6 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class DellNos(netmiko_devices.NetmikoSwitch):
-        ADD_NETWORK = (
-            'interface vlan {segmentation_id}',
-            'name {network_id}',
-        )
-
-        DELETE_NETWORK = (
-            'no interface vlan {segmentation_id}',
-        )
-
         PLUG_PORT_TO_NETWORK = (
             'interface vlan {segmentation_id}',
             'untagged {port}'
