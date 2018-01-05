@@ -141,8 +141,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                         config_commands=cmd_set)
                     # NOTE (vsaienko) always save configuration
                     # when configuration is applied successfully.
-                    if self.SAVE_CONFIGURATION:
-                        net_connect.send_command(self.SAVE_CONFIGURATION)
+                    self.save_configuration(net_connect)
         except Exception as e:
             raise exc.GenericSwitchNetmikoConnectError(
                 config=device_utils.sanitise_config(self.config), error=e)
@@ -188,3 +187,11 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             self._format_commands(self.DELETE_PORT,
                                   port=port,
                                   segmentation_id=segmentation_id))
+
+    def save_configuration(self, net_connect):
+        """Save the device's configuration.
+
+        :param net_connect: a netmiko connection object.
+        """
+        if self.SAVE_CONFIGURATION:
+            net_connect.send_command(self.SAVE_CONFIGURATION)

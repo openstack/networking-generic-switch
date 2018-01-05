@@ -15,6 +15,7 @@
 import fixtures
 import mock
 import netmiko
+import netmiko.base_connection
 from oslo_config import fixture as config_fixture
 import paramiko
 import tenacity
@@ -143,22 +144,25 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertFalse(connect_mock.send_command.called)
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
-    def test_send_commands_to_device(self, gc_mock):
-        connect_mock = mock.MagicMock(SAVE_CONFIGURATION=None)
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
+    def test_send_commands_to_device(self, save_mock, gc_mock):
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
         gc_mock.return_value.__enter__.return_value = connect_mock
         self.switch.send_commands_to_device(['spam ham aaaa'])
-        gc_mock.assert_called_once_with()
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'])
+        save_mock.assert_called_once_with(connect_mock)
+
+    def test_save_configuration(self):
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
+        self.switch.save_configuration(connect_mock)
         self.assertFalse(connect_mock.send_command.called)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
-    def test_send_commands_to_device_save_configuration(self, gc_mock):
-        connect_mock = mock.MagicMock(SAVE_CONFIGURAION='save me')
-        gc_mock.return_value.__enter__.return_value = connect_mock
-        self.switch.send_commands_to_device(['spam ham aaaa'])
-        connect_mock.send_config_set.assert_called_once_with(
-            config_commands=['spam ham aaaa'])
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'SAVE_CONFIGURATION',
+                       'save me')
+    def test_save_configuration_required(self):
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
+        self.switch.save_configuration(connect_mock)
         connect_mock.send_command.called_once_with('save me')
 
     @mock.patch.object(netmiko_devices.ngs_lock, 'PoolLock', autospec=True)
