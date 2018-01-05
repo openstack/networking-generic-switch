@@ -191,8 +191,8 @@ function cleanup_networking_generic_switch {
     # remove generic switch user, its permissions and limits
     sudo rm -f /etc/sudoers.d/99_ngs_ovs_manager
     sudo rm -f /etc/security/limits.d/ngs_ovs_manager.conf
-    sudo deluser $GENERIC_SWITCH_USER --remove-home --quiet
-    sudo delgroup $GENERIC_SWITCH_USER --quiet
+    sudo userdel --remove --force $GENERIC_SWITCH_USER
+    sudo groupdel $GENERIC_SWITCH_USER
 
     sudo rm -rf $GENERIC_SWITCH_DATA_DIR
 }
