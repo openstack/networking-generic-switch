@@ -136,9 +136,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         try:
             with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
                 with self._get_connection() as net_connect:
-                    net_connect.enable()
-                    output = net_connect.send_config_set(
-                        config_commands=cmd_set)
+                    output = self.send_config_set(net_connect, cmd_set)
                     # NOTE (vsaienko) always save configuration
                     # when configuration is applied successfully.
                     self.save_configuration(net_connect)
@@ -187,6 +185,16 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             self._format_commands(self.DELETE_PORT,
                                   port=port,
                                   segmentation_id=segmentation_id))
+
+    def send_config_set(self, net_connect, cmd_set):
+        """Send a set of configuration lines to the device.
+
+        :param net_connect: a netmiko connection object.
+        :param cmd_set: a list of configuration lines to send.
+        :returns: The output of the configuration commands.
+        """
+        net_connect.enable()
+        return net_connect.send_config_set(config_commands=cmd_set)
 
     def save_configuration(self, net_connect):
         """Save the device's configuration.
