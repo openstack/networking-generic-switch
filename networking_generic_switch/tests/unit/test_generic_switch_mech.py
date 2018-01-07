@@ -187,6 +187,31 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.assertIsNone(driver.delete_port_postcommit(mock_context))
         self.switch_mock.delete_port.assert_not_called()
 
+    def test_delete_port_postcommit_no_segmentation_id(self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context.current = {'binding:profile':
+                                {'local_link_information':
+                                    [
+                                        {
+                                            'switch_info': 'foo',
+                                            'port_id': '2222'
+                                        }
+                                    ]
+                                 },
+                                'binding:vnic_type': 'baremetal',
+                                'binding:vif_type': 'other',
+                                'id': 'aaaa-bbbb-cccc'}
+        mock_context.network = mock.Mock()
+        mock_context.network.current = {'provider:segmentation_id': None,
+                                        'id': 'aaaa-bbbb-cccc'}
+        mock_context.segments_to_bind = [mock_context.network.current]
+
+        driver.delete_port_postcommit(mock_context)
+        self.switch_mock.delete_port.assert_called_once_with(
+            '2222', '1')
+
     @mock.patch.object(provisioning_blocks, 'provisioning_complete')
     def test_update_port_postcommit_not_bound(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
