@@ -35,3 +35,8 @@ class GenericSwitchNetmikoNotSupported(GenericSwitchException):
 
 class GenericSwitchNetmikoConnectError(GenericSwitchException):
     message = _("Netmiko connection error: %(config)s, error: %(error)s")
+
+
+class GenericSwitchPlugPortToNetworkError(GenericSwitchException):
+    message = _("Failed to plug port %(port)s to VLAN %(vlan)s, "
+                "device returned: %(error)s")

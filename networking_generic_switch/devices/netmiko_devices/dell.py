@@ -12,16 +12,35 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import re
+
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch import exceptions as exc
 
 
 class DellNos(netmiko_devices.NetmikoSwitch):
-        PLUG_PORT_TO_NETWORK = (
-            'interface vlan {segmentation_id}',
-            'untagged {port}'
-        )
+    PLUG_PORT_TO_NETWORK = (
+        'interface vlan {segmentation_id}',
+        'untagged {port}'
+    )
 
-        DELETE_PORT = (
-            'interface vlan {segmentation_id}',
-            'no untagged {port}'
-        )
+    DELETE_PORT = (
+        'interface vlan {segmentation_id}',
+        'no untagged {port}'
+    )
+
+    @staticmethod
+    def _detect_plug_port_failure(raw_output, port, vlan):
+        PATTERN = "Error: .* Port is untagged in another Vlan."
+        match = re.search(PATTERN, raw_output)
+        if match:
+            raise exc.GenericSwitchPlugPortToNetworkError(port=port,
+                                                          vlan=vlan,
+                                                          error=match.group(0))
+
+    def plug_port_to_network(self, port, segmentation_id):
+        raw_output = self.send_commands_to_device(
+            self._format_commands(self.PLUG_PORT_TO_NETWORK,
+                                  port=port,
+                                  segmentation_id=segmentation_id))
+        self._detect_plug_port_failure(str(raw_output), port, segmentation_id)
