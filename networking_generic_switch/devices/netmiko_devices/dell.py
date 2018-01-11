@@ -17,6 +17,8 @@ import re
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch import exceptions as exc
 
+from oslo_log import log as logging
+LOG = logging.getLogger(__name__)
 
 class DellNos(netmiko_devices.NetmikoSwitch):
     PLUG_PORT_TO_NETWORK = (
@@ -26,7 +28,12 @@ class DellNos(netmiko_devices.NetmikoSwitch):
 
     DELETE_PORT = (
         'interface vlan {segmentation_id}',
-        'no untagged {port}'
+        'no untagged {port}',
+    )
+
+    QUERY_PORT = (
+        'end',
+        'show interfaces switchport {port} | grep ^U',
     )
 
     @staticmethod
@@ -37,10 +44,35 @@ class DellNos(netmiko_devices.NetmikoSwitch):
             raise exc.GenericSwitchPlugPortToNetworkError(port=port,
                                                           vlan=vlan,
                                                           error=match.group(0))
+    def _get_wrong_vlan(self, port):
+        raw_output = self.send_commands_to_device(
+            self._format_commands(self.QUERY_PORT, port=port)
+        )
+        PATTERN = "U\s*(\d+)"
+        match = re.search(PATTERN, raw_output)
+        current_vlan = match.group(1)
+        if not match:
+            return None
+        return current_vlan  # vlan_id
+
+    def _clean_port_vlan_if_necessary(self, port):
+        wrong_vlan = self._get_wrong_vlan(port)
+        if not wrong_vlan:
+            return
+        if str(wrong_vlan) == '1':
+            return
+        LOG.warning(
+            'Port %s is used in VLAN %s, attempting to clean it',
+            port,
+            str(wrong_vlan)
+        )
+        self.delete_port(port, wrong_vlan)
 
     def plug_port_to_network(self, port, segmentation_id):
+        self._clean_port_vlan_if_necessary(port)
         raw_output = self.send_commands_to_device(
             self._format_commands(self.PLUG_PORT_TO_NETWORK,
                                   port=port,
                                   segmentation_id=segmentation_id))
         self._detect_plug_port_failure(str(raw_output), port, segmentation_id)
+
