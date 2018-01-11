@@ -50,10 +50,9 @@ class DellNos(netmiko_devices.NetmikoSwitch):
         )
         PATTERN = "U\s*(\d+)"
         match = re.search(PATTERN, raw_output)
-        current_vlan = match.group(1)
         if not match:
             return None
-        return current_vlan  # vlan_id
+        return match.group(1)  # vlan_id
 
     def _clean_port_vlan_if_necessary(self, port):
         wrong_vlan = self._get_wrong_vlan(port)
