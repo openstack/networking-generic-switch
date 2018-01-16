@@ -5,6 +5,7 @@
       - ^.*\.rst$
       - ^doc/.*$
       - ^networking_generic_switch/tests/.*$
+      - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
       - ^tools/.*$
