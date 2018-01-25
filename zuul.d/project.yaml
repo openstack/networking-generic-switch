@@ -1,5 +1,4 @@
 - project:
-    name: openstack/networking-generic-switch
     check:
       jobs:
         - networking-generic-switch-tempest-dsvm-dlm
