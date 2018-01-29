@@ -173,7 +173,7 @@ class CorsaSwitch(devices.GenericSwitchDevice):
                 c_br_descr = "VLAN-" + str(segmentation_id)
                 cont_ip = self.config['defaultControllerIP']
                 cont_port = self.config['defaultControllerPort']
-                c_vlan_range = segmentation_id
+                c_vlan = segmentation_id
                 c_uplink_port = int(self.config['uplink_port'])
                 
                 c_br = corsavfc.get_free_bridge(headers, url_switch)
@@ -191,9 +191,10 @@ class CorsaSwitch(devices.GenericSwitchDevice):
                 output = corsavfc.bridge_add_controller(headers, url_switch, br_id = c_br, cont_id = cont_id, cont_ip = cont_ip, cont_port = cont_port)
                 LOG.info("PRUTH: output.status_code" + str(output.status_code))
                 
-                #LOG.info("PRUTH: --- Attach Tunnel: uplink_port: " + str(c_uplink_port))
-                #output = corsavfc.bridge_attach_tunnel_ctag_vlan_range(headers, url_switch, br_id = c_br, ofport = c_uplink_port, port = c_uplink_port, vlan_range = c_vlan_range)
-                #LOG.info("PRUTH: output.status_code: " + str(output.status_code))
+
+                LOG.info("PRUTH: --- Attach Tunnel: uplink_port: " + str(c_uplink_port))
+                output = corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = c_uplink_port, port = c_uplink_port, vlan_id = c_vlan)
+                LOG.info("PRUTH: output.status_code: " + str(output.status_code))
         except Exception as e:
             LOG.info("PRUTH: add_network EXCEPTION: " + traceback.format_exc())
             raise e
