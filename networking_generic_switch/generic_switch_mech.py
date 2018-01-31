@@ -343,11 +343,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
 
         port = context.current
 
-        LOG.info("PRUTH: update_port_postcommit: port:                       " + str(port))
-        LOG.info("PRUTH: update_port_postcommit: context.original:           " + str(context.original))
-        LOG.info("PRUTH: update_port_postcommit: context.network:            " + str(context.network))
-        LOG.info("PRUTH: update_port_postcommit: context.network.current:    " + str(context.network.current))
-        
         if self._is_port_bound(port):
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(

@@ -54,11 +54,15 @@ class PoolLock(object):
         @tenacity.retry(**retry_kwargs)
         def grab_lock_from_pool():
             name = next(names)
+            
             # NOTE(pas-ha) currently all tooz backends support locking API.
             # In case this changes, this should be wrapped to not respin
             # lock grabbing on NotImplemented exception.
+            
             lock = self.coordinator.get_lock(name)
-            locked = lock.acquire(blocking=False)
+            # pruth: Locking does not work for >2 thread the acquire is non-blocking
+            #        This might cause threads to block forever (*maybe*)
+            locked = lock.acquire(blocking=True)
             if not locked:
                 raise coordination.LockAcquireFailed(
                     "Failed to acquire lock %s" % name)
