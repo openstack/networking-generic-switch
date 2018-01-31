@@ -60,7 +60,7 @@ class PoolLock(object):
             # lock grabbing on NotImplemented exception.
             
             lock = self.coordinator.get_lock(name)
-            # pruth: Locking does not work for >2 thread the acquire is non-blocking
+            # pruth: Locking does not work for >2 threads if the acquire is non-blocking
             #        This might cause threads to block forever (*maybe*)
             locked = lock.acquire(blocking=True)
             if not locked:

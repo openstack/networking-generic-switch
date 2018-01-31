@@ -133,7 +133,7 @@ def bridge_create(headers,
 #
 # BRIDGE DELETE
 #
-#   200 OK
+#   200 OK   PRUTH: 204?
 #   403 Forbidden
 #   404 Not found
 

@@ -176,84 +176,139 @@ class CorsaSwitch(devices.GenericSwitchDevice):
         return output
 
     def add_network(self, segmentation_id, network_id):
-        try:
-          with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
-                LOG.info("PRUTH:LOCK Enter: " + str(segmentation_id) + " " + str(network_id))
-                LOG.info("PRUTH: add_network(self, segmentation_id, network_id): " + str(segmentation_id) + " " + str(network_id))
-                LOG.info("PRUTH: add_network(): self.config " + str(self.config))
+        token = self.config['token']
+        headers = {'Authorization': token}
                 
-                token = self.config['token']
-                headers = {'Authorization': token}
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
                 
-                logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+        protocol = 'https://'
+        sw_ip_addr = self.config['switchIP']
+        url_switch = protocol + sw_ip_addr
                 
-                protocol = 'https://'
-                sw_ip_addr = self.config['switchIP']
-                url_switch = protocol + sw_ip_addr
-                
-                #./create-vfc.py br1 5 openflow VFC-1 192.168.201.164 6653 100-105
-                c_br_res =  self.config['dafaultVFCRes']
-                c_br_type = self.config['VFCType']
-                c_br_descr = "VLAN-" + str(segmentation_id)
-                cont_ip = self.config['defaultControllerIP']
-                cont_port = self.config['defaultControllerPort']
-                c_vlan = segmentation_id
-                c_uplink_port = int(self.config['uplink_port'])
-                
-                #with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
-                #LOG.info("PRUTH:LOCK Enter: " + str(segmentation_id) + " " + str(network_id))
-                c_br = corsavfc.get_free_bridge(headers, url_switch)
-                #time.sleep(5)
-                #LOG.info("PRUTH:LOCK Exit:  " + str(segmentation_id) + " " + str(network_id))
+        #./create-vfc.py br1 5 openflow VFC-1 192.168.201.164 6653 100-105
+        c_br_res =  self.config['dafaultVFCRes']
+        c_br_type = self.config['VFCType']
+        c_br_descr = "VLAN-" + str(segmentation_id)
+        cont_ip = self.config['defaultControllerIP']
+        cont_port = self.config['defaultControllerPort']
+        c_vlan = segmentation_id
+        c_uplink_port = int(self.config['uplink_port'])
 
-                LOG.info("PRUTH:LOCK freeBridge " + str(c_br))
-                
-                #cont_id =  c_br+ network_id
+        c_br = None
+
+        try:
+            with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
+                c_br = corsavfc.get_free_bridge(headers, url_switch)
                 cont_id = 'CONT' + str(c_br) 
-                
                 
                 LOG.info(" --- Create Bridge: " + str(c_br))
                 output = corsavfc.bridge_create(headers, url_switch, c_br, br_subtype = c_br_type, br_resources = c_br_res, br_descr=c_br_descr)
-                LOG.info(" status_code: " + str(output.status_code))
-                
+                if output.status_code == 201:
+                    LOG.info(" Create Bridge: " + str(output.status_code) + " Success")
+                else:
+                    if output.status_code == 400:
+                        raise Exception(" Create Bridge Failed: " + str(output.status_code) + " Bad Request")
+                    elif output.status_code == 403:
+                        raise Exception(" Create Bridge Failed: " + str(output.status_code) + " Forbidden")
+                    elif output.status_code == 409:
+                        raise Exception(" Create Bridge Failed: " + str(output.status_code) + " Conflict")
+                    else:
+                        raise Exception(" Create Bridge Failed: " + str(output.status_code) + " Unknown Error")
+                  
                 LOG.info(" --- Add Controller: " + str(cont_ip) + ":" + str(cont_port))
                 output = corsavfc.bridge_add_controller(headers, url_switch, br_id = c_br, cont_id = cont_id, cont_ip = cont_ip, cont_port = cont_port)
-                LOG.info(" status_code" + str(output.status_code))
+                if output.status_code == 201:
+                    LOG.info(" Add Controller: " + str(output.status_code) + " Success")
+                else:
+                    if output.status_code == 400:
+                        raise Exception(" Add Controller Failed: " + str(output.status_code) + " Bad Request")
+                    elif output.status_code == 403:
+                        raise Exception(" Add Controller Failed: " + str(output.status_code) + " Forbidden")
+                    elif output.status_code == 404:
+                        raise Exception(" Add Controller Failed: " + str(output.status_code) + " Not Found")
+                    elif output.status_code == 409:
+                        raise Exception(" Add Controller Failed: " + str(output.status_code) + " Conflict")
+                    else:
+                        raise Exception(" Add Controller Failed: " + str(output.status_code) + " Unknown Error")
                 
-
                 LOG.info(" --- Attach Tunnel: uplink_port: " + str(c_uplink_port))
                 output = corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = c_uplink_port, port = c_uplink_port, vlan_id = c_vlan)
-                LOG.info(" status_code: " + str(output.status_code))
-                LOG.info("PRUTH:LOCK Exit:  " + str(segmentation_id) + " " + str(network_id)) 
+                if output.status_code == 201:
+                    LOG.info(" Attach Tunnel: " + str(output.status_code) + " Success")
+                else:
+                    if output.status_code == 400:
+                        raise Exception(" Attach Tunnel Failed: " + str(output.status_code) + " Bad Request")
+                    elif output.status_code == 403:
+                        raise Exception(" Attach Tunnel Failed: " + str(output.status_code) + " Forbidden")
+                    elif output.status_code == 404:
+                        raise Exception(" Attach Tunnel Failed: " + str(output.status_code) + " Not Found")
+                    else:
+                        raise Exception(" Attach Tunnel Failed: " + str(output.status_code) + " Unknown Error")
+
         except Exception as e:
-            LOG.info("PRUTH:LOCK Exit (ERROR):  " + str(segmentation_id) + " " + str(network_id)) 
-            LOG.info("Corsa add_network EXCEPTION: " + traceback.format_exc())
+            LOG.error("Corsa add_network EXCEPTION: " + str(e) + ", " + traceback.format_exc())
+            LOG.error(" --- Cleaning Bridge after Failed Creation: " + str(segmentation_id) + ", bridge: " + str(c_br))
+            output = corsavfc.bridge_delete(headers, url_switch, str(c_br))
+            if output.status_code == 204:
+                LOG.error(" Cleanup: " + str(output.status_code) + " Success")
+            elif output.status_code == 403:
+                LOG.error(" Cleanup Failed: " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                LOG.error(" Cleanup Failed: " + str(output.status_code) + " Not Found (Possibly because cleaning was not needed)")
+            else:
+                LOG.error(" Cleanup Failed: " + str(output.status_code) + " Unknown Error")
+
             raise e
 
    
     def del_network(self, segmentation_id):
-        try:
-          with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):  
-            LOG.info("PRUTH: del_network(self, segmentation_id): " + str(segmentation_id))
-            LOG.info("PRUTH: del_network(): self.config " + str(self.config))
+        LOG.info("PRUTH: del_network(self, segmentation_id): " + str(segmentation_id))
+        LOG.info("PRUTH: del_network(): self.config " + str(self.config))
+        
+        token = self.config['token']
+        headers = {'Authorization': token}
             
-            token = self.config['token']
-            headers = {'Authorization': token}
-            
-            logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
-            protocol = 'https://'
-            sw_ip_addr = self.config['switchIP']
-            url_switch = protocol + sw_ip_addr
-            
+        protocol = 'https://'
+        sw_ip_addr = self.config['switchIP']
+        url_switch = protocol + sw_ip_addr
+
+        bridge = None
+        try:    
+          with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
             bridge = corsavfc.get_bridge_by_segmentation_id(headers, url_switch, str(segmentation_id))
             
             LOG.info(" --- Delete Bridge: " + str(segmentation_id) + ", bridge: " + str(bridge))
             output = corsavfc.bridge_delete(headers, url_switch, str(bridge))
-            LOG.info(" status_code: " + str(output.status_code))
+            if output.status_code == 204:
+                LOG.info(" Delete Bridge: " + str(output.status_code) + " Success")
+            else:
+                if output.status_code == 400:
+                    raise Exception(" Delete Bridge Failed: " + str(output.status_code) + " Bad Request")
+                elif output.status_code == 403:
+                    raise Exception(" Delete Bridge Failed: " + str(output.status_code) + " Forbidden")
+                elif output.status_code == 404:
+                    raise Exception(" Delete Bridge Failed: " + str(output.status_code) + " Not Found")
+                else:
+                    raise Exception(" Delete Bridge Failed: " + str(output.status_code) + " Unknown Error")            
+
         except Exception as e:
-            LOG.info("Corsa del_network EXCEPTION: " + traceback.format_exc())
+            LOG.error("Corsa del_network EXCEPTION: " + traceback.format_exc())
+            LOG.error(" --- Cleaning Bridge after Failed Deletion: " + str(segmentation_id) + ", bridge: " + str(bridge))
+            output = corsavfc.bridge_delete(headers, url_switch, str(bridge))
+            
+            if output.status_code == 204:
+                LOG.error(" Cleanup: " + str(output.status_code) + " Success")
+            elif output.status_code == 403:
+                LOG.error(" Cleanup Failed: " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                LOG.error(" Cleanup Failed: " + str(output.status_code) + " Not Found (Possibly because cleaning was not needed)")
+            else:
+                LOG.error(" Cleanup Failed: " + str(output.status_code) + " Unknown Error")
+
             raise e
+    
 
 
     def plug_port_to_network(self, port, segmentation_id):
