@@ -34,6 +34,7 @@ import requests
 import json
 import sys
 
+import time
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -61,6 +62,12 @@ class CorsaSwitch(devices.GenericSwitchDevice):
         #        device_type=device_type)
         self.config['device_type'] = device_type
 
+        LOG.info("PRUTH: CONF: " + str(CONF))
+        LOG.info("PRUTH: CONF.ngs_coordination.backend_url: " + str(CONF.ngs_coordination.backend_url))
+        LOG.info("PRUTH: CONF.host: " + str(CONF.host))
+        LOG.info("PRUTH: CONF.ngs_coordination.acquire_timeout: " + str(CONF.ngs_coordination.acquire_timeout))
+        LOG.info("PRUTH: CONF self.ngs_config['ngs_max_connections']:" + str(self.ngs_config['ngs_max_connections']))
+
         self.locker = None
         if CONF.ngs_coordination.backend_url:
             self.locker = coordination.get_coordinator(
@@ -74,6 +81,21 @@ class CorsaSwitch(devices.GenericSwitchDevice):
             'locks_prefix': self.config.get(
                 'host', '') or self.config.get('ip', ''),
             'timeout': CONF.ngs_coordination.acquire_timeout}
+        
+        #self.locker = coordination.get_coordinator(
+        #        'file:///var/lib/neutron/lock','ngs-host1')
+        #self.locker.start()
+        #atexit.register(self.locker.stop)
+        #
+        #self.lock_kwargs = {
+        #    'locks_pool_size': 1,
+        #    'locks_prefix': self.config.get(
+        #        'host', '') or self.config.get('ip', ''),
+        #    'timeout': CONF.ngs_coordination.acquire_timeout}
+
+
+
+
 
     def _format_commands(self, commands, **kwargs):
         if not commands:
@@ -155,6 +177,8 @@ class CorsaSwitch(devices.GenericSwitchDevice):
 
     def add_network(self, segmentation_id, network_id):
         try:
+          with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
+                LOG.info("PRUTH:LOCK Enter: " + str(segmentation_id) + " " + str(network_id))
                 LOG.info("PRUTH: add_network(self, segmentation_id, network_id): " + str(segmentation_id) + " " + str(network_id))
                 LOG.info("PRUTH: add_network(): self.config " + str(self.config))
                 
@@ -176,32 +200,40 @@ class CorsaSwitch(devices.GenericSwitchDevice):
                 c_vlan = segmentation_id
                 c_uplink_port = int(self.config['uplink_port'])
                 
+                #with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
+                #LOG.info("PRUTH:LOCK Enter: " + str(segmentation_id) + " " + str(network_id))
                 c_br = corsavfc.get_free_bridge(headers, url_switch)
-                LOG.info("PRUTH: freeBridge " + str(c_br))
+                #time.sleep(5)
+                #LOG.info("PRUTH:LOCK Exit:  " + str(segmentation_id) + " " + str(network_id))
+
+                LOG.info("PRUTH:LOCK freeBridge " + str(c_br))
                 
                 #cont_id =  c_br+ network_id
                 cont_id = 'CONT' + str(c_br) 
                 
                 
-                LOG.info("PRUTH:  --- Create Bridge: " + str(c_br))
+                LOG.info(" --- Create Bridge: " + str(c_br))
                 output = corsavfc.bridge_create(headers, url_switch, c_br, br_subtype = c_br_type, br_resources = c_br_res, br_descr=c_br_descr)
-                LOG.info("PRUTH:  A.status_code: " + str(output.status_code))
+                LOG.info(" status_code: " + str(output.status_code))
                 
-                LOG.info("PRUTH: --- Add Controller: " + str(cont_ip) + ":" + str(cont_port))
+                LOG.info(" --- Add Controller: " + str(cont_ip) + ":" + str(cont_port))
                 output = corsavfc.bridge_add_controller(headers, url_switch, br_id = c_br, cont_id = cont_id, cont_ip = cont_ip, cont_port = cont_port)
-                LOG.info("PRUTH: output.status_code" + str(output.status_code))
+                LOG.info(" status_code" + str(output.status_code))
                 
 
-                LOG.info("PRUTH: --- Attach Tunnel: uplink_port: " + str(c_uplink_port))
+                LOG.info(" --- Attach Tunnel: uplink_port: " + str(c_uplink_port))
                 output = corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = c_uplink_port, port = c_uplink_port, vlan_id = c_vlan)
-                LOG.info("PRUTH: output.status_code: " + str(output.status_code))
+                LOG.info(" status_code: " + str(output.status_code))
+                LOG.info("PRUTH:LOCK Exit:  " + str(segmentation_id) + " " + str(network_id)) 
         except Exception as e:
-            LOG.info("PRUTH: add_network EXCEPTION: " + traceback.format_exc())
+            LOG.info("PRUTH:LOCK Exit (ERROR):  " + str(segmentation_id) + " " + str(network_id)) 
+            LOG.info("Corsa add_network EXCEPTION: " + traceback.format_exc())
             raise e
 
    
     def del_network(self, segmentation_id):
         try:
+          with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):  
             LOG.info("PRUTH: del_network(self, segmentation_id): " + str(segmentation_id))
             LOG.info("PRUTH: del_network(): self.config " + str(self.config))
             
@@ -216,11 +248,11 @@ class CorsaSwitch(devices.GenericSwitchDevice):
             
             bridge = corsavfc.get_bridge_by_segmentation_id(headers, url_switch, str(segmentation_id))
             
-            LOG.info("PRUTH:  --- Delete Bridge: " + str(segmentation_id) + ", bridge: " + str(bridge))
+            LOG.info(" --- Delete Bridge: " + str(segmentation_id) + ", bridge: " + str(bridge))
             output = corsavfc.bridge_delete(headers, url_switch, str(bridge))
-            LOG.info("PRUTH:  A.status_code: " + str(output.status_code))
+            LOG.info(" status_code: " + str(output.status_code))
         except Exception as e:
-            LOG.info("PRUTH: del_network EXCEPTION: " + traceback.format_exc())
+            LOG.info("Corsa del_network EXCEPTION: " + traceback.format_exc())
             raise e
 
 

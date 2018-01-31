@@ -359,11 +359,8 @@ def get_bridge_by_segmentation_id(headers,
     links=bridges.json()["links"]
     for bridge,value in links.items():
         url=value['href']
-        LOG.info("PRUTH: get_bridge_by_segmentation_id: bridge: " + str(bridge) + ", url: " + str(url))
         link = get_bridge(headers,url_switch,url).json()
-        LOG.info("PRUTH: get_bridge_by_segmentation_id: bridge: " + str(link))
         if "bridge-descr" in link.keys():
-            LOG.info("PRUTH: get_bridge_by_segmentation_id: bridge description: " + str(link["bridge-descr"]))
             bridge_descr=str(link["bridge-descr"])
             if bridge_descr == "VLAN-"+str(segementation_id):
                 return bridge

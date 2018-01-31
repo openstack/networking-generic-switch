@@ -54,19 +54,26 @@ class PoolLock(object):
         @tenacity.retry(**retry_kwargs)
         def grab_lock_from_pool():
             name = next(names)
+            
             # NOTE(pas-ha) currently all tooz backends support locking API.
             # In case this changes, this should be wrapped to not respin
             # lock grabbing on NotImplemented exception.
+            
             lock = self.coordinator.get_lock(name)
-            locked = lock.acquire(blocking=False)
+            # pruth: Locking does not work for >2 thread the acquire is non-blocking
+            #        This might cause threads to block forever (*maybe*)
+            locked = lock.acquire(blocking=True)
             if not locked:
                 raise coordination.LockAcquireFailed(
                     "Failed to acquire lock %s" % name)
             return lock
 
         try:
+            LOG.info("PRUTH:LOCK:locking Getting lock")
             self.lock = grab_lock_from_pool()
+            LOG.info("PRUTH:LOCK:locking Got lock")
         except Exception:
+            LOG.info("PRUTH:LOCK:locking Exception")
             msg = ("Failed to acquire any of %s locks for %s "
                    "for a netmiko action in %s seconds. "
                    "Try increasing acquire_timeout." % (
