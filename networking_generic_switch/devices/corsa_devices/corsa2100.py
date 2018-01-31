@@ -44,11 +44,11 @@ class CorsaDP2100(corsa_devices.CorsaSwitch):
                                                           vlan=vlan,
                                                           error=match.group(0))
 
-    def plug_port_to_network(self, port, segmentation_id):
-	LOG.info('PRUTH: in plug_port_to_network(self, port, segmentation_id) ')
-
-        raw_output = self.send_commands_to_device(
-            self._format_commands(self.PLUG_PORT_TO_NETWORK,
-                                  port=port,
-                                  segmentation_id=segmentation_id))
-        self._detect_plug_port_failure(str(raw_output), port, segmentation_id)
+#    def plug_port_to_network(self, port, segmentation_id):
+#	LOG.info('PRUTH: in plug_port_to_network(self, port, segmentation_id) ')
+#
+#        raw_output = self.send_commands_to_device(
+#            self._format_commands(self.PLUG_PORT_TO_NETWORK,
+#                                  port=port,
+#                                  segmentation_id=segmentation_id))
+#        self._detect_plug_port_failure(str(raw_output), port, segmentation_id)

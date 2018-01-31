@@ -57,7 +57,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         cannot block.  Raising an exception will result in a rollback
         of the current transaction.
         """
-        LOG.info("PRUTH: create_network_precommit" + str(context))
         pass
 
     def create_network_postcommit(self, context):
@@ -76,8 +75,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         network_id = network['id']
         provider_type = network['provider:network_type']
         segmentation_id = network['provider:segmentation_id']
-
-        LOG.info("PRUTH: create_network_postcommit: " + str(network))
 
         if provider_type == 'vlan' and segmentation_id:
             # Create vlan on all switches from this driver
@@ -110,7 +107,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         network state. It is up to the mechanism driver to ignore
         state or state changes that it does not know or care about.
         """
-        LOG.info("PRUTH: update_network_precommit" + str(context))
         pass
 
     def update_network_postcommit(self, context):
@@ -129,7 +125,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         network state.  It is up to the mechanism driver to ignore
         state or state changes that it does not know or care about.
         """
-        LOG.info("PRUTH: update_network_postcommit" + str(context))
         pass
 
     def delete_network_precommit(self, context):
@@ -144,7 +139,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         raising an exception will result in rollback of the
         transaction.
         """
-        LOG.info("PRUTH: delete_network_precommit" + str(context))
         pass
 
     def delete_network_postcommit(self, context):
@@ -163,7 +157,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         provider_type = network['provider:network_type']
         segmentation_id = network['provider:segmentation_id']
 
-        LOG.info("PRUTH: delete_network_postcommit: " + str(network))
         if provider_type == 'vlan' and segmentation_id:
             # Delete vlan on all switches from this driver
             for switch_name, switch in self.switches.items():
@@ -192,7 +185,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         cannot block.  Raising an exception will result in a rollback
         of the current transaction.
         """
-        LOG.info("PRUTH: create_subnet_precommit" + str(context))
         pass
 
     def create_subnet_postcommit(self, context):
@@ -206,7 +198,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         drastically affect performance. Raising an exception will
         cause the deletion of the resource.
         """
-        LOG.info("PRUTH: create_subnet_postcommit" + str(context))
         pass
 
     def update_subnet_precommit(self, context):
@@ -225,7 +216,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         subnet state. It is up to the mechanism driver to ignore
         state or state changes that it does not know or care about.
         """
-        LOG.info("PRUTH: update_subnet_precommit" + str(context))
         pass
 
     def update_subnet_postcommit(self, context):
@@ -244,7 +234,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         subnet state.  It is up to the mechanism driver to ignore
         state or state changes that it does not know or care about.
         """
-        LOG.info("PRUTH: update_subnet_postcommit" + str(context))
         pass
 
     def delete_subnet_precommit(self, context):
@@ -259,7 +248,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         raising an exception will result in rollback of the
         transaction.
         """
-        LOG.info("PRUTH: delete_subnet_precommit" + str(context))
         pass
 
     def delete_subnet_postcommit(self, context):
@@ -274,7 +262,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         expected, and will not prevent the resource from being
         deleted.
         """
-        LOG.info("PRUTH: delete_subnet_postcommit" + str(context))
         pass
 
     def create_port_precommit(self, context):
@@ -287,7 +274,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         cannot block.  Raising an exception will result in a rollback
         of the current transaction.
         """
-        LOG.info("PRUTH: create_port_precommit" + str(context))
         pass
 
     def create_port_postcommit(self, context):
@@ -300,7 +286,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         drastically affect performance.  Raising an exception will
         result in the deletion of the resource.
         """
-        LOG.info("PRUTH: create_port_postcommit" + str(context))
         pass
 
     def update_port_precommit(self, context):
@@ -318,7 +303,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         state. It is up to the mechanism driver to ignore state or
         state changes that it does not know or care about.
         """
-        LOG.info("PRUTH: update_port_precommit" + str(context))
         pass
 
     def update_port_postcommit(self, context):
@@ -337,10 +321,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         state. It is up to the mechanism driver to ignore state or
         state changes that it does not know or care about.
         """
-        LOG.info("PRUTH: update_port_postcommit" + str(context))
-        
-
-
         port = context.current
 
         if self._is_port_bound(port):
@@ -366,6 +346,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             self._unplug_port_from_network(context.original,
                                            context.network.current)
 
+
     def delete_port_precommit(self, context):
         """Delete resources of a port.
 
@@ -376,7 +357,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         are not expected, but raising an exception will result in
         rollback of the transaction.
         """
-        LOG.info("PRUTH: delete_port_precommit" + str(context))
         pass
 
     def delete_port_postcommit(self, context):
@@ -391,8 +371,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         expected, and will not prevent the resource from being
         deleted.
         """
-        LOG.info("PRUTH: delete_port_postcommit" + str(context))
-
         port = context.current
         if self._is_port_bound(port):
             self._unplug_port_from_network(port, context.network.current)
@@ -438,10 +416,8 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         by the QoS service to identify the available QoS rules you
         can use with ports.
         """
-        LOG.info("PRUTH: bind_port" + str(context))
-
-
         port = context.current
+
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
         if self._is_port_supported(port) and local_link_information:
@@ -455,6 +431,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
             segmentation_id = segments[0].get('segmentation_id')
+
             # If segmentation ID is None, set vlan 1
             if not segmentation_id:
                 segmentation_id = '1'
