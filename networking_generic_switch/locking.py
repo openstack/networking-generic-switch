@@ -69,11 +69,8 @@ class PoolLock(object):
             return lock
 
         try:
-            LOG.info("PRUTH:LOCK:locking Getting lock")
             self.lock = grab_lock_from_pool()
-            LOG.info("PRUTH:LOCK:locking Got lock")
         except Exception:
-            LOG.info("PRUTH:LOCK:locking Exception")
             msg = ("Failed to acquire any of %s locks for %s "
                    "for a netmiko action in %s seconds. "
                    "Try increasing acquire_timeout." % (
