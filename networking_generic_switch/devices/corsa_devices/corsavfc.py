@@ -34,8 +34,8 @@ ep_netns = endpoint + '/netns'
 #   409 Conflict 
 
 
-def port_modify_tunnel_mode(headers, url_port , port_number, tunnel_mode):
-    url = url_port + '/' + str(port_number)
+def port_modify_tunnel_mode(headers, url_switch , port_number, tunnel_mode):
+    url = url_switch + ep_ports + '/' + str(port_number)
     data = [
               { "op": "replace", "path": "/tunnel-mode", "value": tunnel_mode },
            ]
@@ -46,8 +46,8 @@ def port_modify_tunnel_mode(headers, url_port , port_number, tunnel_mode):
     return r
  
   
-def port_modify_mtu(headers, url_port , port_number, mtu):
-    url = url_port + '/' + str(port_number)
+def port_modify_mtu(headers, url_switch , port_number, mtu):
+    url = url_switch + ep_ports + '/' + str(port_number)
     data = [
               { "op": "replace", "path": "/mtu", "value": mtu },
            ]
@@ -58,8 +58,8 @@ def port_modify_mtu(headers, url_port , port_number, mtu):
     return r
 
 
-def port_modify_descr(headers, url_port , port_number, descr):
-    url = url_port + '/' + str(port_number)
+def port_modify_descr(headers, url_switch , port_number, descr):
+    url = url_switch + ep_ports + '/' + str(port_number)
     data = [
               { "op": "replace", "path": "/ifdescr", "value": descr },
            ]
@@ -70,8 +70,8 @@ def port_modify_descr(headers, url_port , port_number, descr):
     return r
 
 
-def port_modify_bandwidth(headers, url_port , port_number, bandwidth):
-    url = url_port + '/' + str(port_number)
+def port_modify_bandwidth(headers, url_switch , port_number, bandwidth):
+    url = url_switch + ep_ports + '/' + str(port_number)
     data = [
               { "op": "replace", "path": "/bandwidth", "value": bandwidth },
            ]
@@ -82,8 +82,8 @@ def port_modify_bandwidth(headers, url_port , port_number, bandwidth):
     return r
 
 
-def port_modify_admin_state(headers, url_port , port_number, admin_state):
-    url = url_port + '/' + str(port_number)
+def port_modify_admin_state(headers, url_switch , port_number, admin_state):
+    url = url_switch + ep_ports + '/' + str(port_number)
     data = [
               { "op": "replace", "path": "/admin-state", "value": admin_state },
            ]
@@ -237,6 +237,40 @@ def bridge_attach_tunnel_ctag_vlan(headers,
 
 
 #
+# ATTACH TUNNEL - PASSTHROUGH
+#
+#   201 Created
+#   400 Bad Request
+#   403 Forbidden  
+#   404 Not Found 
+
+def bridge_attach_tunnel_passthrough(headers,
+                                     url_switch,
+                                     br_id,
+                                     port,
+                                     ofport = None,
+                                     tc = None,
+                                     descr = None,
+                                     shaped_rate = None):
+    url = url_switch + ep_bridges +  '/' +  br_id + '/tunnels'
+    data = {
+             'ofport': ofport,
+             'port': port,
+             'traffic-class': tc,
+             'ifdescr': descr,
+             'shaped-rate': shaped_rate,
+           }
+
+    try:
+        r = requests.post(url ,data=data, headers=headers, verify=False)
+        print r.json()
+    except Exception as e:
+        raise e
+    return r
+
+
+
+#
 # ATTACH TUNNEL - VLAN RANGE
 #
 #   201 Created
@@ -281,7 +315,7 @@ def bridge_attach_tunnel_ctag_vlan_range(headers,
 def bridge_detach_tunnel(headers,
                          url_swtich,
                          br_id,
-                         ofport):
+                         port):
     url = url_switch + ep_bridges + '/' +  br_id + '/tunnels' + '/' + str(ofport)
 
     try:
@@ -365,6 +399,7 @@ def get_bridge_by_segmentation_id(headers,
             if bridge_descr == "VLAN-"+str(segementation_id):
                 return bridge
     return None
+
 
 
 

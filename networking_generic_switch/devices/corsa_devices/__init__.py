@@ -313,20 +313,69 @@ class CorsaSwitch(devices.GenericSwitchDevice):
 
     def plug_port_to_network(self, port, segmentation_id):
         
-        LOG.info("PRUTH: plug_port_to_network(self, port, segmentation_id): " + str(segmentation_id) + " " + str(network_id))
-        
-        #self.send_commands_to_device(
-        #    self._format_commands(self.PLUG_PORT_TO_NETWORK,
-        #                          port=port,
-        #                          segmentation_id=segmentation_id))
+        LOG.info("PRUTH: plug_port_to_network(self, port, segmentation_id):  port: " +  str(port) + ", segmentation_id: " + str(segmentation_id))
 
-    def delete_port(self, port, segmentation_id):
+        #strip the 'p' off of the port number
+        port_num=port[2:]
         
-        LOG.info("PRUTH: delete_port(self, port, segmentation_id): " + str(segmentation_id) + " " + str(network_id))
-        #self.send_commands_to_device(
-        #    self._format_commands(self.DELETE_PORT,
-        #                          port=port,
-        #                          segmentation_id=segmentation_id))
+        LOG.info("PRUTH: plug_port_to_network(self, port, segmentation_id): port_num: " + str(port_num))
+
+        token = self.config['token']
+        headers = {'Authorization': token}
+
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
+        protocol = 'https://'
+        sw_ip_addr = self.config['switchIP']
+        url_switch = protocol + sw_ip_addr
+
+        try:
+          with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
+            #Make sure the tunnel_mode is 'passthrough'    
+            LOG.info(" --- Set port tunnel mode to passthrough: port: " + str(port) + ", segmentation_id: " +  str(segmentation_id))
+            output = corsavfc.port_modify_tunnel_mode(headers, url_switch, port_num, 'passthrough') 
+
+            #get the bridge from segmentation_id
+            br_id = corsavfc.get_bridge_by_segmentation_id(headers, url_switch, segmentation_id)
+
+            #bind the port
+            LOG.info(" --- Attach the port to bridge: " + str(port) + ", segmentation_id: " +  str(segmentation_id))
+            output = corsavfc.bridge_attach_tunnel_passthrough(headers, url_switch, br_id, port, ofport = None, tc = None, descr = None, shaped_rate = None)
+
+        except Exception as e:
+            LOG.error("Corsa plug_port_to_network EXCEPTION: " + str(traceback.format_exc()))
+            raise e
+ 
+    def delete_port(self, port, segmentation_id):
+        LOG.info("PRUTH: delete_port(self, port, segmentation_id):  port: " +  str(port) + ", segmentation_id: " + str(segmentation_id))
+
+        #strip the 'p' off of the port number
+        port_num=port[2:]
+
+        LOG.info("PRUTH: plug_port_to_network(self, port, segmentation_id): port_num: " + str(port_num))
+
+        token = self.config['token']
+        headers = {'Authorization': token}
+
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
+        protocol = 'https://'
+        sw_ip_addr = self.config['switchIP']
+        url_switch = protocol + sw_ip_addr
+
+        try:
+          with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
+            #get the bridge from segmentation_id
+            br_id = corsavfc.get_bridge_by_segmentation_id(headers, url_switch, segmentation_id)
+
+            #unbind the port 
+            LOG.info(" --- Detach port from bridge: " + str(port) + ", segmentation_id: " +  str(segmentation_id))
+            output = bridge_detach_tunnel_passthrough(headers, url_switch, br_id, port_num)
+
+        except Exception as e:
+            LOG.error("Corsa delete_port EXCEPTION: " + traceback.format_exc())
+            raise e
+
 
 
 
