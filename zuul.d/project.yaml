@@ -7,7 +7,10 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        - ironic-grenade-dsvm-multinode-multitenant
+        # Temporary mark multinode job as NV.
+        # see https://bugs.launchpad.net/ironic/+bug/1744139
+        - ironic-grenade-dsvm-multinode-multitenant:
+            voting: false
     gate:
       jobs:
         - networking-generic-switch-tempest-dsvm-dlm
@@ -15,4 +18,7 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        - ironic-grenade-dsvm-multinode-multitenant
+        # Temporary mark multinode job as NV.
+        # see https://bugs.launchpad.net/ironic/+bug/1744139
+        - ironic-grenade-dsvm-multinode-multitenant:
+            voting: false
