@@ -229,11 +229,13 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertFalse(connect_mock.send_command.called)
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, 'SAVE_CONFIGURATION',
-                       'save me')
+                       ('save', 'y'))
     def test_save_configuration_required(self):
-        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection,
+                                      autospec=True)
         self.switch.save_configuration(connect_mock)
-        connect_mock.send_command.called_once_with('save me')
+        connect_mock.send_command.assert_has_calls([mock.call('save'),
+                                                    mock.call('y')])
 
     @mock.patch.object(netmiko_devices.ngs_lock, 'PoolLock', autospec=True)
     @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')

@@ -206,4 +206,5 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         :param net_connect: a netmiko connection object.
         """
         if self.SAVE_CONFIGURATION:
-            net_connect.send_command(self.SAVE_CONFIGURATION)
+            for cmd in self.SAVE_CONFIGURATION:
+                net_connect.send_command(cmd)
