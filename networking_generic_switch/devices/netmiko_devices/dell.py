@@ -36,6 +36,13 @@ class DellNos(netmiko_devices.NetmikoSwitch):
         'show interfaces switchport {port} | grep ^U',
     )
 
+    DELETE_AND_PLUG_PORT = (
+        'interface vlan {wrong_segmentation_id}',
+        'no untagged {port}',
+        'interface vlan {segmentation_id}',
+        'untagged {port}'
+    )
+
     @staticmethod
     def _detect_plug_port_failure(raw_output, port, vlan):
         PATTERN = "Error: .* Port is untagged in another Vlan."
@@ -44,34 +51,44 @@ class DellNos(netmiko_devices.NetmikoSwitch):
             raise exc.GenericSwitchPlugPortToNetworkError(port=port,
                                                           vlan=vlan,
                                                           error=match.group(0))
-    def _get_wrong_vlan(self, port):
+
+    def plug_port_to_network(self, port, segmentation_id):
+        # get current vlan
         raw_output = self.send_commands_to_device(
             self._format_commands(self.QUERY_PORT, port=port)
         )
         PATTERN = "U\s*(\d+)"
-        match = re.search(PATTERN, raw_output)
-        if not match:
-            return None
-        return match.group(1)  # vlan_id
+        current_vlan = re.search(PATTERN, raw_output).group(1)
 
-    def _clean_port_vlan_if_necessary(self, port):
-        wrong_vlan = self._get_wrong_vlan(port)
-        if not wrong_vlan:
+        if ( current_vlan == str(segmentation_id) ): # Already set as needed
+            LOG.debug(
+                'Port %s is used in VLAN %s, intended VLAN is %s, no action taken.',
+                port,
+                str(current_vlan),
+                str(segmentation_id)
+            )
             return
-        if str(wrong_vlan) == '1':
-            return
-        LOG.warning(
-            'Port %s is used in VLAN %s, attempting to clean it',
-            port,
-            str(wrong_vlan)
-        )
-        self.delete_port(port, wrong_vlan)
 
-    def plug_port_to_network(self, port, segmentation_id):
-        self._clean_port_vlan_if_necessary(port)
-        raw_output = self.send_commands_to_device(
-            self._format_commands(self.PLUG_PORT_TO_NETWORK,
-                                  port=port,
-                                  segmentation_id=segmentation_id))
+        if ( current_vlan == '1' ):             # Port is clean
+            LOG.debug(
+                'Port %s is clean!',
+                port,
+            )
+            raw_output = self.send_commands_to_device(
+                self._format_commands(self.PLUG_PORT_TO_NETWORK,
+                                      port=port,
+                                      segmentation_id=segmentation_id))
+        else:                                   # Port has existing & incorrect VLAN
+            LOG.warning(
+                'Port %s is used in VLAN %s, attempting to clean it',
+                port,
+                current_vlan
+            )
+            raw_output = self.send_commands_to_device(
+                self._format_commands(self.DELETE_AND_PLUG_PORT,
+                                      port=port,
+                                      wrong_segmentation_id=current_vlan,
+                                      segmentation_id=segmentation_id))
+
         self._detect_plug_port_failure(str(raw_output), port, segmentation_id)
 
