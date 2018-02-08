@@ -1,0 +1,12 @@
+---
+prelude: >
+    This is release ``1.0.0`` of the ``networking-generic-switch`` project. The
+    project includes an ML2 mechanism driver for the Networking service that
+    provides integration with the Bare Metal service.
+
+    The main use case for this project is multi-tenant network isolation for
+    bare metal servers using VLANs.  The driver manages the VLAN membership of
+    network switch edge ports to which bare metal servers are attached.
+
+    Various network switches from different vendors are supported, including
+    Arista, Brocade, Cisco, Dell, Huawei, and others.
