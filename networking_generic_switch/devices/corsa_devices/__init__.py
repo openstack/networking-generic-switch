@@ -315,6 +315,12 @@ class CorsaSwitch(devices.GenericSwitchDevice):
         
         LOG.info("PRUTH: plug_port_to_network(self, port, segmentation_id):  port: " +  str(port) + ", segmentation_id: " + str(segmentation_id))
 
+        #HACK for now so we can avoid provisioning network
+        if segmentation_id == 1100:
+            LOG.info("PRUTH: plug_port_to_network(self, port, segmentation_id) skipping vlan 1100 (provisioning network)");
+            return
+
+
         #strip the 'p' off of the port number
         port_num=port[2:]
         
@@ -339,8 +345,8 @@ class CorsaSwitch(devices.GenericSwitchDevice):
             br_id = corsavfc.get_bridge_by_segmentation_id(headers, url_switch, segmentation_id)
 
             #bind the port
-            LOG.info(" --- Attach the port to bridge: " + str(port) + ", segmentation_id: " +  str(segmentation_id))
-            output = corsavfc.bridge_attach_tunnel_passthrough(headers, url_switch, br_id, port, ofport = None, tc = None, descr = None, shaped_rate = None)
+            LOG.info(" --- Attach the port to bridge: port: " + str(port_num) + ", segmentation_id: " +  str(segmentation_id) + ", bridge: " + str(br_id))
+            output = corsavfc.bridge_attach_tunnel_passthrough(headers, url_switch, br_id, port_num, ofport = None, tc = None, descr = None, shaped_rate = None)
 
         except Exception as e:
             LOG.error("Corsa plug_port_to_network EXCEPTION: " + str(traceback.format_exc()))
@@ -348,6 +354,12 @@ class CorsaSwitch(devices.GenericSwitchDevice):
  
     def delete_port(self, port, segmentation_id):
         LOG.info("PRUTH: delete_port(self, port, segmentation_id):  port: " +  str(port) + ", segmentation_id: " + str(segmentation_id))
+
+        #HACK for now so we can avoid provisioning network
+        if segmentation_id == 1100:
+            LOG.info("PRUTH: delel_port(self, port, segmentation_id) skipping vlan 1100 (provisioning network)");
+            return
+
 
         #strip the 'p' off of the port number
         port_num=port[2:]
@@ -369,8 +381,8 @@ class CorsaSwitch(devices.GenericSwitchDevice):
             br_id = corsavfc.get_bridge_by_segmentation_id(headers, url_switch, segmentation_id)
 
             #unbind the port 
-            LOG.info(" --- Detach port from bridge: " + str(port) + ", segmentation_id: " +  str(segmentation_id))
-            output = bridge_detach_tunnel_passthrough(headers, url_switch, br_id, port_num)
+            LOG.info(" --- Detach port from bridge: " + str(port) + ", segmentation_id: " +  str(segmentation_id) + ", bridge: " + str(br_id))
+            output = corsavfc. bridge_detach_tunnel(headers, url_switch, br_id, port_num)
 
         except Exception as e:
             LOG.error("Corsa delete_port EXCEPTION: " + traceback.format_exc())

@@ -371,6 +371,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             self._unplug_port_from_network(context.original,
                                            context.network.current)
 
+
     def delete_port_precommit(self, context):
         """Delete resources of a port.
 
@@ -467,6 +468,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
             segmentation_id = segments[0].get('segmentation_id')
+
             # If segmentation ID is None, set vlan 1
             LOG.info("PRUTH: bind_port: 230")
             if not segmentation_id:

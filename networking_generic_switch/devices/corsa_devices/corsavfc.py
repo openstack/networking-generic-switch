@@ -252,7 +252,7 @@ def bridge_attach_tunnel_passthrough(headers,
                                      tc = None,
                                      descr = None,
                                      shaped_rate = None):
-    url = url_switch + ep_bridges +  '/' +  br_id + '/tunnels'
+    url = url_switch + ep_bridges +  '/' +  str(br_id) + '/tunnels'
     data = {
              'ofport': ofport,
              'port': port,
@@ -313,10 +313,10 @@ def bridge_attach_tunnel_ctag_vlan_range(headers,
 #   404 Not Found
 
 def bridge_detach_tunnel(headers,
-                         url_swtich,
+                         url_switch,
                          br_id,
                          port):
-    url = url_switch + ep_bridges + '/' +  br_id + '/tunnels' + '/' + str(ofport)
+    url = url_switch + ep_bridges + '/' +  str(br_id) + '/tunnels' + '/' + str(ofport)
 
     try:
         r = requests.delete(url, headers=headers, verify=False)
