@@ -123,17 +123,31 @@ def bridge_create(headers,
            }
 
     try:
-        r = requests.post(url ,data=data, headers=headers, verify=False)
-        print r.json()
+        output = requests.post(url ,data=data, headers=headers, verify=False)
+        print output.json()
+
+        if output.status_code == 201:
+            LOG.info(" Create Bridge: " + "url: " + str(url) + ", " + str(output.status_code) + " Success")
+        else:
+            if output.status_code == 400:
+                raise Exception(" Create Bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Bad Request")
+            elif output.status_code == 403:
+                raise Exception(" Create Bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 409:
+                raise Exception(" Create Bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Conflict")
+            else:
+                raise Exception(" Create Bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Unknown Error")
+
+
     except Exception as e:
         raise e
-    return r
+    return output
 
 
 #
 # BRIDGE DELETE
 #
-#   200 OK   PRUTH: 204?
+#   200 OK   PRUTH: I think its actually 204
 #   403 Forbidden
 #   404 Not found
 
@@ -143,10 +157,21 @@ def bridge_delete(headers,
     url = url_switch + ep_bridges + '/' +  br_id 
 
     try:
-        r = requests.delete(url, headers=headers, verify=False)
+        output = requests.delete(url, headers=headers, verify=False)
+
+        if output.status_code == 204:
+            LOG.info(" Delete Bridge: " + "url: " + str(url) + ", " + str(output.status_code) + " Success")
+        else:
+            if output.status_code == 403:
+                raise Exception(" Delete Bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                raise Exception(" Delete Bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Not Found")
+            else:
+                raise Exception(" Delete Bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Unknown Error")
+
     except Exception as e:
         raise e
-    return r
+    return output
 
 
 #
@@ -174,11 +199,23 @@ def bridge_add_controller(headers,
            }
 
     try:
-        r = requests.post(url ,data=data, headers=headers, verify=False)
-        print r.json()
+        output = requests.post(url ,data=data, headers=headers, verify=False)
+
+        if output.status_code == 201:
+            LOG.info(" Add Controller: url: " + str(url)  + ", " + str(output.status_code) + " Success")
+        else:
+            if output.status_code == 400:
+                raise Exception(" Add Controller Failed:  url: " + str(url)  + ", "  + str(output.status_code) + " Bad Request")
+            elif output.status_code == 403:
+                raise Exception(" Add Controller Failed:  url: " + str(url)  + ", "  + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                raise Exception(" Add Controller Failed:  url: " + str(url)  + ", "  + str(output.status_code) + " Not Found")
+            else:
+                raise Exception(" Add Controller Failed:  url: " + str(url)  + ", "  + str(output.status_code) + " Unknown Error")
+
     except Exception as e:
         raise e
-    return r
+    return output
 
 
 #
@@ -195,7 +232,21 @@ def bridge_detach_controller(headers,
     url = url_switch + ep_bridges + '/' +  br_id + '/controllers' + '/' + cont_id
 
     try:
-        r = requests.delete(url, headers=headers, verify=False)
+        output = requests.delete(url, headers=headers, verify=False)
+        if output.status_code == 204:
+            LOG.info(" Add Controller: " + "url: " + str(url) + ", " + str(output.status_code) + " Success")
+        else:
+            if output.status_code == 400:
+                raise Exception(" Add Controller Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Bad Request")
+            elif output.status_code == 403:
+                raise Exception(" Add Controller Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                raise Exception(" Add Controller Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Not Found")
+            elif output.status_code == 409:
+                raise Exception(" Add Controller Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Conflict")
+            else:
+                raise Exception(" Add Controller Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Unknown Error")
+
     except Exception as e:
         raise e
     return r
@@ -229,11 +280,24 @@ def bridge_attach_tunnel_ctag_vlan(headers,
            }
 
     try:
-        r = requests.post(url ,data=data, headers=headers, verify=False)
-        print r.json()
+        output = requests.post(url ,data=data, headers=headers, verify=False)
+        print output.json()
+
+        if output.status_code == 201:
+                LOG.info(" Attach ctag vlan port to bridge: " + "url: " + str(url) + ", " + str(output.status_code) + " Success")
+        else:
+            if output.status_code == 400:
+                raise Exception(" Attach ctag vlan port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Bad Request")
+            elif output.status_code == 403:
+                raise Exception(" Attach ctag vlan port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                raise Exception(" Attach ctag vlan port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Not Found")
+            else:
+                raise Exception(" Attach ctag vlan port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Unknown Error")
+
     except Exception as e:
         raise e
-    return r
+    return output
 
 
 #
@@ -262,11 +326,25 @@ def bridge_attach_tunnel_passthrough(headers,
            }
 
     try:
-        r = requests.post(url ,data=data, headers=headers, verify=False)
-        print r.json()
+        output = requests.post(url ,data=data, headers=headers, verify=False)
+        print output.json()
+
+        if output.status_code == 201:
+            LOG.info(" Attach passthrough port to bridge: " + "url: " + str(url) + ", " + str(output.status_code) + " Success")
+        else:
+            if output.status_code == 400:
+                raise Exception(" Attach passthrough port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Bad Request")
+            elif output.status_code == 403:
+                raise Exception(" Attach passthrough port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                raise Exception(" Attach passthrough port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Not Found")
+            else:
+                raise Exception(" Attach passthrough port to bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Unknown Error")
+
+
     except Exception as e:
         raise e
-    return r
+    return output
 
 
 
@@ -316,13 +394,26 @@ def bridge_detach_tunnel(headers,
                          url_switch,
                          br_id,
                          port):
-    url = url_switch + ep_bridges + '/' +  str(br_id) + '/tunnels' + '/' + str(ofport)
+    url = url_switch + ep_bridges + '/' +  str(br_id) + '/tunnels' + '/' + str(port)
 
     try:
-        r = requests.delete(url, headers=headers, verify=False)
+        output = requests.delete(url, headers=headers, verify=False)
+        if output.status_code == 204:
+            LOG.info(" Detach port from bridge: " + "url: " + str(url) + ", " + str(output.status_code) + " Success")
+        else:
+            if output.status_code == 400:
+                raise Exception(" Detach port from bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Bad Request")
+            elif output.status_code == 403:
+                raise Exception(" Detach port from bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Forbidden")
+            elif output.status_code == 404:
+                raise Exception(" Detach port from bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Not Found")
+            else:
+                raise Exception(" Detach port from bridge Failed: " + "url: " + str(url) + ", " + str(output.status_code) + " Unknown Error")
+
+
     except Exception as e:
         raise e
-    return r
+    return outpit
 
 
 #
@@ -359,7 +450,7 @@ def get_bridge(headers,
 
 
 #
-# PRUTH
+# 
 #
 # get_free_bridge_name
 #
@@ -379,7 +470,7 @@ def get_free_bridge(headers,
     return None
 
 #
-# PRUTH
+# 
 #
 # get_bridge_by_segmentation_id
 #
