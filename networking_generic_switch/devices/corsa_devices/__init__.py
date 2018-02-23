@@ -120,7 +120,9 @@ class CorsaSwitch(devices.GenericSwitchDevice):
                 #Add the controller
                 corsavfc.bridge_add_controller(headers, url_switch, br_id = c_br, cont_id = cont_id, cont_ip = cont_ip, cont_port = cont_port)
                 #Attach the uplink tunnel
-                ofport=self.get_ofport(c_br,port)
+                LOG.info("About to get_ofport: c_br: " + str(c_br) + ", c_uplink_port: " + str(c_uplink_port)) 
+                ofport=self.get_ofport(c_br,'P '+str(c_uplink_port))
+                LOG.info("ofport: " + str(ofport))
                 corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = ofport, port = c_uplink_port, vlan_id = c_vlan)
 
         except Exception as e:
