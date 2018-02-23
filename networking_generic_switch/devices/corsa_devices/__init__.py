@@ -120,7 +120,8 @@ class CorsaSwitch(devices.GenericSwitchDevice):
                 #Add the controller
                 corsavfc.bridge_add_controller(headers, url_switch, br_id = c_br, cont_id = cont_id, cont_ip = cont_ip, cont_port = cont_port)
                 #Attach the uplink tunnel
-                corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = c_uplink_port, port = c_uplink_port, vlan_id = c_vlan)
+                ofport=self.get_ofport(c_br,port)
+                corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = ofport, port = c_uplink_port, vlan_id = c_vlan)
 
         except Exception as e:
             LOG.error("Failed add network. attempting to cleanup bridge: " + str(e) + ", " + traceback.format_exc())
@@ -151,6 +152,16 @@ class CorsaSwitch(devices.GenericSwitchDevice):
             LOG.error("failed delete bridge: " + traceback.format_exc())
             raise e
     
+    # gets the unique ofport based on the bridge number and port number
+    # Example: bridge=br3,port=P 32 -> ofport 332
+    #          bridge=br33,port=P 2 -> ofport 3302 
+    def get_ofport(self, bridge, port):
+        ofport = bridge[2:]
+        if int(port[2:]) < 10:
+            ofport += '0'
+        ofport += port[2:]
+            
+        return ofport
 
 
     def plug_port_to_network(self, port, segmentation_id):
@@ -179,7 +190,8 @@ class CorsaSwitch(devices.GenericSwitchDevice):
 
             # bind the port
             # physical port is mapped to the openflow port with the same port number
-            corsavfc.bridge_attach_tunnel_passthrough(headers, url_switch, br_id, port_num, ofport = port_num, tc = None, descr = None, shaped_rate = None)
+            ofport = self.get_ofport(br_id,port)
+            corsavfc.bridge_attach_tunnel_passthrough(headers, url_switch, br_id, port_num, ofport, tc = None, descr = None, shaped_rate = None)
 
         except Exception as e:
             LOG.error("Failed to plug to network: " + str(traceback.format_exc()))
@@ -208,8 +220,9 @@ class CorsaSwitch(devices.GenericSwitchDevice):
 
             # unbind the port 
             # openflow port was mapped to the physical port with the same port number in plug_port_to_network
-            corsavfc. bridge_detach_tunnel(headers, url_switch, br_id, port_num)
-
+            ofport = self.get_ofport(br_id,port)
+            corsavfc. bridge_detach_tunnel(headers, url_switch, br_id, ofport)
+ 
         except Exception as e:
             LOG.error("Failed delete_port: " + traceback.format_exc())
             raise e

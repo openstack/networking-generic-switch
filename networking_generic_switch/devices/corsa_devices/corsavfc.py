@@ -325,6 +325,8 @@ def bridge_attach_tunnel_passthrough(headers,
              'shaped-rate': shaped_rate,
            }
 
+    LOG.info(" Attach passthrough port to bridge: port: " + str(port) + ", ofport = " + str(ofport))
+
     try:
         output = requests.post(url ,data=data, headers=headers, verify=False)
         print output.json()
@@ -413,7 +415,7 @@ def bridge_detach_tunnel(headers,
 
     except Exception as e:
         raise e
-    return outpit
+    return output
 
 
 #
