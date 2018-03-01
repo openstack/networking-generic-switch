@@ -1,0 +1,10 @@
+---
+fixes:
+  - Fixes an issue where a switch interface will revert to VLAN 1, trunk mode,
+    or other various configurations when a port is unbound.  See
+    https://bugs.launchpad.net/networking-generic-switch/+bug/1752480.
+features:
+  - Adds a new configuration option ``[genericswitch:<switch name>]
+    ngs_port_default_vlan``, which is optional. If ``ngs_port_default_vlan`` is
+    set to a VLAN ID, the switch's interfaces will be restored to that VLAN
+    when ports are unbound.

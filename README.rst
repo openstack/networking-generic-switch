@@ -62,6 +62,10 @@ Switch configuration format::
     key_file = <ssh key file>
     secret = <enable secret>
 
+    # If set ngs_port_default_vlan to default_vlan, switch's
+    # interface will restore the default_vlan.
+    ngs_port_default_vlan = <port default vlan>
+
 ..note::
 
     Switch will be selected by local_link_connection/switch_info

@@ -28,6 +28,7 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_mac_address'},
     # Comma-separated list of names of interfaces to be added to each network.
     {'name': 'ngs_trunk_ports'},
+    {'name': 'ngs_port_default_vlan'},
     # Comma-separated list of physical networks to which this switch is mapped.
     {'name': 'ngs_physical_networks'},
     {'name': 'ngs_ssh_connect_timeout', 'default': 60},
@@ -83,6 +84,10 @@ class GenericSwitchDevice(object):
         if not trunk_ports:
             return []
         return trunk_ports.split(',')
+
+    def _get_port_default_vlan(self):
+        """Return a default vlan of switch's interface if you specify."""
+        return self.ngs_config.get('ngs_port_default_vlan', None)
 
     def _get_physical_networks(self):
         """Return a list of physical networks mapped to this switch."""
