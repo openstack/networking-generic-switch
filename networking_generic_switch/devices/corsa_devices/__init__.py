@@ -103,13 +103,25 @@ class CorsaSwitch(devices.GenericSwitchDevice):
         c_br_res =  self.config['dafaultVFCRes']
         c_br_type = self.config['VFCType']
         c_br_descr = "VLAN-" + str(segmentation_id)
+        c_vlan = segmentation_id
+        c_uplink_ports = self.config['uplink_ports']
+
+
         cont_ip = self.config['defaultControllerIP']
         cont_port = self.config['defaultControllerPort']
-        c_vlan = segmentation_id
-        c_uplink_port = int(self.config['uplink_port'])
+        LOG.info("segmentation_id    " + str(segmentation_id)) 
+        LOG.info("provisioning vlan  " + str(self.config['provisioningVLAN']))
+        try:
+            if self.config.has_key('provisioningVLAN'):
+                if str(segmentation_id) == self.config['provisioningVLAN']:
+                    LOG.info("Creating provisioning network on VLAN " + self.config['provisioningVLAN'] + " with contorller " + self.config['defaultControllerIP'] + ":" + self.config['defaultControllerPort'])
+                    cont_ip = self.config['defaultControllerIP']
+                    cont_port = self.config['defaultControllerPort']
+        except Exception as e:
+            LOG.error("Failed to find provisioning network controller.  Using default controller")
 
+        
         c_br = None
-
         try:
             with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
                 c_br = corsavfc.get_free_bridge(headers, url_switch)
@@ -119,11 +131,14 @@ class CorsaSwitch(devices.GenericSwitchDevice):
                 corsavfc.bridge_create(headers, url_switch, c_br, br_subtype = c_br_type, br_resources = c_br_res, br_descr=c_br_descr)
                 #Add the controller
                 corsavfc.bridge_add_controller(headers, url_switch, br_id = c_br, cont_id = cont_id, cont_ip = cont_ip, cont_port = cont_port)
-                #Attach the uplink tunnel
-                LOG.info("About to get_ofport: c_br: " + str(c_br) + ", c_uplink_port: " + str(c_uplink_port)) 
-                ofport=self.get_ofport(c_br,'P '+str(c_uplink_port))
-                LOG.info("ofport: " + str(ofport))
-                corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = ofport, port = c_uplink_port, vlan_id = c_vlan)
+                
+                LOG.info("About to get_ofport: c_br: " + str(c_br) + ", c_uplink_ports: " + str(c_uplink_ports))
+                for uplink in c_uplink_ports.split(','):
+                     #Attach the uplink tunnel
+                     LOG.info("About to get_ofport: c_br: " + str(c_br) + ", uplink: " + str(uplink)) 
+                     ofport=self.get_ofport(c_br,'P '+str(uplink))
+                     LOG.info("ofport: " + str(ofport))
+                     corsavfc.bridge_attach_tunnel_ctag_vlan(headers, url_switch, br_id = c_br, ofport = ofport, port = int(uplink), vlan_id = c_vlan)
 
         except Exception as e:
             LOG.error("Failed add network. attempting to cleanup bridge: " + str(e) + ", " + traceback.format_exc())
@@ -189,6 +204,16 @@ class CorsaSwitch(devices.GenericSwitchDevice):
 
             # get the bridge from segmentation_id
             br_id = corsavfc.get_bridge_by_segmentation_id(headers, url_switch, segmentation_id)
+
+            try:
+                # unbind the port (probably not necessary)
+                # openflow port was mapped to the physical port with the same port number in plug_port_to_network
+                ofport = self.get_ofport(br_id,port)
+                corsavfc. bridge_detach_tunnel(headers, url_switch, br_id, ofport)
+                LOG.info("needed to delete_port: probably a leaked port from a node that did not completely boot the previous time. ")
+            except Exception as e:
+                LOG.info("Tried to delete_port but it was not there: this is expected." + traceback.format_exc())
+                pass
 
             # bind the port
             # physical port is mapped to the openflow port with the same port number
