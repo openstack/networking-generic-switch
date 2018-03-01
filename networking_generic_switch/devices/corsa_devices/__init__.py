@@ -107,6 +107,7 @@ class CorsaSwitch(devices.GenericSwitchDevice):
         c_uplink_ports = self.config['uplink_ports']
 
 
+        c_br_type = self.config['VFCType']
         cont_ip = self.config['defaultControllerIP']
         cont_port = self.config['defaultControllerPort']
         LOG.info("segmentation_id    " + str(segmentation_id)) 
@@ -114,9 +115,10 @@ class CorsaSwitch(devices.GenericSwitchDevice):
         try:
             if self.config.has_key('provisioningVLAN'):
                 if str(segmentation_id) == self.config['provisioningVLAN']:
-                    LOG.info("Creating provisioning network on VLAN " + self.config['provisioningVLAN'] + " with contorller " + self.config['defaultControllerIP'] + ":" + self.config['defaultControllerPort'])
-                    cont_ip = self.config['defaultControllerIP']
-                    cont_port = self.config['defaultControllerPort']
+                    LOG.info("Creating provisioning network on VLAN " + self.config['provisioningVLAN'] + " with controller " + self.config['provisioningControllerPort'] + ":" + self.config['provisioningControllerPort'])
+                    c_br_type = self.config['provisioningVFCType']
+                    cont_ip = self.config['provisioningControllerIP']
+                    cont_port = self.config['provisioningControllerPort']
         except Exception as e:
             LOG.error("Failed to find provisioning network controller.  Using default controller")
 
