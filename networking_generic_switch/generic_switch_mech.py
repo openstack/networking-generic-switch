@@ -321,9 +321,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         state. It is up to the mechanism driver to ignore state or
         state changes that it does not know or care about.
         """
+        LOG.info("update_port_postcommit: " + str(context))
+        LOG.info("update_port_postcommit: " + str(context.dir()))
+        
+
         port = context.current
 
         if self._is_port_bound(port):
+            LOG.info("update_port_postcommit: self._is_port_bound(port)" + str(port))
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(
                 'local_link_information')
@@ -340,11 +345,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
         elif self._is_port_bound(context.original):
+            LOG.info("update_port_postcommit: self._is_port_bound(context.original)" + str(port))
             # The port has been unbound. This will cause the local link
             # information to be lost, so remove the port from the network on
             # the switch now while we have the required information.
             self._unplug_port_from_network(context.original,
                                            context.network.current)
+        else:
+            LOG.info("update_port_postcommit: else" + str(port))
 
 
     def delete_port_precommit(self, context):
@@ -371,8 +379,12 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         expected, and will not prevent the resource from being
         deleted.
         """
+        LOG.info("delete_port_postcommit: " + str(context))
+
         port = context.current
+        LOG.info("delete_port_postcommit: " + str(port))
         if self._is_port_bound(port):
+            LOG.info("delete_port_postcommit: self._is_port_bound(port)" + str(port))
             self._unplug_port_from_network(port, context.network.current)
 
     def bind_port(self, context):
