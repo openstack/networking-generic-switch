@@ -322,7 +322,7 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         state changes that it does not know or care about.
         """
         LOG.info("update_port_postcommit: " + str(context))
-        LOG.info("update_port_postcommit: " + str(context.dir()))
+        #LOG.info("update_port_postcommit: " + str(dir(context)))
         
 
         port = context.current
