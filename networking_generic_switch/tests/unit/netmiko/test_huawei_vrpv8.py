@@ -44,7 +44,19 @@ class TestNetmikoHuawei_vrpv8(test_netmiko_base.NetmikoSwitchTestBase):
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
-            ['interface 3333', 'port default vlan 33', 'commit'])
+            ['interface 3333',
+             'port link-type access',
+             'port default vlan 33',
+             'commit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_delete_port(self, mock_exec):
+        self.switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            ['interface 3333',
+             'undo port default vlan 33',
+             'commit'])
 
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
@@ -63,4 +75,7 @@ class TestNetmikoHuawei_vrpv8(test_netmiko_base.NetmikoSwitchTestBase):
             port=3333,
             segmentation_id=33)
         self.assertEqual(cmd_set,
-                         ['interface 3333', 'port default vlan 33', 'commit'])
+                         ['interface 3333',
+                          'port link-type access',
+                          'port default vlan 33',
+                          'commit'])
