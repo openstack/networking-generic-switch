@@ -29,6 +29,13 @@ class Huawei(netmiko_devices.NetmikoSwitch):
 
     PLUG_PORT_TO_NETWORK = (
         'interface {port}',
+        'port link-type access',
         'port default vlan {segmentation_id}',
+        'commit',
+    )
+
+    DELETE_PORT = (
+        'interface {port}',
+        'undo port default vlan {segmentation_id}',
         'commit',
     )

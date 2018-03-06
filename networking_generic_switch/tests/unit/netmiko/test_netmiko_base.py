@@ -61,6 +61,12 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.switch.plug_port_to_network(2222, 22)
         m_sctd.assert_called_with(None)
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_delete_port(self, m_sctd):
+        self.switch.delete_port(2222, 22)
+        m_sctd.assert_called_with(None)
+
     def test__format_commands(self):
         self.switch._format_commands(
             netmiko_devices.NetmikoSwitch.ADD_NETWORK,
