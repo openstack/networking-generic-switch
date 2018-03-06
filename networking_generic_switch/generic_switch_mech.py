@@ -321,14 +321,8 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         state. It is up to the mechanism driver to ignore state or
         state changes that it does not know or care about.
         """
-        LOG.info("update_port_postcommit: " + str(context))
-        LOG.info("update_port_postcommit: " + str(context.dir()))
-        
-
         port = context.current
-
         if self._is_port_bound(port):
-            LOG.info("update_port_postcommit: self._is_port_bound(port)" + str(port))
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(
                 'local_link_information')
@@ -345,15 +339,11 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
         elif self._is_port_bound(context.original):
-            LOG.info("update_port_postcommit: self._is_port_bound(context.original)" + str(port))
             # The port has been unbound. This will cause the local link
             # information to be lost, so remove the port from the network on
             # the switch now while we have the required information.
             self._unplug_port_from_network(context.original,
                                            context.network.current)
-        else:
-            LOG.info("update_port_postcommit: else" + str(port))
-
 
     def delete_port_precommit(self, context):
         """Delete resources of a port.
@@ -379,17 +369,14 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         expected, and will not prevent the resource from being
         deleted.
         """
-        LOG.info("delete_port_postcommit: " + str(context))
 
         port = context.current
-        LOG.info("delete_port_postcommit: " + str(port))
         if self._is_port_bound(port):
-            LOG.info("delete_port_postcommit: self._is_port_bound(port)" + str(port))
             self._unplug_port_from_network(port, context.network.current)
 
     def bind_port(self, context):
         """Attempt to bind a port.
- 
+
         :param context: PortContext instance describing the port
 
         This method is called outside any transaction to attempt to
@@ -428,8 +415,8 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
         by the QoS service to identify the available QoS rules you
         can use with ports.
         """
-        port = context.current
 
+        port = context.current
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
         if self._is_port_supported(port) and local_link_information:
@@ -443,7 +430,6 @@ class GenericSwitchDriver(driver_api.MechanismDriver):
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
             segmentation_id = segments[0].get('segmentation_id')
-
             # If segmentation ID is None, set vlan 1
             if not segmentation_id:
                 segmentation_id = '1'
