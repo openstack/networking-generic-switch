@@ -25,7 +25,7 @@ class TestNetmikoCisco300(test_netmiko_base.NetmikoSwitchTestBase):
         return cisco.Cisco300(device_cfg)
 
     def test_constants(self):
-        self.assertEqual(('copy run start',), self.switch.SAVE_CONFIGURATION)
+        self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')

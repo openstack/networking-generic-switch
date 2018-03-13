@@ -230,15 +230,20 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         save_mock.assert_called_once_with(connect_mock)
 
     def test_save_configuration(self):
-        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection,
+                                      autospec=True)
         self.switch.save_configuration(connect_mock)
-        self.assertFalse(connect_mock.send_command.called)
+        connect_mock.save_config.assert_called_once_with()
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, 'SAVE_CONFIGURATION',
                        ('save', 'y'))
-    def test_save_configuration_required(self):
+    def test_save_configuration_with_NotImplementedError(self):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection,
                                       autospec=True)
+
+        def fake_save_config():
+            raise NotImplementedError
+        connect_mock.save_config = fake_save_config
         self.switch.save_configuration(connect_mock)
         connect_mock.send_command.assert_has_calls([mock.call('save'),
                                                     mock.call('y')])

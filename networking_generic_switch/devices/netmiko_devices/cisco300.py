@@ -40,7 +40,3 @@ class Cisco300(netmiko_devices.NetmikoSwitch):
             'no switchport access vlan',
             'switchport trunk allowed vlan remove all',
         )
-
-        SAVE_CONFIGURATION = (
-            'copy run start',
-        )
