@@ -201,10 +201,17 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         return net_connect.send_config_set(config_commands=cmd_set)
 
     def save_configuration(self, net_connect):
-        """Save the device's configuration.
+        """Try to save the device's configuration.
 
         :param net_connect: a netmiko connection object.
         """
-        if self.SAVE_CONFIGURATION:
-            for cmd in self.SAVE_CONFIGURATION:
-                net_connect.send_command(cmd)
+        try:
+            net_connect.save_config()
+        except NotImplementedError:
+            if self.SAVE_CONFIGURATION:
+                for cmd in self.SAVE_CONFIGURATION:
+                    net_connect.send_command(cmd)
+            else:
+                LOG.warning("Saving config is not supported for %s,"
+                            " all changes will be lost after switch"
+                            " reboot", self.config['device_type'])

@@ -37,7 +37,3 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
             'no switchport mode trunk',
             'switchport trunk allowed vlan none'
         )
-
-        SAVE_CONFIGURATION = (
-            'write memory',
-        )

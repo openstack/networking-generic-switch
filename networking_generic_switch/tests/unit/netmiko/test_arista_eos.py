@@ -25,7 +25,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         return arista.AristaEos(device_cfg)
 
     def test_constants(self):
-        self.assertEqual(('write memory',), self.switch.SAVE_CONFIGURATION)
+        self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
