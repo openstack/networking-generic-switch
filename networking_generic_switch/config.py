@@ -31,19 +31,6 @@ coordination_opts = [
 CONF.register_opts(coordination_opts, group='ngs_coordination')
 
 
-# NOTE(pas-ha) as this was a public method before (why, og why..)
-# we can not simply drop it without proper deprecation
-# TODO(pas-ha) remove n Queens
-def get_config():
-    LOG.warning("Usage of networking_generic_switch.config.get_config method "
-                "is deprecated and this method will be removed after the Pike "
-                "release or any time earlier if MultiConfigParser is removed "
-                "from oslo_config. Use get_devices method directly.")
-    multi_parser = cfg.MultiConfigParser()
-    multi_parser.read(CONF.config_file)
-    return multi_parser.parsed
-
-
 def get_devices():
     """Parse supplied config files and fetch defined supported devices."""
 

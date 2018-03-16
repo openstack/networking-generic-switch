@@ -52,11 +52,6 @@ class TestConfig(fixtures.TestWithFixtures):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    @mock.patch('oslo_config.cfg.MultiConfigParser.read')
-    def test_get_config(self, m_read):
-        config.get_config()
-        m_read.assert_called_with(["/some/config/path"])
-
     def test_get_devices(self):
         device_list = config.get_devices()
         self.assertEqual(set(device_list), set(['foo', 'bar']))
