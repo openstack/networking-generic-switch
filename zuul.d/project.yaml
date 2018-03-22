@@ -10,6 +10,7 @@
         # see https://bugs.launchpad.net/ironic/+bug/1744139
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
+        - openstack-tox-lower-constraints
     gate:
       jobs:
         - networking-generic-switch-tempest-dsvm-dlm
@@ -21,3 +22,4 @@
         # see https://bugs.launchpad.net/ironic/+bug/1744139
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
+        - openstack-tox-lower-constraints
