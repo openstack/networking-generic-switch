@@ -11,8 +11,8 @@ It abstracts applying changes to all switches managed by this ML2 plugin
 and handling ``local_link_information`` field of Neutron port.
 
 * Code: https://git.openstack.org/cgit/openstack/networking-generic-switch
-* Bugs: https://bugs.launchpad.net/networking-generic-switch
-* Docs: TBD
+* Bugs: https://storyboard.openstack.org/#!/project/956
+* Docs: https://docs.openstack.org/networking-generic-switch/latest/
 
 
 .. contents:: Contents:

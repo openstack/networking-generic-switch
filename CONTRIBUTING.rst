@@ -23,31 +23,18 @@ signed OpenStack's contributor's agreement.
    * https://docs.openstack.org/infra/manual/developers.html
    * https://wiki.openstack.org/CLA
 
-
-LaunchPad Project
-=================
-
-Most of the tools used for OpenStack depend on a launchpad.net ID for
-authentication.
-
-.. seealso::
-
-   * https://launchpad.net
-   * https://launchpad.net/networking-generic-switch
-
-
 Related Projects
 ================
 
-   * https://launchpad.net/neutron
-   * https://launchpad.net/ironic
+   * https://docs.openstack.org/neutron/latest
+   * https://docs.openstack.org/ironic/latest
 
 
 Project Hosting Details
 =======================
 
 Bug tracker
-    https://launchpad.net/networking-generic-switch
+    https://storyboard.openstack.org/#!/project/956
 
 Code Hosting
     https://git.openstack.org/cgit/openstack/networking-generic-switch
