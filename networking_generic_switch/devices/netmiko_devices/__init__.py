@@ -179,16 +179,34 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         self.send_commands_to_device(cmds)
 
     def plug_port_to_network(self, port, segmentation_id):
-        self.send_commands_to_device(
-            self._format_commands(self.PLUG_PORT_TO_NETWORK,
-                                  port=port,
-                                  segmentation_id=segmentation_id))
+        cmds = []
+        ngs_port_default_vlan = self._get_port_default_vlan()
+        if ngs_port_default_vlan:
+            cmds += self._format_commands(
+                self.DELETE_PORT,
+                port=port,
+                segmentation_id=ngs_port_default_vlan)
+        cmds += self._format_commands(
+            self.PLUG_PORT_TO_NETWORK,
+            port=port,
+            segmentation_id=segmentation_id)
+        self.send_commands_to_device(cmds)
 
     def delete_port(self, port, segmentation_id):
-        self.send_commands_to_device(
-            self._format_commands(self.DELETE_PORT,
-                                  port=port,
-                                  segmentation_id=segmentation_id))
+        cmds = self._format_commands(self.DELETE_PORT,
+                                     port=port,
+                                     segmentation_id=segmentation_id)
+        ngs_port_default_vlan = self._get_port_default_vlan()
+        if ngs_port_default_vlan:
+            cmds += self._format_commands(
+                self.ADD_NETWORK,
+                segmentation_id=ngs_port_default_vlan,
+                network_id=ngs_port_default_vlan)
+            cmds += self._format_commands(
+                self.PLUG_PORT_TO_NETWORK,
+                port=port,
+                segmentation_id=ngs_port_default_vlan)
+        self.send_commands_to_device(cmds)
 
     def send_config_set(self, net_connect, cmd_set):
         """Send a set of configuration lines to the device.

@@ -20,8 +20,9 @@ from networking_generic_switch.tests.unit.netmiko import test_netmiko_base
 
 class TestNetmikoHuawei_vrpv8(test_netmiko_base.NetmikoSwitchTestBase):
 
-    def _make_switch_device(self):
+    def _make_switch_device(self, extra_cfg={}):
         device_cfg = {'device_type': 'netmiko_huawei'}
+        device_cfg.update(extra_cfg)
         return huawei_vrpv8.Huawei(device_cfg)
 
     def test_constants(self):
@@ -51,11 +52,41 @@ class TestNetmikoHuawei_vrpv8(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
+    def test_plug_port_has_default_vlan(self, m_sctd):
+        switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
+        switch.plug_port_to_network(2222, 22)
+        m_sctd.assert_called_with(
+            ['interface 2222',
+             'undo port default vlan 20',
+             'commit',
+             'interface 2222',
+             'port link-type access',
+             'port default vlan 22',
+             'commit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
             ['interface 3333',
              'undo port default vlan 33',
+             'commit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_delete_port_has_default_vlan(self, mock_exec):
+        switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
+        switch.delete_port(2222, 22)
+        mock_exec.assert_called_with(
+            ['interface 2222',
+             'undo port default vlan 22',
+             'commit',
+             'vlan 20',
+             'commit',
+             'interface 2222',
+             'port link-type access',
+             'port default vlan 20',
              'commit'])
 
     def test__format_commands(self):
