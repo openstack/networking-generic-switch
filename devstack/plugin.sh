@@ -28,6 +28,16 @@ if ( [[ "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]] ) && (! is_service_enabled 
 fi
 
 function install_generic_switch {
+    # FIXME(TheJulia): The most work hack to fix a CI gate ever!
+    # Due to issue documented in Story #2001853 we need to ensure
+    # pep8 is present before proceeding, as it is required to install
+    # networking-generic-switch. For some, unknown, making people want
+    # to drink copious amounts, mysterious reason, pep8 is disappearing
+    # during the grenade multinode test job resulting in n-g-s installation
+    # from succeeding as flake8 is already present. Beause everything thinks
+    # pep8 is already already present, nothing tries to install pep8 until
+    # it is too late.
+    sudo -H pip install -I --force-reinstall pep8
     setup_develop $GENERIC_SWITCH_DIR
 }
 
