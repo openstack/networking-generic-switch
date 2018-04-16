@@ -37,6 +37,9 @@ else
 fi
 
 # Install the rest of the requirements as normal
-$install_cmd -U $*
-
+if [ "$#" -gt 0 ]; then
+    $install_cmd -U $*
+else
+    $install_cmd -U .
+fi
 exit $?
