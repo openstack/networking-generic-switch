@@ -38,8 +38,8 @@ class PoolLockTest(fixtures.TestWithFixtures):
 
     def test_lock_contextmanager_no_coordinator(self):
         lock = ngs_lock.PoolLock(None)
-        with lock as l:
-            self.assertFalse(l.lock)
+        with lock as lk:
+            self.assertFalse(lk.lock)
 
     @mock.patch.object(ngs_lock.tenacity, 'stop_after_delay',
                        return_value=tenacity.stop_after_delay(0.1))
@@ -51,11 +51,11 @@ class PoolLockTest(fixtures.TestWithFixtures):
         coord.get_lock.return_value = lock_mock
         lock_mock.acquire.side_effect = [False, False, False, True]
 
-        with ngs_lock.PoolLock(coord, locks_pool_size=2, timeout=1) as l:
-            self.assertEqual(coord, l.coordinator)
-            self.assertEqual(1, l.timeout)
+        with ngs_lock.PoolLock(coord, locks_pool_size=2, timeout=1) as lk:
+            self.assertEqual(coord, lk.coordinator)
+            self.assertEqual(1, lk.timeout)
             self.assertEqual(4, lock_mock.acquire.call_count)
-            self.assertEqual(lock_mock, l.lock)
+            self.assertEqual(lock_mock, lk.lock)
 
         lock_mock.release.assert_called_once_with()
         stop_mock.assert_called_once_with(1)

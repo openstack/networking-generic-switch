@@ -49,7 +49,7 @@ class BrocadeFastIron(netmiko_devices.NetmikoSwitch):
 
     @staticmethod
     def _process_raw_output(raw_output):
-        PATTERN = "Member of L2 VLAN ID (\d+), port is untagged"
+        PATTERN = "Member of L2 VLAN ID (\\d+), port is untagged"
         match = re.search(PATTERN, raw_output)
         if not match:
             return None
