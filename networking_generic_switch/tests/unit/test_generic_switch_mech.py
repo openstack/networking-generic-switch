@@ -108,6 +108,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.add_network.assert_called_once_with(22, 22)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
+        self.assertNotIn('has been added', m_log.info.call_args[0][0])
 
     def test_delete_network_postcommit(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -177,6 +178,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.del_network.assert_called_once_with(22, 22)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to delete network', m_log.error.call_args[0][0])
+        self.assertNotIn('has been deleted', m_log.info.call_args[0][0])
 
     @mock.patch('networking_generic_switch.generic_switch_mech.LOG')
     def test_delete_network_postcommit_no_network_id(self, m_log, m_list):
