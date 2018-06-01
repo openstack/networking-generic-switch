@@ -89,9 +89,10 @@ class GenericSwitchDriver(api.MechanismDriver):
                               {'net_id': network_id,
                                'switch': switch_name,
                                'exc': e})
-                LOG.info('Network %(net_id)s has been added on device '
-                         '%(device)s', {'net_id': network['id'],
-                                        'device': switch_name})
+                else:
+                    LOG.info('Network %(net_id)s has been added on device '
+                             '%(device)s', {'net_id': network['id'],
+                                            'device': switch_name})
 
     def update_network_precommit(self, context):
         """Update resources of a network.
@@ -186,9 +187,10 @@ class GenericSwitchDriver(api.MechanismDriver):
                               {'net_id': network['id'],
                                'switch': switch_name,
                                'exc': e})
-                LOG.info('Network %(net_id)s has been deleted on device '
-                         '%(device)s', {'net_id': network['id'],
-                                        'device': switch_name})
+                else:
+                    LOG.info('Network %(net_id)s has been deleted on device '
+                             '%(device)s', {'net_id': network['id'],
+                                            'device': switch_name})
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.
