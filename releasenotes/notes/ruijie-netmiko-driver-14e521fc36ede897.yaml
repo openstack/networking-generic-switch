@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_ruijie``, for managing Ruijie switch devices.
