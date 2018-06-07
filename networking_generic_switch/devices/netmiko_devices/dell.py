@@ -16,37 +16,79 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class DellNos(netmiko_devices.NetmikoSwitch):
-        ADD_NETWORK = (
-            'interface vlan {segmentation_id}',
-            'name {network_id}',
-            'exit',
-        )
+    """Netmiko device driver for Dell Force10 switches."""
 
-        DELETE_NETWORK = (
-            'no interface vlan {segmentation_id}',
-            'exit',
-        )
+    ADD_NETWORK = (
+        'interface vlan {segmentation_id}',
+        'name {network_id}',
+        'exit',
+    )
 
-        PLUG_PORT_TO_NETWORK = (
-            'interface vlan {segmentation_id}',
-            'untagged {port}',
-            'exit',
-        )
+    DELETE_NETWORK = (
+        'no interface vlan {segmentation_id}',
+        'exit',
+    )
 
-        DELETE_PORT = (
-            'interface vlan {segmentation_id}',
-            'no untagged {port}',
-            'exit',
-        )
+    PLUG_PORT_TO_NETWORK = (
+        'interface vlan {segmentation_id}',
+        'untagged {port}',
+        'exit',
+    )
 
-        ADD_NETWORK_TO_TRUNK = (
-            'interface vlan {segmentation_id}',
-            'tagged {port}',
-            'exit',
-        )
+    DELETE_PORT = (
+        'interface vlan {segmentation_id}',
+        'no untagged {port}',
+        'exit',
+    )
 
-        REMOVE_NETWORK_FROM_TRUNK = (
-            'interface vlan {segmentation_id}',
-            'no tagged {port}',
-            'exit',
-        )
+    ADD_NETWORK_TO_TRUNK = (
+        'interface vlan {segmentation_id}',
+        'tagged {port}',
+        'exit',
+    )
+
+    REMOVE_NETWORK_FROM_TRUNK = (
+        'interface vlan {segmentation_id}',
+        'no tagged {port}',
+        'exit',
+    )
+
+
+class DellPowerConnect(netmiko_devices.NetmikoSwitch):
+    """Netmiko device driver for Dell PowerConnect switches."""
+
+    ADD_NETWORK = (
+        'vlan database',
+        'vlan {segmentation_id}',
+        'exit',
+    )
+
+    DELETE_NETWORK = (
+        'vlan database',
+        'no vlan {segmentation_id}',
+        'exit',
+    )
+
+    PLUG_PORT_TO_NETWORK = (
+        'interface {port}',
+        'switchport access vlan {segmentation_id}',
+        'exit',
+    )
+
+    DELETE_PORT = (
+        'interface {port}',
+        'switchport access vlan none',
+        'exit',
+    )
+
+    ADD_NETWORK_TO_TRUNK = (
+        'interface {port}',
+        'switchport general allowed vlan add {segmentation_id} tagged',
+        'exit',
+    )
+
+    REMOVE_NETWORK_FROM_TRUNK = (
+        'interface {port}',
+        'switchport general allowed vlan remove {segmentation_id}',
+        'exit',
+    )
