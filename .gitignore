@@ -23,6 +23,7 @@ develop-eggs
 
 # Testing artefacts
 .testrepository
+.stestr
 .tox
 .venv
 .coverage
