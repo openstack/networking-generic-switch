@@ -1,12 +1,12 @@
 Welcome to networking-generic-switch's documentation!
 =====================================================
 
-.. include:: ./readme.rst
-
 .. toctree::
    :maxdepth: 2
 
+   supported-devices
    installation
+   configuration
    dev/dev-quickstart
    contributing
 
