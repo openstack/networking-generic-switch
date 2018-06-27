@@ -24,7 +24,7 @@ coordination_opts = [
     cfg.IntOpt('acquire_timeout',
                min=0,
                default=60,
-               help='Timeout is second after which an attempt to grab a lock '
+               help='Timeout in seconds after which an attempt to grab a lock '
                     'is failed. Value of 0 is forever.'),
 ]
 
