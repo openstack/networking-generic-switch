@@ -133,3 +133,25 @@ the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
         --config-file /etc/neutron/plugins/ml2/ml2_conf.ini \
         --config-file /etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini
 
+.. _synchronization:
+
+Synchronization
+===============
+
+Some devices are limited in the number of concurrent SSH sessions that they can
+support, or do not support concurrent configuration database updates. In these
+cases it can be useful to use an external service to synchronize access to the
+managed devices. This synchronization is provided by the `Tooz library
+<https://docs.openstack.org/tooz/latest/>`__, which provides support for a
+number of different backends, including Etcd, ZooKeeper, and others. A
+connection URL for the backend should be configured as follows::
+
+    [ngs_coordination]
+    backend_url = <backend URL>
+
+The default is to limit the number of concurrent active connections to each
+device to one, but the number may be configured per-device as follows::
+
+    [genericswitch:device-hostname]
+    ngs_max_connections = <max connections>
+
