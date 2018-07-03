@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_dell_powerconnect``, for managing Dell
+    PowerConnect switch devices.

@@ -10,6 +10,7 @@ The following devices are supported by this plugin:
 * OpenVSwitch
 * Arista EOS
 * Dell Force10
+* Dell PowerConnect
 * Brocade ICX (FastIron)
 * Ruijie switches
 * HPE 5900 Series switches

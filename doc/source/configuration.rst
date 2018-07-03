@@ -89,6 +89,19 @@ for the Dell Force10 device::
     password = password
     secret = secret
 
+for the Dell PowerConnect device::
+
+    [genericswitch:dell-hostname]
+    device_type = netmiko_dell_powerconnect
+    ip = <switch mgmt ip address>
+    username = admin
+    password = password
+    secret = secret
+
+Dell PowerConnect devices have been seen to have issues with multiple
+concurrent configuration sessions. See :ref:`synchronization` for details on
+how to limit the number of concurrent active connections to each device.
+
 for the Brocade FastIron (ICX) device::
 
     [genericswitch:hostname-for-fast-iron]
