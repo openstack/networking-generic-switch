@@ -15,6 +15,7 @@
 import mock
 
 from networking_generic_switch.devices.netmiko_devices import dell
+from networking_generic_switch import exceptions as exc
 from networking_generic_switch.tests.unit.netmiko import test_netmiko_base
 
 
@@ -133,6 +134,18 @@ class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
         m_exec.assert_called_with(
             ['vlan database', 'vlan 33', 'exit'])
 
+    def test_invalid_switchmode(self):
+        with self.assertRaises(exc.GenericSwitchConfigException):
+            self._make_switch_device({'ngs_switchport_mode': 'BAD_PORT_MODE'})
+
+    def test_switchmode_general(self):
+        # should not raise an exception
+        self._make_switch_device({'ngs_switchport_mode': 'GENERAL'})
+
+    def test_switchmode_access(self):
+        # should not raise an exception
+        self._make_switch_device({'ngs_switchport_mode': 'access'})
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
     def test_add_network_with_trunk_ports(self, mock_exec):
@@ -174,10 +187,32 @@ class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
+    def test_plug_port_to_network_general_mode(self, mock_exec):
+        switch = self._make_switch_device({'ngs_switchport_mode': 'GENERAL'})
+        switch.plug_port_to_network(3333, 33)
+        mock_exec.assert_called_with(
+            ['interface 3333',
+             'switchport general allowed vlan add 33 untagged',
+             'switchport general pvid 33',
+             'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
             ['interface 3333', 'switchport access vlan none', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_delete_port_general(self, mock_exec):
+        switch = self._make_switch_device({'ngs_switchport_mode': 'GENERAL'})
+        switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            ['interface 3333',
+             'switchport general allowed vlan remove 33',
+             'no switchport general pvid',
+             'exit'])
 
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
@@ -221,3 +256,24 @@ class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertEqual(cmd_set,
                          ['interface 3333',
                           'switchport general allowed vlan remove 33', 'exit'])
+
+    def test__format_commands_general_mode(self):
+        switch = self._make_switch_device({'ngs_switchport_mode': 'GENERAL'})
+        cmd_set = switch._format_commands(
+            dell.DellPowerConnect.PLUG_PORT_TO_NETWORK_GENERAL,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'switchport general allowed vlan add 33 untagged',
+                          'switchport general pvid 33',
+                          'exit'])
+        cmd_set = switch._format_commands(
+            dell.DellPowerConnect.DELETE_PORT_GENERAL,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'switchport general allowed vlan remove 33',
+                          'no switchport general pvid',
+                          'exit'])

@@ -98,6 +98,12 @@ for the Dell PowerConnect device::
     password = password
     secret = secret
 
+    # You can set ngs_switchport_mode according to switchmode you have set on
+    # the switch. The following options are supported: general, access. It
+    # will default to access mode if left unset. In general mode, the port
+    # be set to transmit untagged packets.
+    ngs_switchport_mode = access
+
 Dell PowerConnect devices have been seen to have issues with multiple
 concurrent configuration sessions. See :ref:`synchronization` for details on
 how to limit the number of concurrent active connections to each device.
