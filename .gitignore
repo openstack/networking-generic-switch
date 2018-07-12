@@ -22,7 +22,6 @@ develop-eggs
 .installed.cfg
 
 # Testing artefacts
-.testrepository
 .stestr
 .tox
 .venv
