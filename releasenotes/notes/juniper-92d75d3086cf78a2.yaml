@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Adds a new driver, ``netmiko_juniper``, for Juniper JunOS devices.
+
+    The private configuration mode is used in order to provide a level of
+    isolation between sessions, and to ensure that uncommitted changes are not
+    left on the switch following a failure to commit the configuration.
+
+    Configuration errors are handled by ensuring that the commit operation is
+    successful.
+
+    A retry mechanism is used to handle temporary failures due to multiple
+    sessions attempting to lock the JunOS configuration database concurrently.
+    The retry mechanism is configured via the configuration options
+    ``ngs_commit_interval`` and ``ngs_commit_timeout``.

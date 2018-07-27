@@ -129,6 +129,16 @@ for the HPE 5900 Series device::
     password = password
     ip = <switch mgmt ip address>
 
+for the Juniper device::
+
+    [genericswitch:hostname-for-juniper]
+    device_type = netmiko_juniper
+    ip = <switch mgmt ip address>
+    username = admin
+    password = password
+    ngs_commit_timeout = <optional commit timeout (seconds)>
+    ngs_commit_interval = <optional commit interval (seconds)>
+
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
