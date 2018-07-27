@@ -1,0 +1,11 @@
+---
+issues:
+  - |
+    Netmiko has not changed the device name for hp_comware to hpe_comware
+    yet. See
+
+    https://github.com/ktbyers/netmiko/blob/develop/netmiko/ssh_dispatcher.py
+
+    Therefore, the device will fail to load as netmiko will only recognize
+    "hp_comware". We'll need to alias "hpe_comware" with "hp_comware" till
+    netmiko recognizes HPE.

@@ -124,7 +124,7 @@ for the Ruijie device::
 for the HPE 5900 Series device::
 
     [genericswitch:sw-hostname]
-    device_type = netmiko_hpe_comware
+    device_type = netmiko_hp_comware
     username = admin
     password = password
     ip = <switch mgmt ip address>
