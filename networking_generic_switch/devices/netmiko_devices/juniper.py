@@ -109,9 +109,6 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         class DBLocked(Exception):
             """Switch configuration DB is locked by another user."""
 
-            def __init__(self, err):
-                self.err = err
-
         @tenacity.retry(
             # Log a message after each failed attempt.
             after=tenacity.after_log(LOG, logging.DEBUG),
@@ -134,15 +131,16 @@ class Juniper(netmiko_devices.NetmikoSwitch):
                 # Netmiko raises ValueError on commit failure, and appends the
                 # CLI output to the exception message. Raise a more specific
                 # exception for a locked DB, on which tenacity will retry.
-                if "error: configuration database locked" in str(e):
+                DB_LOCKED_MSG = "error: configuration database locked"
+                if DB_LOCKED_MSG in str(e):
                     raise DBLocked(e)
                 raise
 
         try:
             commit()
         except DBLocked as e:
-            msg = ("Reached timeout waiting for switch configuration DB lock: "
-                   "%s" % e.err)
+            msg = ("Reached timeout waiting for switch configuration DB lock. "
+                   "Configuration might not be committed. Error: %s" % str(e))
             LOG.error(msg)
             raise exc.GenericSwitchNetmikoConfigError(
                 config=device_utils.sanitise_config(self.config), error=msg)

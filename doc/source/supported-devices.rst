@@ -14,7 +14,7 @@ The following devices are supported by this plugin:
 * Brocade ICX (FastIron)
 * Ruijie switches
 * HPE 5900 Series switches
-* Juniper Junos
+* Juniper Junos OS switches
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.
