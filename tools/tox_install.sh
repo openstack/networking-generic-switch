@@ -5,7 +5,7 @@
 set -ex
 
 ZUUL_CLONER=/usr/zuul-env/bin/zuul-cloner
-BRANCH_NAME=master
+BRANCH_NAME=stable/queens
 
 CONSTRAINTS_FILE=$1
 shift
