@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import re
+
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch import exceptions as exc
 
@@ -126,4 +128,11 @@ class DellPowerConnect(netmiko_devices.NetmikoSwitch):
         'interface {port}',
         'switchport general allowed vlan remove {segmentation_id}',
         'exit',
+    )
+
+    ERROR_MSG_PATTERNS = (
+        re.compile(r'\% Incomplete command'),
+        re.compile(r'VLAN was not created by user'),
+        re.compile(r'Configuration Database locked by another application \- '
+                   r'try later'),
     )
