@@ -34,6 +34,7 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_ssh_connect_timeout', 'default': 60},
     {'name': 'ngs_ssh_connect_interval', 'default': 10},
     {'name': 'ngs_max_connections', 'default': 1},
+    {'name': 'ngs_switchport_mode', 'default': 'access'}
 ]
 
 

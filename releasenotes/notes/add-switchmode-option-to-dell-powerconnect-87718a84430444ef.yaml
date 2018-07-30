@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new config option, ``ngs_switchport_mode`` to the Dell
+    PowerConnect driver.

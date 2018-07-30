@@ -21,6 +21,10 @@ class GenericSwitchException(exceptions.NeutronException):
     message = _("%(method)s failed.")
 
 
+class GenericSwitchConfigException(exceptions.NeutronException):
+    message = _("%(option)s must be one of: %(allowed_options)s")
+
+
 class GenericSwitchEntrypointLoadError(GenericSwitchException):
     message = _("Failed to load entrypoint %(ep)s: %(err)s")
 

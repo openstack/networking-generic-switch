@@ -13,6 +13,7 @@
 #    under the License.
 
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch import exceptions as exc
 
 
 class DellNos(netmiko_devices.NetmikoSwitch):
@@ -57,6 +58,26 @@ class DellNos(netmiko_devices.NetmikoSwitch):
 class DellPowerConnect(netmiko_devices.NetmikoSwitch):
     """Netmiko device driver for Dell PowerConnect switches."""
 
+    def _switch_to_general_mode(self):
+        self.PLUG_PORT_TO_NETWORK = self.PLUG_PORT_TO_NETWORK_GENERAL
+        self.DELETE_PORT = self.DELETE_PORT_GENERAL
+
+    def __init__(self, device_cfg):
+        super(DellPowerConnect, self).__init__(device_cfg)
+        port_mode = self.ngs_config['ngs_switchport_mode']
+        switchport_mode = {
+            'general': self._switch_to_general_mode,
+            'access': lambda: ()
+        }
+
+        def on_invalid_switchmode():
+            raise exc.GenericSwitchConfigException(
+                option="ngs_switchport_mode",
+                allowed_options=switchport_mode.keys()
+            )
+
+        switchport_mode.get(port_mode.lower(), on_invalid_switchmode)()
+
     ADD_NETWORK = (
         'vlan database',
         'vlan {segmentation_id}',
@@ -69,9 +90,23 @@ class DellPowerConnect(netmiko_devices.NetmikoSwitch):
         'exit',
     )
 
+    PLUG_PORT_TO_NETWORK_GENERAL = (
+        'interface {port}',
+        'switchport general allowed vlan add {segmentation_id} untagged',
+        'switchport general pvid {segmentation_id}',
+        'exit',
+    )
+
     PLUG_PORT_TO_NETWORK = (
         'interface {port}',
         'switchport access vlan {segmentation_id}',
+        'exit',
+    )
+
+    DELETE_PORT_GENERAL = (
+        'interface {port}',
+        'switchport general allowed vlan remove {segmentation_id}',
+        'no switchport general pvid',
         'exit',
     )
 
