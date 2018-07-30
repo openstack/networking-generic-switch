@@ -135,7 +135,7 @@ for the HPE 5900 Series device::
     password = password
     ip = <switch mgmt ip address>
 
-for the Juniper device::
+for the Juniper Junos OS device::
 
     [genericswitch:hostname-for-juniper]
     device_type = netmiko_juniper
