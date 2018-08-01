@@ -184,3 +184,11 @@ device to one, but the number may be configured per-device as follows::
     [genericswitch:device-hostname]
     ngs_max_connections = <max connections>
 
+When synchronization is used, each Neutron thread executing the
+networking-generic-switch plugin will attempt to acquire a lock, with a default
+timeout of 60 seconds before failing. This timeout can be configured as follows
+(setting it to 0 means no timeout)::
+
+    [ngs_coordination]
+    ...
+    acquire_timeout = <timeout in seconds>
