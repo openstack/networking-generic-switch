@@ -76,7 +76,5 @@ class BrocadeFastIron(netmiko_devices.NetmikoSwitch):
 
     def plug_port_to_network(self, port, segmentation_id):
         self.clean_port_vlan_if_necessary(port)
-        self.send_commands_to_device(
-            self._format_commands(self.PLUG_PORT_TO_NETWORK,
-                                  port=port,
-                                  segmentation_id=segmentation_id))
+        super(BrocadeFastIron, self).plug_port_to_network(port,
+                                                          segmentation_id)

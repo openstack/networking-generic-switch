@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import re
+
 import fixtures
 import mock
 import netmiko
@@ -45,56 +47,88 @@ class NetmikoSwitchTestBase(fixtures.TestWithFixtures):
 class TestNetmikoSwitch(NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_add_network(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_add_network(self, m_check, m_sctd):
         self.switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'add network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_add_network_with_trunk_ports(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_add_network_with_trunk_ports(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
         switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'add network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_del_network(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_del_network(self, m_check, m_sctd):
         self.switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_del_network_with_trunk_ports(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_del_network_with_trunk_ports(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
         switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_plug_port_to_network(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_plug_port_to_network(self, m_check, m_sctd):
         self.switch.plug_port_to_network(2222, 22)
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'plug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_plug_port_has_default_vlan(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_plug_port_has_default_vlan(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
         switch.plug_port_to_network(2222, 22)
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'plug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_delete_port(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_delete_port(self, m_check, m_sctd):
         self.switch.delete_port(2222, 22)
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'unplug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
-    def test_delete_port_has_default_vlan(self, m_sctd):
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_delete_port_has_default_vlan(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
         switch.delete_port(2222, 22)
         m_sctd.assert_called_with([])
+        m_check.assert_called_once_with('fake output', 'unplug port')
 
     def test__format_commands(self):
         self.switch._format_commands(
@@ -290,3 +324,17 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                                           timeout=120)
         lock_mock.return_value.__exit__.assert_called_once()
         lock_mock.return_value.__enter__.assert_called_once()
+
+    def test_check_output(self):
+        self.switch.check_output('fake output', 'fake op')
+
+    def test_check_output_error(self):
+        self.switch.ERROR_MSG_PATTERNS = (re.compile('fake error message'),)
+        output = """
+fake switch command
+fake error message
+"""
+        msg = ("Found invalid configuration in device response. Operation: "
+               "fake op. Output: %s" % output)
+        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError, msg,
+                                self.switch.check_output, output, 'fake op')
