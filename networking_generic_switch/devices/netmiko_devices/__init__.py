@@ -20,6 +20,7 @@ import netmiko
 from oslo_config import cfg
 from oslo_log import log as logging
 import paramiko
+import six
 import tenacity
 from tooz import coordination
 
@@ -30,6 +31,32 @@ from networking_generic_switch import locking as ngs_lock
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
+
+
+def check_output(operation):
+    """Returns a decorator that checks the output of an operation.
+
+    :param operation: Operation being attempted. One of 'add network',
+        'delete network', 'plug port', 'unplug port'.
+    """
+    def decorator(func):
+        """The real decorator."""
+
+        @six.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            """Wrapper that checks the output of an operation.
+
+            :returns: The return value of the wrapped method.
+            :raises: GenericSwitchNetmikoConfigError if the driver detects that
+                an error has occurred.
+            """
+            output = func(self, *args, **kwargs)
+            self.check_output(output, operation)
+            return output
+
+        return wrapper
+
+    return decorator
 
 
 class NetmikoSwitch(devices.GenericSwitchDevice):
@@ -158,6 +185,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         LOG.debug(output)
         return output
 
+    @check_output('add network')
     def add_network(self, segmentation_id, network_id):
         # NOTE(zhenguo): Remove dashes from uuid as on most devices 32 chars
         # is the max length of vlan name.
@@ -169,9 +197,9 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             cmds += self._format_commands(self.ADD_NETWORK_TO_TRUNK,
                                           port=port,
                                           segmentation_id=segmentation_id)
-        output = self.send_commands_to_device(cmds)
-        self.check_output(output, 'add network')
+        return self.send_commands_to_device(cmds)
 
+    @check_output('delete network')
     def del_network(self, segmentation_id, network_id):
         # NOTE(zhenguo): Remove dashes from uuid as on most devices 32 chars
         # is the max length of vlan name.
@@ -184,9 +212,9 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         cmds += self._format_commands(self.DELETE_NETWORK,
                                       segmentation_id=segmentation_id,
                                       network_id=network_id)
-        output = self.send_commands_to_device(cmds)
-        self.check_output(output, 'delete network')
+        return self.send_commands_to_device(cmds)
 
+    @check_output('plug port')
     def plug_port_to_network(self, port, segmentation_id):
         cmds = []
         ngs_port_default_vlan = self._get_port_default_vlan()
@@ -199,9 +227,9 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             self.PLUG_PORT_TO_NETWORK,
             port=port,
             segmentation_id=segmentation_id)
-        output = self.send_commands_to_device(cmds)
-        self.check_output(output, 'plug port')
+        return self.send_commands_to_device(cmds)
 
+    @check_output('unplug port')
     def delete_port(self, port, segmentation_id):
         cmds = self._format_commands(self.DELETE_PORT,
                                      port=port,
@@ -216,8 +244,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 self.PLUG_PORT_TO_NETWORK,
                 port=port,
                 segmentation_id=ngs_port_default_vlan)
-        output = self.send_commands_to_device(cmds)
-        self.check_output(output, 'unplug port')
+        return self.send_commands_to_device(cmds)
 
     def send_config_set(self, net_connect, cmd_set):
         """Send a set of configuration lines to the device.

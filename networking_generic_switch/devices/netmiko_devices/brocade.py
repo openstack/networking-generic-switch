@@ -74,7 +74,8 @@ class BrocadeFastIron(netmiko_devices.NetmikoSwitch):
         )
         self.delete_port(port, wrong_vlan)
 
+    @netmiko_devices.check_output('plug port')
     def plug_port_to_network(self, port, segmentation_id):
         self.clean_port_vlan_if_necessary(port)
-        super(BrocadeFastIron, self).plug_port_to_network(port,
-                                                          segmentation_id)
+        return super(BrocadeFastIron, self).plug_port_to_network(
+            port, segmentation_id)
