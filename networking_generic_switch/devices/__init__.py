@@ -34,7 +34,9 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_ssh_connect_timeout', 'default': 60},
     {'name': 'ngs_ssh_connect_interval', 'default': 10},
     {'name': 'ngs_max_connections', 'default': 1},
-    {'name': 'ngs_switchport_mode', 'default': 'access'}
+    {'name': 'ngs_switchport_mode', 'default': 'access'},
+    # If True, disable switch ports that are not in use.
+    {'name': 'ngs_disable_inactive_ports', 'default': False},
 ]
 
 
@@ -96,6 +98,15 @@ class GenericSwitchDevice(object):
         if not physnets:
             return []
         return physnets.split(',')
+
+    @staticmethod
+    def _str_to_bool(value):
+        truthy = ('true', 'yes', '1')
+        return str(value).lower() in truthy
+
+    def _disable_inactive_ports(self):
+        """Return whether inactive ports should be disabled."""
+        return self._str_to_bool(self.ngs_config['ngs_disable_inactive_ports'])
 
     @abc.abstractmethod
     def add_network(self, segmentation_id, network_id):

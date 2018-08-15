@@ -73,6 +73,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     REMOVE_NETWORK_FROM_TRUNK = None
 
+    ENABLE_PORT = None
+
+    DISABLE_PORT = None
+
     SAVE_CONFIGURATION = None
 
     ERROR_MSG_PATTERNS = ()
@@ -217,6 +221,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
     @check_output('plug port')
     def plug_port_to_network(self, port, segmentation_id):
         cmds = []
+        if self._disable_inactive_ports() and self.ENABLE_PORT:
+            cmds += self._format_commands(self.ENABLE_PORT, port=port)
         ngs_port_default_vlan = self._get_port_default_vlan()
         if ngs_port_default_vlan:
             cmds += self._format_commands(
@@ -244,6 +250,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 self.PLUG_PORT_TO_NETWORK,
                 port=port,
                 segmentation_id=ngs_port_default_vlan)
+        if self._disable_inactive_ports() and self.DISABLE_PORT:
+            cmds += self._format_commands(self.DISABLE_PORT, port=port)
         return self.send_commands_to_device(cmds)
 
     def send_config_set(self, net_connect, cmd_set):
