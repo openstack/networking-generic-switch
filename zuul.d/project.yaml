@@ -1,4 +1,10 @@
 - project:
+    templates:
+      - openstack-python-jobs-neutron
+      - openstack-python35-jobs-neutron
+      - check-requirements
+      - publish-openstack-sphinx-docs
+      - release-notes-jobs
     check:
       jobs:
         - networking-generic-switch-tempest-dsvm-dlm
@@ -7,6 +13,7 @@
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
     gate:
+      queue: networking-generic-switch
       jobs:
         - networking-generic-switch-tempest-dsvm-dlm
         - ironic-tempest-dsvm-multitenant-network:
