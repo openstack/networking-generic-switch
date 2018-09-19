@@ -68,6 +68,10 @@ stack_install_service generic_switch
 # calls upgrade-networking-generic-switch for specific release
 upgrade_project networking-generic-switch $RUN_DIR $BASE_DEVSTACK_BRANCH $TARGET_DEVSTACK_BRANCH
 
+# Also set in grenade but isn't picked up
+AGENT_METERING_BINARY=${AGENT_METERING_BINARY:-"$NEUTRON_BIN_DIR/neutron-metering-agent"}
+METERING_AGENT_CONF_FILENAME=${METERING_AGENT_CONF_FILENAME:-"/etc/neutron/services/metering/metering_agent.ini"}
+
 # NOTE(vsaienko) restart neutron to use new networking-generic-switch
 neutron_server_config_add ${GENERIC_SWITCH_INI_FILE}
 stop_neutron
