@@ -27,6 +27,9 @@ Switch configuration format::
     or ngs_mac_address. So, you can use the switch MAC address to identify
     switches if local_link_connection/switch_info is not set.
 
+Examples
+--------
+
 Here is an example of
 ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``
 for the Cisco 300 series device::
@@ -192,3 +195,22 @@ timeout of 60 seconds before failing. This timeout can be configured as follows
     [ngs_coordination]
     ...
     acquire_timeout = <timeout in seconds>
+
+Disabling Inactive Ports
+========================
+
+By default, switch interfaces remain administratively enabled when not in use,
+and the access VLAN association is removed. On most devices, this will cause
+the interface to be a member of the default VLAN, usually VLAN 1. This could
+be a security issue, with unallocated ports having access to a shared network.
+
+To resolve this issue, it is possible to configure interfaces as
+administratively down when not in use. This is done on a per-device basis,
+using the ``ngs_disable_inactive_ports`` flag::
+
+    [genericswitch:device-hostname]
+    ngs_disable_inactive_ports = <optional boolean>
+
+This is currently supported by the following devices:
+
+* Juniper Junos OS

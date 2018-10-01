@@ -82,11 +82,35 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device')
+    def test_plug_port_to_network_disable_inactive(self, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+        switch.plug_port_to_network(3333, 33)
+        m_sctd.assert_called_with(
+            ['delete interface 3333 disable',
+             'delete interface 3333 unit 0 family ethernet-switching '
+             'vlan members',
+             'set interface 3333 unit 0 family ethernet-switching '
+             'vlan members 33'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
             ['delete interface 3333 unit 0 family ethernet-switching '
              'vlan members'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_delete_port_disable_inactive(self, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+        switch.delete_port(3333, 33)
+        m_sctd.assert_called_with(
+            ['delete interface 3333 unit 0 family ethernet-switching '
+             'vlan members',
+             'set interface 3333 disable'])
 
     def test_send_config_set(self):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
