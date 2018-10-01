@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for disabling inactive switch interfaces. This is configured
+    on a per-device basis using the ``ngs_disable_inactive_ports`` flag. See
+    `Story 2003391 <https://storyboard.openstack.org/#!/story/2003391>`__ for
+    details.
