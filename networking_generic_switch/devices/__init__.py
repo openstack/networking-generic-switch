@@ -15,6 +15,7 @@
 import abc
 
 from oslo_log import log as logging
+from oslo_utils import strutils
 import six
 import stevedore
 
@@ -99,14 +100,10 @@ class GenericSwitchDevice(object):
             return []
         return physnets.split(',')
 
-    @staticmethod
-    def _str_to_bool(value):
-        truthy = ('true', 'yes', '1')
-        return str(value).lower() in truthy
-
     def _disable_inactive_ports(self):
         """Return whether inactive ports should be disabled."""
-        return self._str_to_bool(self.ngs_config['ngs_disable_inactive_ports'])
+        return strutils.bool_from_string(
+            self.ngs_config['ngs_disable_inactive_ports'])
 
     @abc.abstractmethod
     def add_network(self, segmentation_id, network_id):

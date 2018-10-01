@@ -93,7 +93,8 @@ class TestDeviceManager(unittest.TestCase):
                       "ngs_ssh_connect_interval": "20",
                       "ngs_trunk_ports": "port1,port2",
                       "ngs_physical_networks": "physnet1,physnet2",
-                      "ngs_port_default_vlan": "20"}
+                      "ngs_port_default_vlan": "20",
+                      "ngs_disable_inactive_ports": "true"}
         device = devices.device_manager(device_cfg)
         self.assertIsInstance(device, devices.GenericSwitchDevice)
         self.assertNotIn('ngs_mac_address', device.config)
@@ -110,6 +111,8 @@ class TestDeviceManager(unittest.TestCase):
         self.assertEqual('physnet1,physnet2',
                          device.ngs_config['ngs_physical_networks'])
         self.assertEqual('20', device.ngs_config['ngs_port_default_vlan'])
+        self.assertEqual('true',
+                         device.ngs_config['ngs_disable_inactive_ports'])
 
     def test_driver_ngs_config_defaults(self):
         device_cfg = {"device_type": 'netmiko_ovs_linux'}
@@ -121,3 +124,10 @@ class TestDeviceManager(unittest.TestCase):
         self.assertNotIn('ngs_trunk_ports', device.ngs_config)
         self.assertNotIn('ngs_physical_networks', device.ngs_config)
         self.assertNotIn('ngs_port_default_vlan', device.config)
+        self.assertNotIn('ngs_disable_inactive_ports', device.config)
+
+    def test__disable_inactive_ports(self):
+        device_cfg = {"device_type": 'netmiko_ovs_linux',
+                      "ngs_disable_inactive_ports": "true"}
+        device = devices.device_manager(device_cfg)
+        self.assertEqual(True, device._disable_inactive_ports())
