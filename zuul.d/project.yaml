@@ -7,7 +7,8 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - networking-generic-switch-tempest-dsvm-dlm
+        - networking-generic-switch-tempest-dlm
+        - networking-generic-switch-tempest-dlm-python2
         - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$
@@ -20,7 +21,8 @@
     gate:
       queue: networking-generic-switch
       jobs:
-        - networking-generic-switch-tempest-dsvm-dlm
+        - networking-generic-switch-tempest-dlm
+        - networking-generic-switch-tempest-dlm-python2
         - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$

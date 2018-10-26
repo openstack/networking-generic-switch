@@ -1,0 +1,76 @@
+- job:
+    name: networking-generic-switch-tempest-dlm-base
+    parent: devstack-tempest
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^networking_generic_switch/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^test-requirements.txt$
+      - ^tools/.*$
+      - ^tox.ini$
+    timeout: 4800
+    required-projects:
+      - openstack/networking-generic-switch
+    vars:
+      tox_envlist: all-site-packages
+      tempest_test_regex: ngs
+      devstack_plugins:
+        networking-generic-switch: git://git.openstack.org/openstack/networking-generic-switch
+      devstack_localrc:
+        OVS_PHYSICAL_BRIDGE: brbm
+        PHYSICAL_NETWORK: mynetwork
+        Q_PLUGIN: ml2
+        ENABLE_TENANT_VLANS: True
+        Q_ML2_TENANT_NETWORK_TYPE: vlan
+        TENANT_VLAN_RANGE: 100:150
+        GENERIC_SWITCH_USER_MAX_SESSIONS: 2
+      devstack_services:
+        key: True
+        mysql: True
+        rabbit: True
+        q-svc: True
+        q-agt: True
+        q-dhcp: True
+        q-l3: True
+        tempest: True
+        etcd3: True
+        generic_switch: True
+        g-api: False
+        g-reg: False
+        n-api: False
+        n-api-meta: False
+        n-cauth: False
+        n-cond: False
+        n-cpu: False
+        n-novnc: False
+        n-obj: False
+        n-sch: False
+        placement-api: False
+        swift: False
+        s-proxy: False
+        s-object: False
+        s-container: False
+        s-account: False
+        cinder: False
+        c-api: False
+        c-bak: False
+        c-sch: False
+        c-vol: False
+        glace: False
+        nova: False
+
+- job:
+    name: networking-generic-switch-tempest-dlm
+    parent: networking-generic-switch-tempest-dlm-base
+    vars:
+      devstack_localrc:
+        USE_PYTHON3: True
+
+- job:
+    name: networking-generic-switch-tempest-dlm-python2
+    parent: networking-generic-switch-tempest-dlm-base
+    vars:
+      devstack_localrc:
+        USE_PYTHON3: False
