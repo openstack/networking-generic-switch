@@ -57,7 +57,7 @@ class PoolLock(object):
             # NOTE(pas-ha) currently all tooz backends support locking API.
             # In case this changes, this should be wrapped to not respin
             # lock grabbing on NotImplemented exception.
-            lock = self.coordinator.get_lock(name)
+            lock = self.coordinator.get_lock(name.encode())
             locked = lock.acquire(blocking=False)
             if not locked:
                 raise coordination.LockAcquireFailed(
