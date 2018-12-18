@@ -13,10 +13,7 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        # Temporary mark multinode job as NV.
-        # see https://bugs.launchpad.net/ironic/+bug/1744139
-        - ironic-grenade-dsvm-multinode-multitenant:
-            voting: false
+        - ironic-grenade-dsvm-multinode-multitenant
         - openstack-tox-lower-constraints
     gate:
       queue: networking-generic-switch
@@ -27,8 +24,5 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        # Temporary mark multinode job as NV.
-        # see https://bugs.launchpad.net/ironic/+bug/1744139
-        - ironic-grenade-dsvm-multinode-multitenant:
-            voting: false
+        - ironic-grenade-dsvm-multinode-multitenant
         - openstack-tox-lower-constraints
