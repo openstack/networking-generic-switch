@@ -21,7 +21,7 @@ find  "$@"  -not \( -type d -name .?\* -prune \)    \
             -not -name \*.py                        \
             \(                                      \
                 -name \*.sh -or                     \
-                -wholename \*/lib/\* -or            \
+                -wholename \*/devstack/lib/\* -or   \
                 -wholename \*/tools/\*              \
             \)                                      \
             -print0 | xargs -0 bashate -v -iE006 -eE005,E042
