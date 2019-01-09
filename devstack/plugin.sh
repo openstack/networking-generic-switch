@@ -219,6 +219,16 @@ if is_service_enabled generic_switch; then
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured
         echo_summary "Configuring Generic_switch ML2"
+
+        # Source ml2 plugin, set default config
+        if is_service_enabled neutron; then
+            source $RC_DIR/lib/neutron_plugins/ml2
+            Q_PLUGIN_CONF_PATH=etc/neutron/plugins/ml2
+            Q_PLUGIN_CONF_FILENAME=ml2_conf.ini
+            Q_PLUGIN_CONF_FILE="/${Q_PLUGIN_CONF_PATH}/${Q_PLUGIN_CONF_FILENAME}"
+            Q_PLUGIN_CLASS="ml2"
+        fi
+
         configure_generic_switch
     elif [[ "$1" == "stack" && "$2" == "test-config" ]]; then
         if is_service_enabled tempest; then
