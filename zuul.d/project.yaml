@@ -9,7 +9,7 @@
       jobs:
         - networking-generic-switch-tempest-dlm
         - networking-generic-switch-tempest-dlm-python2
-        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
+        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
@@ -20,7 +20,7 @@
       jobs:
         - networking-generic-switch-tempest-dlm
         - networking-generic-switch-tempest-dlm-python2
-        - ironic-tempest-dsvm-ipa-wholedisk-agent_ipmitool-tinyipa-multinode:
+        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
