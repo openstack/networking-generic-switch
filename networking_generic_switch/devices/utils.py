@@ -29,7 +29,7 @@ def get_switch_device(switches, switch_info=None,
     if ngs_mac_address:
         for sw_info, switch in switches.items():
             mac_address = switch.ngs_config.get('ngs_mac_address')
-            if mac_address and mac_address == ngs_mac_address:
+            if mac_address and mac_address.lower() == ngs_mac_address.lower():
                 return switch
     if switch_info:
         return switches.get(switch_info)

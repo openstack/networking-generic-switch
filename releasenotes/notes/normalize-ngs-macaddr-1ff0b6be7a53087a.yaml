@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes an issue that n-g-s is not working when ``ngs_mac_address`` and
+    ``switch_id`` represent the same address but not case sensitive identical.

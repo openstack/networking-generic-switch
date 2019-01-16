@@ -42,6 +42,12 @@ class TestDevices(unittest.TestCase):
             ngs_mac_address='aa:bb:cc:dd:ee:ff'),
             self.devices['B'])
 
+    def test_get_switch_device_match_mac_ignore_case(self):
+        self.assertEqual(device_utils.get_switch_device(
+            self.devices, switch_info='A',
+            ngs_mac_address='AA:BB:CC:DD:EE:FF'),
+            self.devices['B'])
+
     def test_get_switch_device_no_match(self):
         self.assertIsNone(device_utils.get_switch_device(
             self.devices, switch_info='C'))
