@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_mellanox_mlnxos``, for managing Mellanox
+    MLNX-OS based switch devices
