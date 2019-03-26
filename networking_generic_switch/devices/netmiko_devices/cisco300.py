@@ -21,22 +21,22 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class Cisco300(netmiko_devices.NetmikoSwitch):
-        ADD_NETWORK = (
-            'vlan {segmentation_id}',
-        )
+    ADD_NETWORK = (
+        'vlan {segmentation_id}',
+    )
 
-        DELETE_NETWORK = (
-            'no vlan {segmentation_id}',
-        )
+    DELETE_NETWORK = (
+        'no vlan {segmentation_id}',
+    )
 
-        PLUG_PORT_TO_NETWORK = (
-            'interface {port}',
-            'switchport mode access',
-            'switchport access vlan {segmentation_id}',
-        )
+    PLUG_PORT_TO_NETWORK = (
+        'interface {port}',
+        'switchport mode access',
+        'switchport access vlan {segmentation_id}',
+    )
 
-        DELETE_PORT = (
-            'interface {port}',
-            'no switchport access vlan',
-            'switchport trunk allowed vlan remove all',
-        )
+    DELETE_PORT = (
+        'interface {port}',
+        'no switchport access vlan',
+        'switchport trunk allowed vlan remove all',
+    )
