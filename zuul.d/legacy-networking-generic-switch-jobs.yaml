@@ -14,6 +14,6 @@
     post-run: playbooks/legacy/networking-generic-switch-tempest-dsvm-dlm/post.yaml
     timeout: 4800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/networking-generic-switch
       - openstack/tempest
