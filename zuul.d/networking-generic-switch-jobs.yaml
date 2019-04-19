@@ -17,7 +17,7 @@
       tox_envlist: all-site-packages
       tempest_test_regex: ngs
       devstack_plugins:
-        networking-generic-switch: https://git.openstack.org/openstack/networking-generic-switch
+        networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
       devstack_localrc:
         OVS_PHYSICAL_BRIDGE: brbm
         PHYSICAL_NETWORK: mynetwork
