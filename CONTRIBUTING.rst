@@ -37,7 +37,7 @@ Bug tracker
     https://storyboard.openstack.org/#!/project/956
 
 Code Hosting
-    https://git.openstack.org/cgit/openstack/networking-generic-switch
+    https://opendev.org/openstack/networking-generic-switch
 
 Code Review
     https://review.openstack.org/#/q/status:open+project:openstack/networking-generic-switch,n,z

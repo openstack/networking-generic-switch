@@ -21,7 +21,7 @@ Project resources
 ~~~~~~~~~~~~~~~~~
 
 * Documentation: https://docs.openstack.org/networking-generic-switch/latest/
-* Source: https://git.openstack.org/cgit/openstack/networking-generic-switch
+* Source: https://opendev.org/openstack/networking-generic-switch
 * Bugs: https://storyboard.openstack.org/#!/project/956
 * Release notes: https://docs.openstack.org/releasenotes/networking-generic-switch/
 
