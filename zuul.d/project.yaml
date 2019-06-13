@@ -2,8 +2,7 @@
     templates:
       - check-requirements
       - openstack-python-jobs-neutron
-      - openstack-python35-jobs-neutron
-      - openstack-python36-jobs-neutron
+      - openstack-python3-train-jobs-neutron
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
