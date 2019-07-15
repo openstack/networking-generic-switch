@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue with the ``netmiko_juniper`` driver, which could
+    unnecessarily fail operations if concurrent configuration of a switch is
+    performed. See `story 2006220
+    <https://storyboard.openstack.org/#!/story/2006220>`__ for details.

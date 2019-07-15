@@ -129,8 +129,32 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
                        return_value=tenacity.wait_fixed(0.01))
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
+                       return_value=tenacity.stop_after_attempt(2))
+    def test_save_configuration_db_locked(self, m_stop, m_wait):
+        mock_connection = mock.Mock()
+        output = """
+error: configuration database locked by:
+  user terminal p0 (pid 1234) on since 2017-1-1 00:00:00 UTC
+      exclusive private [edit]
+
+{master:0}[edit]"""
+        mock_connection.commit.side_effect = [
+            ValueError(
+                "Commit failed with the following errors:\n\n{0}"
+                .format(output)
+            ),
+            None
+        ]
+
+        self.switch.save_configuration(mock_connection)
+        m_stop.assert_called_once_with(60)
+        m_wait.assert_called_once_with(5)
+
+    @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
+                       return_value=tenacity.wait_fixed(0.01))
+    @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
                        return_value=tenacity.stop_after_delay(0.1))
-    def test_save_configuration_timeout(self, m_stop, m_wait):
+    def test_save_configuration_db_locked_timeout(self, m_stop, m_wait):
         mock_connection = mock.Mock()
         output = """
 error: configuration database locked by:
@@ -143,6 +167,102 @@ error: configuration database locked by:
 
         self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError,
                                 "Reached timeout waiting for",
+                                self.switch.save_configuration,
+                                mock_connection)
+        self.assertGreater(mock_connection.commit.call_count, 1)
+        m_stop.assert_called_once_with(60)
+        m_wait.assert_called_once_with(5)
+
+    @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
+                       return_value=tenacity.wait_fixed(0.01))
+    @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
+                       return_value=tenacity.stop_after_attempt(2))
+    def test_save_configuration_warn_already_exists(self, m_stop, m_wait):
+        mock_connection = mock.Mock()
+        output = """
+[edit interfaces xe-0/0/1 unit 0 family ethernet-switching vlan]
+  'members 1234'
+        warning: statement already exists
+
+{master:0}[edit]"""
+        mock_connection.commit.side_effect = [
+            ValueError(
+                "Commit failed with the following errors:\n\n{0}"
+                .format(output)
+            ),
+            None
+        ]
+
+        self.switch.save_configuration(mock_connection)
+        m_stop.assert_called_once_with(60)
+        m_wait.assert_called_once_with(5)
+
+    @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
+                       return_value=tenacity.wait_fixed(0.01))
+    @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
+                       return_value=tenacity.stop_after_delay(0.1))
+    def test_save_configuration_warn_already_exists_timeout(
+            self, m_stop, m_wait):
+        mock_connection = mock.Mock()
+        output = """
+[edit interfaces xe-0/0/1 unit 0 family ethernet-switching vlan]
+  'members 1234'
+        warning: statement already exists
+
+{master:0}[edit]"""
+        mock_connection.commit.side_effect = ValueError(
+            "Commit failed with the following errors:\n\n{0}".format(output))
+
+        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError,
+                                "Reached timeout while attempting",
+                                self.switch.save_configuration,
+                                mock_connection)
+        self.assertGreater(mock_connection.commit.call_count, 1)
+        m_stop.assert_called_once_with(60)
+        m_wait.assert_called_once_with(5)
+
+    @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
+                       return_value=tenacity.wait_fixed(0.01))
+    @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
+                       return_value=tenacity.stop_after_attempt(2))
+    def test_save_configuration_warn_does_not_exist(self, m_stop, m_wait):
+        mock_connection = mock.Mock()
+        output = """
+[edit interfaces xe-0/0/1 unit 0 family ethernet-switching vlan]
+  'members 1234'
+        warning: statement does not exist
+
+{master:0}[edit]"""
+        mock_connection.commit.side_effect = [
+            ValueError(
+                "Commit failed with the following errors:\n\n{0}"
+                .format(output)
+            ),
+            None
+        ]
+
+        self.switch.save_configuration(mock_connection)
+        m_stop.assert_called_once_with(60)
+        m_wait.assert_called_once_with(5)
+
+    @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
+                       return_value=tenacity.wait_fixed(0.01))
+    @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
+                       return_value=tenacity.stop_after_delay(0.1))
+    def test_save_configuration_warn_does_not_exist_timeout(
+            self, m_stop, m_wait):
+        mock_connection = mock.Mock()
+        output = """
+[edit interfaces xe-0/0/1 unit 0 family ethernet-switching vlan]
+  'members 1234'
+        warning: statement does not exist
+
+{master:0}[edit]"""
+        mock_connection.commit.side_effect = ValueError(
+            "Commit failed with the following errors:\n\n{0}".format(output))
+
+        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError,
+                                "Reached timeout while attempting",
                                 self.switch.save_configuration,
                                 mock_connection)
         self.assertGreater(mock_connection.commit.call_count, 1)
