@@ -45,7 +45,6 @@ class GenericSwitchDriver(api.MechanismDriver):
         LOG.info('Devices %s have been loaded', self.switches.keys())
         if not self.switches:
             LOG.error('No devices have been loaded')
-        self.warned_del_network = False
 
     def create_network_precommit(self, context):
         """Allocate resources for a new network.
@@ -165,22 +164,7 @@ class GenericSwitchDriver(api.MechanismDriver):
             # Delete vlan on all switches from this driver
             for switch_name, switch in self._get_devices_by_physnet(physnet):
                 try:
-                    # NOTE(mgoddard): The del_network method was modified to
-                    # accept the network ID. The switch object may still be
-                    # implementing the old interface, so retry on a TypeError.
-                    try:
-                        switch.del_network(segmentation_id, network['id'])
-                    except TypeError:
-                        if not self.warned_del_network:
-                            msg = (
-                                'The del_network device method should accept '
-                                'the network ID. Falling back to just the '
-                                'segmentation ID for %(device)s. This '
-                                'transitional support will be removed in the '
-                                'Rocky release')
-                            LOG.warn(msg, {'device': switch_name})
-                            self.warned_del_network = True
-                        switch.del_network(segmentation_id)
+                    switch.del_network(segmentation_id, network['id'])
                 except Exception as e:
                     LOG.error("Failed to delete network %(net_id)s "
                               "on device: %(switch)s, reason: %(exc)s",
