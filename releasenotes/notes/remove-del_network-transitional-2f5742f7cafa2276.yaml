@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Removes support for device drivers that accept only a single argument for
+    their ``del_network`` method.  All device drivers must now accept a
+    segmentation ID and a network ID in their ``del_network`` method.
