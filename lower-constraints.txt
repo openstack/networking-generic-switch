@@ -51,7 +51,7 @@ msgpack-python==0.4.0
 munch==2.1.0
 netaddr==0.7.18
 netifaces==0.10.4
-netmiko==2.0.2
+netmiko==2.4.1
 neutron==13.0.0.0b1
 neutron-lib==1.18.0
 openstacksdk==0.11.2
