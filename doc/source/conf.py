@@ -40,7 +40,6 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Networking Generic Switch'
 copyright = u'2017, Openstack Foundation'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
@@ -62,15 +61,17 @@ pygments_style = 'sphinx'
 html_theme = 'openstackdocs'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = '%sdoc' % project
+htmlhelp_basename = 'networking-generic-switchdoc'
+
+latex_use_xindy = False
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
     ('index',
-     '%s.tex' % project,
-     u'%s Documentation' % project,
+     'doc-networking-generic-switch.tex',
+     u'Networking Generic Switch Documentation',
      u'OpenStack Foundation', 'manual'),
 ]
 
