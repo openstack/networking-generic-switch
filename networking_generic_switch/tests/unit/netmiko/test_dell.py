@@ -82,8 +82,10 @@ class TestNetmikoDellNos(test_netmiko_base.NetmikoSwitchTestBase):
         cmd_set = self.switch._format_commands(
             dell.DellNos.ADD_NETWORK,
             segmentation_id=22,
-            network_id=22)
-        self.assertEqual(cmd_set, ['interface vlan 22', 'name 22', 'exit'])
+            network_id=22,
+            network_name='vlan-22')
+        self.assertEqual(cmd_set,
+                         ['interface vlan 22', 'name vlan-22', 'exit'])
 
         cmd_set = self.switch._format_commands(
             dell.DellNos.DELETE_NETWORK,

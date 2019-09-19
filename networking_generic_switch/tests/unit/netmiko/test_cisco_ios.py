@@ -60,8 +60,9 @@ class TestNetmikoCiscoIos(test_netmiko_base.NetmikoSwitchTestBase):
         cmd_set = self.switch._format_commands(
             cisco.CiscoIos.ADD_NETWORK,
             segmentation_id=22,
-            network_id=22)
-        self.assertEqual(cmd_set, ['vlan 22', 'name 22'])
+            network_id=22,
+            network_name='vlan-22')
+        self.assertEqual(cmd_set, ['vlan 22', 'name vlan-22'])
 
         cmd_set = self.switch._format_commands(
             cisco.CiscoIos.DELETE_NETWORK,

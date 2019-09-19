@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for configuring the format of the name assigned to VLANs in
+    device configuration via the ``ngs_network_name_format`` device
+    configuration option.

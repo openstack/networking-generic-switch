@@ -38,6 +38,9 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_switchport_mode', 'default': 'access'},
     # If True, disable switch ports that are not in use.
     {'name': 'ngs_disable_inactive_ports', 'default': False},
+    # String format for network name to configure on switches.
+    # Accepts {network_id} and {segmentation_id} formatting options.
+    {'name': 'ngs_network_name_format', 'default': '{network_id}'},
 ]
 
 
@@ -82,6 +85,19 @@ class GenericSwitchDevice(object):
                 self.ngs_config[opt_name] = opt['default']
         self.config = device_cfg
 
+        self._validate_network_name_format()
+
+    def _validate_network_name_format(self):
+        """Validate the network name format configuration option."""
+        network_name_format = self.ngs_config['ngs_network_name_format']
+        # The format can include '{network_id}' and '{segmentation_id}'.
+        try:
+            network_name_format.format(network_id='dummy',
+                                       segmentation_id='dummy')
+        except (IndexError, KeyError) as exc:
+            raise gsw_exc.GenericSwitchNetworkNameFormatInvalid(
+                name_format=network_name_format)
+
     def _get_trunk_ports(self):
         """Return a list of trunk ports on this switch."""
         trunk_ports = self.ngs_config.get('ngs_trunk_ports')
@@ -104,6 +120,17 @@ class GenericSwitchDevice(object):
         """Return whether inactive ports should be disabled."""
         return strutils.bool_from_string(
             self.ngs_config['ngs_disable_inactive_ports'])
+
+    def _get_network_name(self, network_id, segmentation_id):
+        """Return a network name to configure on switches.
+
+        :param network_id: ID of the network.
+        :param segmentation_id: segmentation ID of the network.
+        :returns: a formatted network name.
+        """
+        network_name_format = self.ngs_config['ngs_network_name_format']
+        return network_name_format.format(network_id=network_id,
+                                          segmentation_id=segmentation_id)
 
     @abc.abstractmethod
     def add_network(self, segmentation_id, network_id):

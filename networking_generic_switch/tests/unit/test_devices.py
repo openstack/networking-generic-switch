@@ -78,6 +78,17 @@ class TestDeviceManager(unittest.TestCase):
         self.assertIn("fake_method", ex.exception.msg)
         self.assertIsNone(device)
 
+    @mock.patch.object(devices.GenericSwitchDevice,
+                       '_validate_network_name_format')
+    def test_driver_load_fail_validate_network_name_format(self,
+                                                           mock_validate):
+        mock_validate.side_effect = exc.GenericSwitchConfigException()
+        device_cfg = {'device_type': 'netmiko_ovs_linux'}
+        device = None
+        with self.assertRaises(exc.GenericSwitchEntrypointLoadError):
+            device = devices.device_manager(device_cfg)
+        self.assertIsNone(device)
+
     def test_driver_load_fail_load(self):
         device_cfg = {'device_type': 'fake_device'}
         device = None
@@ -94,7 +105,8 @@ class TestDeviceManager(unittest.TestCase):
                       "ngs_trunk_ports": "port1,port2",
                       "ngs_physical_networks": "physnet1,physnet2",
                       "ngs_port_default_vlan": "20",
-                      "ngs_disable_inactive_ports": "true"}
+                      "ngs_disable_inactive_ports": "true",
+                      "ngs_network_name_format": "net-{network_id}"}
         device = devices.device_manager(device_cfg)
         self.assertIsInstance(device, devices.GenericSwitchDevice)
         self.assertNotIn('ngs_mac_address', device.config)
@@ -113,6 +125,8 @@ class TestDeviceManager(unittest.TestCase):
         self.assertEqual('20', device.ngs_config['ngs_port_default_vlan'])
         self.assertEqual('true',
                          device.ngs_config['ngs_disable_inactive_ports'])
+        self.assertEqual('net-{network_id}',
+                         device.ngs_config['ngs_network_name_format'])
 
     def test_driver_ngs_config_defaults(self):
         device_cfg = {"device_type": 'netmiko_ovs_linux'}
@@ -123,11 +137,44 @@ class TestDeviceManager(unittest.TestCase):
         self.assertEqual(10, device.ngs_config['ngs_ssh_connect_interval'])
         self.assertNotIn('ngs_trunk_ports', device.ngs_config)
         self.assertNotIn('ngs_physical_networks', device.ngs_config)
-        self.assertNotIn('ngs_port_default_vlan', device.config)
-        self.assertNotIn('ngs_disable_inactive_ports', device.config)
+        self.assertNotIn('ngs_port_default_vlan', device.ngs_config)
+        self.assertFalse(device.ngs_config['ngs_disable_inactive_ports'])
+        self.assertEqual('{network_id}',
+                         device.ngs_config['ngs_network_name_format'])
 
     def test__disable_inactive_ports(self):
         device_cfg = {"device_type": 'netmiko_ovs_linux',
                       "ngs_disable_inactive_ports": "true"}
         device = devices.device_manager(device_cfg)
         self.assertEqual(True, device._disable_inactive_ports())
+
+    def test__validate_network_name_format(self):
+        device_cfg = {
+            'ngs_network_name_format': '{network_id}{segmentation_id}'}
+        device = FakeDevice(device_cfg)
+        device._validate_network_name_format()
+
+    def test__validate_network_name_format_failure(self):
+        device_cfg = {'ngs_network_name_format': '{invalid}'}
+        self.assertRaisesRegexp(
+            exc.GenericSwitchNetworkNameFormatInvalid,
+            r"Invalid value for 'ngs_network_name_format'",
+            FakeDevice, device_cfg)
+
+    def test__get_network_name_default(self):
+        device = FakeDevice({})
+        name = device._get_network_name('fake-id', 22)
+        self.assertEqual('fake-id', name)
+
+    def test__get_network_name_segmentation_id(self):
+        device_cfg = {'ngs_network_name_format': '{segmentation_id}'}
+        device = FakeDevice(device_cfg)
+        name = device._get_network_name('fake-id', 22)
+        self.assertEqual('22', name)
+
+    def test__get_network_name_both(self):
+        device_cfg = {
+            'ngs_network_name_format': '{network_id}_net_{segmentation_id}'}
+        device = FakeDevice(device_cfg)
+        name = device._get_network_name('fake-id', 22)
+        self.assertEqual('fake-id_net_22', name)

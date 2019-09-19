@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 class BrocadeFastIron(netmiko_devices.NetmikoSwitch):
     ADD_NETWORK = (
         'vlan {segmentation_id} by port',
-        'name {network_id}',
+        'name {network_name}',
     )
 
     DELETE_NETWORK = (
