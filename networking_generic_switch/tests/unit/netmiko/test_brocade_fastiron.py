@@ -73,8 +73,9 @@ class TestNetmikoBrocadeFastIron(test_netmiko_base.NetmikoSwitchTestBase):
         cmd_set = self.switch._format_commands(
             brocade.BrocadeFastIron.ADD_NETWORK,
             segmentation_id=22,
-            network_id=22)
-        self.assertEqual(cmd_set, ['vlan 22 by port', 'name 22'])
+            network_id=22,
+            network_name='vlan-22')
+        self.assertEqual(cmd_set, ['vlan 22 by port', 'name vlan-22'])
 
         cmd_set = self.switch._format_commands(
             brocade.BrocadeFastIron.DELETE_NETWORK,

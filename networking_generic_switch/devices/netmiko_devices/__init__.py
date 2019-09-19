@@ -194,9 +194,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         # NOTE(zhenguo): Remove dashes from uuid as on most devices 32 chars
         # is the max length of vlan name.
         network_id = uuid.UUID(network_id).hex
+        network_name = self._get_network_name(network_id, segmentation_id)
+        # NOTE(mgoddard): Pass network_id and segmentation_id for drivers not
+        # yet using network_name.
         cmds = self._format_commands(self.ADD_NETWORK,
                                      segmentation_id=segmentation_id,
-                                     network_id=network_id)
+                                     network_id=network_id,
+                                     network_name=network_name)
         for port in self._get_trunk_ports():
             cmds += self._format_commands(self.ADD_NETWORK_TO_TRUNK,
                                           port=port,
@@ -213,9 +217,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             cmds += self._format_commands(self.REMOVE_NETWORK_FROM_TRUNK,
                                           port=port,
                                           segmentation_id=segmentation_id)
+        network_name = self._get_network_name(network_id, segmentation_id)
+        # NOTE(mgoddard): Pass network_id and segmentation_id for drivers not
+        # yet using network_name.
         cmds += self._format_commands(self.DELETE_NETWORK,
                                       segmentation_id=segmentation_id,
-                                      network_id=network_id)
+                                      network_id=network_id,
+                                      network_name=network_name)
         return self.send_commands_to_device(cmds)
 
     @check_output('plug port')
@@ -242,10 +250,15 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                      segmentation_id=segmentation_id)
         ngs_port_default_vlan = self._get_port_default_vlan()
         if ngs_port_default_vlan:
+            # NOTE(mgoddard): Pass network_id and segmentation_id for drivers
+            # not yet using network_name.
+            network_name = self._get_network_name(ngs_port_default_vlan,
+                                                  ngs_port_default_vlan)
             cmds += self._format_commands(
                 self.ADD_NETWORK,
                 segmentation_id=ngs_port_default_vlan,
-                network_id=ngs_port_default_vlan)
+                network_id=ngs_port_default_vlan,
+                network_name=network_name)
             cmds += self._format_commands(
                 self.PLUG_PORT_TO_NETWORK,
                 port=port,
