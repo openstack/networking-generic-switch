@@ -12,11 +12,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import sys
+
 from neutron.db import provisioning_blocks
 from neutron_lib.api.definitions import portbindings
 from neutron_lib.callbacks import resources
 from neutron_lib.plugins.ml2 import api
 from oslo_log import log as logging
+import six
 
 from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
@@ -45,7 +48,6 @@ class GenericSwitchDriver(api.MechanismDriver):
         LOG.info('Devices %s have been loaded', self.switches.keys())
         if not self.switches:
             LOG.error('No devices have been loaded')
-        self.warned_del_network = False
 
     def create_network_precommit(self, context):
         """Allocate resources for a new network.
@@ -89,6 +91,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                               {'net_id': network_id,
                                'switch': switch_name,
                                'exc': e})
+                    raise
                 else:
                     LOG.info('Network %(net_id)s has been added on device '
                              '%(device)s', {'net_id': network['id'],
@@ -163,34 +166,24 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         if provider_type == 'vlan' and segmentation_id:
             # Delete vlan on all switches from this driver
+            exc_info = None
             for switch_name, switch in self._get_devices_by_physnet(physnet):
                 try:
-                    # NOTE(mgoddard): The del_network method was modified to
-                    # accept the network ID. The switch object may still be
-                    # implementing the old interface, so retry on a TypeError.
-                    try:
-                        switch.del_network(segmentation_id, network['id'])
-                    except TypeError:
-                        if not self.warned_del_network:
-                            msg = (
-                                'The del_network device method should accept '
-                                'the network ID. Falling back to just the '
-                                'segmentation ID for %(device)s. This '
-                                'transitional support will be removed in the '
-                                'Rocky release')
-                            LOG.warn(msg, {'device': switch_name})
-                            self.warned_del_network = True
-                        switch.del_network(segmentation_id)
+                    switch.del_network(segmentation_id, network['id'])
                 except Exception as e:
                     LOG.error("Failed to delete network %(net_id)s "
                               "on device: %(switch)s, reason: %(exc)s",
                               {'net_id': network['id'],
                                'switch': switch_name,
                                'exc': e})
+                    # Save any exceptions for later reraise.
+                    exc_info = sys.exc_info()
                 else:
                     LOG.info('Network %(net_id)s has been deleted on device '
                              '%(device)s', {'net_id': network['id'],
                                             'device': switch_name})
+            if exc_info:
+                six.reraise(*exc_info)
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.

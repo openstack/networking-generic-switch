@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue when creating or deleting a network, a failure to apply this
+    change to any device would not cause the operation to fail. This could
+    leave the network in an inconsistent state. See story 2006222
+    <https://storyboard.openstack.org/#!/story/2006222>`__ for details.

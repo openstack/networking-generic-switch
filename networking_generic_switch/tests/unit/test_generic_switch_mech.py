@@ -97,18 +97,40 @@ class TestGenericSwitchDriver(unittest.TestCase):
     def test_create_network_postcommit_failure(self, m_log, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        self.switch_mock.add_network.side_effect = Exception('boom')
+        self.switch_mock.add_network.side_effect = ValueError('boom')
         mock_context = mock.create_autospec(driver_context.NetworkContext)
         mock_context.current = {'id': 22,
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
 
-        driver.create_network_postcommit(mock_context)
+        self.assertRaisesRegexp(ValueError, "boom",
+                                driver.create_network_postcommit, mock_context)
         self.switch_mock.add_network.assert_called_once_with(22, 22)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
         self.assertNotIn('has been added', m_log.info.call_args[0][0])
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.LOG')
+    def test_create_network_postcommit_failure_multiple(self, m_log, m_list):
+        m_list.return_value = {
+            'foo': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
+            'bar': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
+        }
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.add_network.side_effect = ValueError('boom')
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        self.assertRaisesRegexp(ValueError, "boom",
+                                driver.create_network_postcommit, mock_context)
+        self.switch_mock.add_network.assert_called_once_with(22, 22)
+        self.assertEqual(1, m_log.error.call_count)
+        self.assertIn('Failed to create network', m_log.error.call_args[0][0])
 
     def test_delete_network_postcommit(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -167,38 +189,41 @@ class TestGenericSwitchDriver(unittest.TestCase):
     def test_delete_network_postcommit_failure(self, m_log, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        self.switch_mock.del_network.side_effect = Exception('boom')
+        self.switch_mock.del_network.side_effect = ValueError('boom')
         mock_context = mock.create_autospec(driver_context.NetworkContext)
         mock_context.current = {'id': 22,
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
 
-        driver.delete_network_postcommit(mock_context)
+        self.assertRaisesRegexp(ValueError, "boom",
+                                driver.delete_network_postcommit, mock_context)
         self.switch_mock.del_network.assert_called_once_with(22, 22)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to delete network', m_log.error.call_args[0][0])
         self.assertNotIn('has been deleted', m_log.info.call_args[0][0])
 
     @mock.patch('networking_generic_switch.generic_switch_mech.LOG')
-    def test_delete_network_postcommit_no_network_id(self, m_log, m_list):
+    def test_delete_network_postcommit_failure_multiple(self, m_log, m_list):
+        m_list.return_value = {
+            'foo': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
+            'bar': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
+        }
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
+        self.switch_mock.del_network.side_effect = ValueError('boom')
         mock_context = mock.create_autospec(driver_context.NetworkContext)
         mock_context.current = {'id': 22,
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
-        self.switch_mock.del_network.side_effect = TypeError
 
-        driver.delete_network_postcommit(mock_context)
-        self.assertEqual([mock.call(22, 22), mock.call(22)],
-                         self.switch_mock.del_network.call_args_list)
-        self.assertEqual(m_log.warn.call_count, 1)
-
-        # Ensure the warning is only logged once.
-        driver.delete_network_postcommit(mock_context)
-        self.assertEqual(m_log.warn.call_count, 1)
+        self.assertRaisesRegexp(ValueError, "boom",
+                                driver.delete_network_postcommit, mock_context)
+        self.switch_mock.del_network.assert_called_with(22, 22)
+        self.assertEqual(2, self.switch_mock.del_network.call_count)
+        self.assertEqual(2, m_log.error.call_count)
+        self.assertIn('Failed to delete network', m_log.error.call_args[0][0])
 
     def test_delete_port_postcommit(self, m_list):
         driver = gsm.GenericSwitchDriver()

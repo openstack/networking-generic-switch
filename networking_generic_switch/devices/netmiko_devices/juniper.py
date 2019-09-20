@@ -114,17 +114,25 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         # another session has a lock. We use a retry mechanism to work around
         # this.
 
-        class DBLocked(Exception):
+        class BaseRetryable(Exception):
+            """Base class for retryable exceptions."""
+
+        class DBLocked(BaseRetryable):
             """Switch configuration DB is locked by another user."""
+
+        class WarningStmtExists(BaseRetryable):
+            """Attempting to add a statement that already exists."""
+
+        class WarningStmtNotExist(BaseRetryable):
+            """Attempting to remove a statement that does not exist."""
 
         @tenacity.retry(
             # Log a message after each failed attempt.
             after=tenacity.after_log(LOG, logging.DEBUG),
             # Reraise exceptions if our final attempt fails.
             reraise=True,
-            # Retry on failure to commit the configuration due to the DB
-            # being locked by another session.
-            retry=(tenacity.retry_if_exception_type(DBLocked)),
+            # Retry on certain failures.
+            retry=(tenacity.retry_if_exception_type(BaseRetryable)),
             # Stop after the configured timeout.
             stop=tenacity.stop_after_delay(
                 int(self.ngs_config['ngs_commit_timeout'])),
@@ -137,11 +145,27 @@ class Juniper(netmiko_devices.NetmikoSwitch):
                 net_connect.commit()
             except ValueError as e:
                 # Netmiko raises ValueError on commit failure, and appends the
-                # CLI output to the exception message. Raise a more specific
-                # exception for a locked DB, on which tenacity will retry.
-                DB_LOCKED_MSG = "error: configuration database locked"
-                if DB_LOCKED_MSG in str(e):
-                    raise DBLocked(e)
+                # CLI output to the exception message.
+
+                # Certain strings indicate a temporary failure, or a harmless
+                # warning. In these cases we should retry the operation. We
+                # don't ignore warning messages, in case there is some other
+                # less benign cause for the failure.
+                retryable_msgs = {
+                    # Concurrent access to the switch can lead to contention
+                    # for the configuration database lock, and potentially
+                    # failure to commit changes with the following message.
+                    "error: configuration database locked": DBLocked,
+                    # Can be caused by concurrent configuration if two sessions
+                    # attempt to remove the same statement.
+                    "warning: statement does not exist": WarningStmtNotExist,
+                    # Can be caused by concurrent configuration if two sessions
+                    # attempt to add the same statement.
+                    "warning: statement already exists": WarningStmtExists,
+                }
+                for msg in retryable_msgs:
+                    if msg in str(e):
+                        raise retryable_msgs[msg](e)
                 raise
 
         try:
@@ -149,6 +173,13 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         except DBLocked as e:
             msg = ("Reached timeout waiting for switch configuration DB lock. "
                    "Configuration might not be committed. Error: %s" % str(e))
+            LOG.error(msg)
+            raise exc.GenericSwitchNetmikoConfigError(
+                config=device_utils.sanitise_config(self.config), error=msg)
+        except (WarningStmtNotExist, WarningStmtExists) as e:
+            msg = ("Reached timeout while attempting to apply configuration. "
+                   "This is likely to be caused by multiple sessions "
+                   "configuring the device concurrently. Error: %s" % str(e))
             LOG.error(msg)
             raise exc.GenericSwitchNetmikoConfigError(
                 config=device_utils.sanitise_config(self.config), error=msg)
