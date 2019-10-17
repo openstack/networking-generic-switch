@@ -40,7 +40,7 @@ Code Hosting
     https://opendev.org/openstack/networking-generic-switch
 
 Code Review
-    https://review.openstack.org/#/q/status:open+project:openstack/networking-generic-switch,n,z
+    https://review.opendev.org/#/q/status:open+project:openstack/networking-generic-switch,n,z
 
 
 Creating new device plugins
