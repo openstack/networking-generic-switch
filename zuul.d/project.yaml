@@ -13,7 +13,10 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        - ironic-grenade-dsvm-multinode-multitenant
+        # NOTE(rpittau): temp disabling job until all changes
+        # for ussuri are completed
+        - ironic-grenade-dsvm-multinode-multitenant:
+            voting: false
         - openstack-tox-lower-constraints
     gate:
       queue: networking-generic-switch
@@ -24,5 +27,7 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        - ironic-grenade-dsvm-multinode-multitenant
+        # NOTE(rpittau): temp disabling job until all changes
+        # for ussuri are completed
+        # - ironic-grenade-dsvm-multinode-multitenant
         - openstack-tox-lower-constraints
