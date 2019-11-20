@@ -1,14 +1,12 @@
 - project:
     templates:
       - check-requirements
-      - openstack-python-jobs-neutron
       - openstack-python3-ussuri-jobs-neutron
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
       jobs:
         - networking-generic-switch-tempest-dlm
-        - networking-generic-switch-tempest-dlm-python2
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$
@@ -22,7 +20,6 @@
       queue: networking-generic-switch
       jobs:
         - networking-generic-switch-tempest-dlm
-        - networking-generic-switch-tempest-dlm-python2
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$

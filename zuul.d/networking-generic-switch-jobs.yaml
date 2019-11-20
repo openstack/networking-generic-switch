@@ -67,10 +67,3 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: True
-
-- job:
-    name: networking-generic-switch-tempest-dlm-python2
-    parent: networking-generic-switch-tempest-dlm-base
-    vars:
-      devstack_localrc:
-        USE_PYTHON3: False
