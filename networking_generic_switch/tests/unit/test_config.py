@@ -15,7 +15,6 @@
 import fixtures
 import mock
 from oslo_config import fixture as config_fixture
-import six
 
 from networking_generic_switch import config
 
@@ -42,12 +41,8 @@ class TestConfig(fixtures.TestWithFixtures):
         m = mock.mock_open(read_data=fake_config)
         # NOTE(pas-ha) mocks and iterators work differently in Py2 and Py3
         # http://bugs.python.org/issue21258
-        if six.PY3:
-            m.return_value.__iter__ = lambda self: self
-            m.return_value.__next__ = lambda self: next(iter(self.readline,
-                                                             ''))
-        else:
-            m.return_value.__iter__ = lambda self: iter(self.readline, '')
+        m.return_value.__iter__ = lambda self: self
+        m.return_value.__next__ = lambda self: next(iter(self.readline, ''))
         patcher = mock.patch('oslo_config.cfg.open', m)
         patcher.start()
         self.addCleanup(patcher.stop)

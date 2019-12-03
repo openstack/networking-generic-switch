@@ -14,13 +14,13 @@
 
 import atexit
 import contextlib
+import functools
 import uuid
 
 import netmiko
 from oslo_config import cfg
 from oslo_log import log as logging
 import paramiko
-import six
 import tenacity
 from tooz import coordination
 
@@ -42,7 +42,7 @@ def check_output(operation):
     def decorator(func):
         """The real decorator."""
 
-        @six.wraps(func)
+        @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             """Wrapper that checks the output of an operation.
 

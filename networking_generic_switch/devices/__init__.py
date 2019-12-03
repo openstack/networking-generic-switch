@@ -16,7 +16,6 @@ import abc
 
 from oslo_log import log as logging
 from oslo_utils import strutils
-import six
 import stevedore
 
 from networking_generic_switch import exceptions as gsw_exc
@@ -67,8 +66,7 @@ def _load_failure_hook(manager, entrypoint, exception):
         err=exception)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class GenericSwitchDevice(object):
+class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
 
     def __init__(self, device_cfg):
         self.ngs_config = {}

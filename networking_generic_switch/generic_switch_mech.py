@@ -19,7 +19,6 @@ from neutron_lib.api.definitions import portbindings
 from neutron_lib.callbacks import resources
 from neutron_lib.plugins.ml2 import api
 from oslo_log import log as logging
-import six
 
 from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
@@ -183,7 +182,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                              '%(device)s', {'net_id': network['id'],
                                             'device': switch_name})
             if exc_info:
-                six.reraise(*exc_info)
+                raise exc_info[1]
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.
