@@ -307,14 +307,16 @@ error: configuration check-out failed
         cmd_set = self.switch._format_commands(
             juniper.Juniper.ADD_NETWORK,
             segmentation_id=22,
-            network_id=22)
-        self.assertEqual(cmd_set, ['set vlans 22 vlan-id 22'])
+            network_id=22,
+            network_name='vlan-22')
+        self.assertEqual(cmd_set, ['set vlans vlan-22 vlan-id 22'])
 
         cmd_set = self.switch._format_commands(
             juniper.Juniper.DELETE_NETWORK,
             segmentation_id=22,
-            network_id=22)
-        self.assertEqual(cmd_set, ['delete vlans 22'])
+            network_id=22,
+            network_name='vlan-22')
+        self.assertEqual(cmd_set, ['delete vlans vlan-22'])
 
         cmd_set = self.switch._format_commands(
             juniper.Juniper.PLUG_PORT_TO_NETWORK,

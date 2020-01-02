@@ -214,3 +214,23 @@ using the ``ngs_disable_inactive_ports`` flag::
 This is currently supported by the following devices:
 
 * Juniper Junos OS
+
+Network Name Format
+===================
+
+By default, when a network is created on a switch, if the switch supports
+assigning names to VLANs, they are assigned a name of the neutron network UUID.
+For example::
+
+    8f60256e4b6343bf873026036606ce5e
+
+It is possible to use a different format for the network name using the
+``ngs_network_name_format`` option. This option uses Python string formatting
+syntax, and accepts the parameters ``{network_id}`` and ``{segmentation_id}``.
+For example::
+
+    [genericswitch:device-hostname]
+    ngs_network_name_format = neutron-{network_id}-{segmentation_id}
+
+Some switches have issues assigning VLANs a name that starts with a number,
+and this configuration option can be used to avoid this.

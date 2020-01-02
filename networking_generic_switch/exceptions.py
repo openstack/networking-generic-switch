@@ -29,6 +29,12 @@ class GenericSwitchEntrypointLoadError(GenericSwitchException):
     message = _("Failed to load entrypoint %(ep)s: %(err)s")
 
 
+class GenericSwitchNetworkNameFormatInvalid(GenericSwitchException):
+    message = _("Invalid value for 'ngs_network_name_format': "
+                "%(name_format)s. Valid format options include 'network_id' "
+                "and 'segmentation_id'")
+
+
 class GenericSwitchNetmikoMethodError(GenericSwitchException):
     message = _("Can not parse arguments: commands %(cmds)s, args %(args)s")
 
