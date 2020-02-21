@@ -13,7 +13,9 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        - ironic-grenade-dsvm-multinode-multitenant
+        # NOTE(iurygregory): Non-voting due to instability.
+        - ironic-grenade-dsvm-multinode-multitenant:
+            voting: false
         - openstack-tox-lower-constraints
     gate:
       queue: networking-generic-switch
@@ -24,5 +26,6 @@
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        - ironic-grenade-dsvm-multinode-multitenant
+        # Removing from gate due to instability.
+        # - ironic-grenade-dsvm-multinode-multitenant
         - openstack-tox-lower-constraints

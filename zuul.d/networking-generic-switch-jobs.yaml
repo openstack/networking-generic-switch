@@ -72,5 +72,6 @@
     name: networking-generic-switch-tempest-dlm-python2
     parent: networking-generic-switch-tempest-dlm-base
     vars:
+      tox_envlist: py27
       devstack_localrc:
         USE_PYTHON3: False
