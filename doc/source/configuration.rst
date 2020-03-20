@@ -21,7 +21,7 @@ Switch configuration format::
     # interface will restore the default_vlan.
     ngs_port_default_vlan = <port default vlan>
 
-..note::
+.. note::
 
     Switch will be selected by local_link_connection/switch_info
     or ngs_mac_address. So, you can use the switch MAC address to identify
