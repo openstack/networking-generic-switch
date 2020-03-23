@@ -7,10 +7,12 @@
     check:
       jobs:
         - networking-generic-switch-tempest-dlm
+        # NOTE(iurygregory): the job is disabled in ironic.
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
+            voting: false
         # NOTE(rpittau): temp disabling job until all changes
         # for ussuri are completed
         - ironic-grenade-dsvm-multinode-multitenant:
@@ -20,10 +22,11 @@
       queue: networking-generic-switch
       jobs:
         - networking-generic-switch-tempest-dlm
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
-            irrelevant-files:
-              - ^(test-|)requirements.txt$
-              - ^setup.cfg$
+        # NOTE(iurygregory): the job is disabled in ironic.
+        # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
+        #     irrelevant-files:
+        #       - ^(test-|)requirements.txt$
+        #       - ^setup.cfg$
         # NOTE(rpittau): temp disabling job until all changes
         # for ussuri are completed
         # - ironic-grenade-dsvm-multinode-multitenant

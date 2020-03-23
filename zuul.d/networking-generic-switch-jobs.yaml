@@ -14,7 +14,7 @@
     required-projects:
       - openstack/networking-generic-switch
     vars:
-      tox_envlist: all-site-packages
+      tox_envlist: py3
       tempest_test_regex: ngs
       devstack_plugins:
         networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
