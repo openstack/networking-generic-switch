@@ -92,7 +92,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         try:
             network_name_format.format(network_id='dummy',
                                        segmentation_id='dummy')
-        except (IndexError, KeyError) as exc:
+        except (IndexError, KeyError):
             raise gsw_exc.GenericSwitchNetworkNameFormatInvalid(
                 name_format=network_name_format)
 
