@@ -239,7 +239,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         result = self.switch.send_config_set(connect_mock, ['spam ham aaaa'])
         connect_mock.enable.assert_called_once_with()
         connect_mock.send_config_set.assert_called_once_with(
-            config_commands=['spam ham aaaa'])
+            config_commands=['spam ham aaaa'], cmd_verify=False)
         self.assertEqual('fake output', result)
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
@@ -254,7 +254,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                           self.switch.send_commands_to_device,
                           ['spam ham aaaa'])
         connect_mock.send_config_set.assert_called_once_with(
-            config_commands=['spam ham aaaa'])
+            config_commands=['spam ham aaaa'], cmd_verify=False)
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
     def test_send_commands_to_device_send_ngs_failure(self, gc_mock):
@@ -267,7 +267,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertRaises(NGSFakeError, self.switch.send_commands_to_device,
                           ['spam ham aaaa'])
         connect_mock.send_config_set.assert_called_once_with(
-            config_commands=['spam ham aaaa'])
+            config_commands=['spam ham aaaa'], cmd_verify=False)
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
     @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
@@ -282,7 +282,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                           self.switch.send_commands_to_device,
                           ['spam ham aaaa'])
         connect_mock.send_config_set.assert_called_once_with(
-            config_commands=['spam ham aaaa'])
+            config_commands=['spam ham aaaa'], cmd_verify=False)
         save_mock.assert_called_once_with(connect_mock)
 
     @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
@@ -298,7 +298,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertRaises(NGSFakeError, self.switch.send_commands_to_device,
                           ['spam ham aaaa'])
         connect_mock.send_config_set.assert_called_once_with(
-            config_commands=['spam ham aaaa'])
+            config_commands=['spam ham aaaa'], cmd_verify=False)
         save_mock.assert_called_once_with(connect_mock)
 
     def test_save_configuration(self):

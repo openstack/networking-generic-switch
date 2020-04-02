@@ -133,7 +133,7 @@ function configure_generic_switch {
         local bridge_mac
         bridge_mac=$(ip link show dev $switch | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
         switch="genericswitch:$switch"
-        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER localhost netmiko_ovs_linux "$GENERIC_SWITCH_PORT" "$bridge_mac"
+        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER ::1 netmiko_ovs_linux "$GENERIC_SWITCH_PORT" "$bridge_mac"
     done
     echo "HOST_TOPOLOGY: $HOST_TOPOLOGY"
     echo "HOST_TOPOLOGY_SUBNODES: $HOST_TOPOLOGY_SUBNODES"
