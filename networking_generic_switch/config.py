@@ -28,7 +28,14 @@ coordination_opts = [
                     'is failed. Value of 0 is forever.'),
 ]
 
+ngs_opts = [
+    cfg.StrOpt('session_log_file',
+               default=None,
+               help='Netmiko session log file.')
+]
+
 CONF.register_opts(coordination_opts, group='ngs_coordination')
+CONF.register_opts(ngs_opts, group='ngs')
 
 
 def get_devices():

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added support for Netmiko session logging. Session logging is disabled by
+    default, to enable session logging set configuration option
+    ``[ngs]/session_log_file``.

@@ -95,6 +95,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             raise exc.GenericSwitchNetmikoNotSupported(
                 device_type=device_type)
         self.config['device_type'] = device_type
+        if CONF.ngs.session_log_file:
+            self.config['session_log'] = CONF.ngs.session_log_file
+            self.config['session_log_record_writes'] = True
+            self.config['session_log_file_mode'] = 'append'
 
         self.locker = None
         if CONF.ngs_coordination.backend_url:
