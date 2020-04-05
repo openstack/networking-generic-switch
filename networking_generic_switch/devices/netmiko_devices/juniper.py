@@ -105,8 +105,8 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         """Save the device's configuration.
 
         :param net_connect: a netmiko connection object.
-        :raises GenericSwitchNetmikoConfigError if saving the configuration
-            fails.
+        :raises: GenericSwitchNetmikoConfigError if saving the
+                 configuration fails.
         """
         # Junos configuration is transactional, and requires an explicit commit
         # of changes in order for them to be applied. Since committing requires

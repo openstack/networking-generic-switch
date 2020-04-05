@@ -9,6 +9,7 @@ Welcome to networking-generic-switch's documentation!
    configuration
    dev/dev-quickstart
    contributing
+   contributor/api/modules
 
 Indices and tables
 ==================

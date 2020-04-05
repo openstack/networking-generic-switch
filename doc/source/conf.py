@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    'sphinxcontrib.apidoc',
     'openstackdocstheme'
 ]
 
@@ -77,3 +77,11 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
+
+# -- sphinxcontrib.apidoc configuration --------------------------------------
+
+apidoc_module_dir = '../../networking_generic_switch'
+apidoc_output_dir = 'contributor/api'
+apidoc_excluded_paths = [
+    'tests',
+]
