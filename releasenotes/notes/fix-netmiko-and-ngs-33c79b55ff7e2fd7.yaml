@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed the configuration for ngs to use `::1` instead of `localhost`, since
+    the `/etc/hosts` is using `localhost` as alias for IPv4 and IPv6.
+  - |
+    Fixed timeout in netmiko by setting `cmd_verify` to False, we don't need to
+    verify command echo for each command in in `config_set`

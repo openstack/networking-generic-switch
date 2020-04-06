@@ -279,7 +279,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         :returns: The output of the configuration commands.
         """
         net_connect.enable()
-        return net_connect.send_config_set(config_commands=cmd_set)
+        return net_connect.send_config_set(config_commands=cmd_set,
+                                           cmd_verify=False)
 
     def save_configuration(self, net_connect):
         """Try to save the device's configuration.
