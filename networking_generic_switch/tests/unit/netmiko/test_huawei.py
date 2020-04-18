@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
 
 from networking_generic_switch.devices.netmiko_devices import huawei
 from networking_generic_switch.tests.unit.netmiko import test_netmiko_base

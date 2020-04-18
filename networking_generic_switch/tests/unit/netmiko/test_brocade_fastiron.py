@@ -14,7 +14,7 @@
 # based on test_cisco_ios.py by Mirantis
 
 
-import mock
+from unittest import mock
 
 from networking_generic_switch.devices.netmiko_devices import brocade
 from networking_generic_switch.tests.unit.netmiko import test_netmiko_base

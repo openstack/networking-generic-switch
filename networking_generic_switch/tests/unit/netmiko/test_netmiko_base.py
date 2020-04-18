@@ -13,9 +13,9 @@
 #    under the License.
 
 import re
+from unittest import mock
 
 import fixtures
-import mock
 import netmiko
 import netmiko.base_connection
 from oslo_config import fixture as config_fixture

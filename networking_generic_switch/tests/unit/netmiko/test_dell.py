@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
 
 from networking_generic_switch.devices.netmiko_devices import dell
 from networking_generic_switch import exceptions as exc

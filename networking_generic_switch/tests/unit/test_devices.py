@@ -14,8 +14,8 @@
 
 
 import unittest
+from unittest import mock
 
-import mock
 
 from networking_generic_switch import devices
 from networking_generic_switch import exceptions as exc
