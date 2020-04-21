@@ -15,7 +15,6 @@
 import futurist
 import futurist.waiters
 import netifaces
-
 from tempest.api.network import base as net_base
 from tempest import config
 from tempest.lib import decorators

@@ -18,7 +18,6 @@ import os
 
 from tempest import config
 from tempest.test_discover import plugins
-
 from tempest_plugin import config as project_config
 
 
