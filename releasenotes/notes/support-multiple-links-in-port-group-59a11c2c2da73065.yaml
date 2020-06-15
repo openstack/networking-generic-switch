@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    NGS now attempts to configure the respective switchports of all links
+    of a port group. As a result, bonding modes not requiring special switch
+    configurations (e.g. active-passive, ALB, TLB) should be supported. MLAG
+    may be supported using pre-defined port-channel interfaces. See
+    `NGS Bug 1759000 <https://bugs.launchpad.net/networking-generic-switch/+bug/1759000>`__
+    for details.
