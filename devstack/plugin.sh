@@ -84,7 +84,7 @@ function configure_generic_switch_ssh_keypair {
         if [[ ! -d $(dirname $GENERIC_SWITCH_KEY_FILE) ]]; then
             mkdir -p $(dirname $GENERIC_SWITCH_KEY_FILE)
         fi
-        echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -f $GENERIC_SWITCH_KEY_FILE
+        echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -m PEM -f $GENERIC_SWITCH_KEY_FILE
     fi
     # NOTE(vsaienko) check for new line character, add if doesn't exist.
     if [[ "$(sudo tail -c1 $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE | wc -l)" == "0" ]]; then
