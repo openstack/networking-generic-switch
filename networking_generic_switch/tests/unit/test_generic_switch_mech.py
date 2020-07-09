@@ -325,7 +325,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.delete_port.assert_called_once_with(
-            '2222', '1')
+            '2222', 1)
 
     @mock.patch.object(provisioning_blocks, 'provisioning_complete')
     def test_update_port_postcommit_not_bound(self, m_pc, m_list):
@@ -601,7 +601,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.bind_port(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once_with(
-            2222, '1')
+            2222, 1)
         mock_context.set_binding.assert_called_with(123, 'other', {})
         m_apc.assert_called_once_with(mock_context._plugin_context,
                                       mock_context.current['id'],
@@ -638,7 +638,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.bind_port(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once_with(
-            2222, '1')
+            2222, 1)
         mock_context.set_binding.assert_called_with(123, 'other', {})
         m_apc.assert_called_once_with(mock_context._plugin_context,
                                       mock_context.current['id'],

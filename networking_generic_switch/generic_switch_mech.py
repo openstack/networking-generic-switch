@@ -453,7 +453,7 @@ class GenericSwitchDriver(api.MechanismDriver):
             port_id = local_link_information[0].get('port_id')
             segments = context.segments_to_bind
             # If segmentation ID is None, set vlan 1
-            segmentation_id = segments[0].get('segmentation_id') or '1'
+            segmentation_id = segments[0].get('segmentation_id') or 1
             provisioning_blocks.add_provisioning_component(
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
@@ -521,7 +521,7 @@ class GenericSwitchDriver(api.MechanismDriver):
             return
         port_id = local_link_information[0].get('port_id')
         # If segmentation ID is None, set vlan 1
-        segmentation_id = network.get('provider:segmentation_id') or '1'
+        segmentation_id = network.get('provider:segmentation_id') or 1
         LOG.debug("Unplugging port {port} on {switch_info} from vlan: "
                   "{segmentation_id}".format(
                       port=port_id,
