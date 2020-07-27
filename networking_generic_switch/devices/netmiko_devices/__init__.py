@@ -24,6 +24,7 @@ import paramiko
 import tenacity
 from tooz import coordination
 
+from networking_generic_switch import batching
 from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
@@ -118,19 +119,31 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             self.config['session_log_record_writes'] = True
             self.config['session_log_file_mode'] = 'append'
 
-        self.locker = None
-        if CONF.ngs_coordination.backend_url:
-            self.locker = coordination.get_coordinator(
-                CONF.ngs_coordination.backend_url,
-                ('ngs-' + device_utils.get_hostname()).encode('ascii'))
-            self.locker.start()
-            atexit.register(self.locker.stop)
-
         self.lock_kwargs = {
             'locks_pool_size': int(self.ngs_config['ngs_max_connections']),
             'locks_prefix': self.config.get(
                 'host', '') or self.config.get('ip', ''),
             'timeout': CONF.ngs_coordination.acquire_timeout}
+
+        self.locker = None
+        self.batch_cmds = None
+        if self._batch_requests():
+            if not CONF.ngs_coordination.backend_url:
+                raise exc.GenericSwitchNetmikoConfigError(
+                    config=device_utils.sanitise_config(self.config),
+                    error="ngs_batch_requests is true but [ngs_coordination] "
+                          "backend_url is not provided")
+            # NOTE: we skip the lock if we are batching requests
+            self.locker = None
+            switch_name = self.lock_kwargs['locks_prefix']
+            self.batch_cmds = batching.SwitchBatch(
+                switch_name, CONF.ngs_coordination.backend_url)
+        elif CONF.ngs_coordination.backend_url:
+            self.locker = coordination.get_coordinator(
+                CONF.ngs_coordination.backend_url,
+                ('ngs-' + device_utils.get_hostname()).encode('ascii'))
+            self.locker.start()
+            atexit.register(self.locker.stop)
 
     def _format_commands(self, commands, **kwargs):
         if not commands:
@@ -193,6 +206,12 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             LOG.debug("Nothing to execute")
             return
 
+        # If configured, batch up requests to the switch
+        if self.batch_cmds is not None:
+            return self.batch_cmds.do_batch(self, cmd_set)
+        return self._send_commands_to_device(cmd_set)
+
+    def _send_commands_to_device(self, cmd_set):
         try:
             with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
                 with self._get_connection() as net_connect:
