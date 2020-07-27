@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_cumulus``, for managing cumulus
+    based switch devices via NCLU.

@@ -61,6 +61,8 @@ def check_output(operation):
 
 class NetmikoSwitch(devices.GenericSwitchDevice):
 
+    NETMIKO_DEVICE_TYPE = None
+
     ADD_NETWORK = None
 
     DELETE_NETWORK = None
@@ -88,9 +90,12 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     def __init__(self, device_cfg):
         super(NetmikoSwitch, self).__init__(device_cfg)
-        device_type = self.config.get('device_type', '')
-        # use part that is after 'netmiko_'
-        device_type = device_type.partition('netmiko_')[2]
+        if self.NETMIKO_DEVICE_TYPE:
+            device_type = self.NETMIKO_DEVICE_TYPE
+        else:
+            device_type = self.config.get('device_type', '')
+            # use part that is after 'netmiko_'
+            device_type = device_type.partition('netmiko_')[2]
         if device_type not in netmiko.platforms:
             raise exc.GenericSwitchNetmikoNotSupported(
                 device_type=device_type)
