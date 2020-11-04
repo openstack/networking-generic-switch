@@ -4,17 +4,18 @@ Supported Devices
 
 The following devices are supported by this plugin:
 
+* Arista EOS
+* Brocade ICX (FastIron)
 * Cisco 300-series switches
 * Cisco IOS switches
-* Huawei switches
-* OpenVSwitch
-* Arista EOS
+* Cumulus Linux (via NCLU)
 * Dell Force10
 * Dell PowerConnect
-* Brocade ICX (FastIron)
-* Ruijie switches
 * HPE 5900 Series switches
+* Huawei switches
 * Juniper Junos OS switches
+* OpenVSwitch
+* Ruijie switches
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.
