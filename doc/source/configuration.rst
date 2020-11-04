@@ -148,6 +148,16 @@ for the Juniper Junos OS device::
     ngs_commit_timeout = <optional commit timeout (seconds)>
     ngs_commit_interval = <optional commit interval (seconds)>
 
+for a Cumulus Linux device::
+
+    [genericswitch:hostname-for-cumulus]
+    device_type = netmiko_cumulus
+    ip = <switch mgmt_ip address>
+    username = admin
+    password = password
+    secret = secret
+    ngs_mac_address = <switch mac address>
+
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
