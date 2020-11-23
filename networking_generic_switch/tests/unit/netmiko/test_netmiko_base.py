@@ -72,6 +72,17 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                 return_value='fake output')
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.check_output')
+    def test_add_network_with_no_manage_vlans(self, m_check, m_sctd):
+        switch = self._make_switch_device({'ngs_manage_vlans': False})
+        switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        self.assertFalse(m_sctd.called)
+        m_check.assert_called_once_with('', 'add network')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
     def test_del_network(self, m_check, m_sctd):
         self.switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
@@ -87,6 +98,17 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
         m_check.assert_called_once_with('fake output', 'delete network')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output')
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output')
+    def test_del_network_with_no_manage_vlans(self, m_check, m_sctd):
+        switch = self._make_switch_device({'ngs_manage_vlans': False})
+        switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        self.assertFalse(m_sctd.called)
+        m_check.assert_called_once_with('', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',

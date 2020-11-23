@@ -40,6 +40,8 @@ NGS_INTERNAL_OPTS = [
     # String format for network name to configure on switches.
     # Accepts {network_id} and {segmentation_id} formatting options.
     {'name': 'ngs_network_name_format', 'default': '{network_id}'},
+    # If false, ngs will not add and delete VLANs from switches
+    {'name': 'ngs_manage_vlans', 'default': True},
 ]
 
 
@@ -129,6 +131,10 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         network_name_format = self.ngs_config['ngs_network_name_format']
         return network_name_format.format(network_id=network_id,
                                           segmentation_id=segmentation_id)
+
+    def _do_vlan_management(self):
+        """Check if drivers should add and remove VLANs from switches."""
+        return strutils.bool_from_string(self.ngs_config['ngs_manage_vlans'])
 
     @abc.abstractmethod
     def add_network(self, segmentation_id, network_id):

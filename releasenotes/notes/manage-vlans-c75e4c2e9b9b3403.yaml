@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    New per switch `ngs_manage_vlans` option. It defaults to True, but can
+    be set to False so that no VLANs are added or removed on that switch.
+    This is useful when not all ports on the switch are managed by Neutron.
