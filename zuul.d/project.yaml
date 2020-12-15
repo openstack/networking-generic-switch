@@ -21,7 +21,6 @@
         # for ussuri are completed
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
-        - openstack-tox-lower-constraints
     gate:
       queue: networking-generic-switch
       jobs:
@@ -39,4 +38,3 @@
         # NOTE(rpittau): temp disabling job until all changes
         # for ussuri are completed
         # - ironic-grenade-dsvm-multinode-multitenant
-        - openstack-tox-lower-constraints
