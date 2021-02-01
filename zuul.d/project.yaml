@@ -9,23 +9,14 @@
       jobs:
         - networking-generic-switch-tempest-dlm
         - networking-generic-switch-tempest-dlm-python2
+        # NOTE(rpittau): this is also disabled in ironic
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             irrelevant-files:
               - ^(test-|)requirements.txt$
               - ^setup.cfg$
-        # NOTE(iurygregory): Non-voting due to instability.
-        - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
-        - openstack-tox-lower-constraints
     gate:
       queue: networking-generic-switch
       jobs:
         - networking-generic-switch-tempest-dlm
         - networking-generic-switch-tempest-dlm-python2
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
-            irrelevant-files:
-              - ^(test-|)requirements.txt$
-              - ^setup.cfg$
-        # Removing from gate due to instability.
-        # - ironic-grenade-dsvm-multinode-multitenant
-        - openstack-tox-lower-constraints
