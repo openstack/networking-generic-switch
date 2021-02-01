@@ -74,3 +74,5 @@
     vars:
       devstack_localrc:
         USE_PYTHON3: False
+        TEMPEST_BRANCH: 23.0.0
+        TEMPEST_VENV_UPPER_CONSTRAINTS: "{{ devstack_base_dir }}/requirements/upper-constraints.txt"
