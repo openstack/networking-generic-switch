@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed command syntax of Juniper devices. This makes the driver
+    incompatible with some very old Junos OS releases that are EOL
+    and no longer supported by the vendor.
