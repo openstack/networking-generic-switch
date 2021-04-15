@@ -47,9 +47,9 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
         switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
             ['set vlans 0ae071f55be943e480eae41fefe85b21 vlan-id 33',
-             'set interface port1 unit 0 family ethernet-switching '
+             'set interfaces port1 unit 0 family ethernet-switching '
              'vlan members 33',
-             'set interface port2 unit 0 family ethernet-switching '
+             'set interfaces port2 unit 0 family ethernet-switching '
              'vlan members 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -65,9 +65,9 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
         switch.del_network(33, '0ae071f55be943e480eae41fefe85b21')
         mock_exec.assert_called_with(
-            ['delete interface port1 unit 0 family ethernet-switching '
+            ['delete interfaces port1 unit 0 family ethernet-switching '
              'vlan members 33',
-             'delete interface port2 unit 0 family ethernet-switching '
+             'delete interfaces port2 unit 0 family ethernet-switching '
              'vlan members 33',
              'delete vlans 0ae071f55be943e480eae41fefe85b21'])
 
@@ -76,9 +76,9 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
-            ['delete interface 3333 unit 0 family ethernet-switching '
+            ['delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members',
-             'set interface 3333 unit 0 family ethernet-switching '
+             'set interfaces 3333 unit 0 family ethernet-switching '
              'vlan members 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -88,10 +88,10 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
             {'ngs_disable_inactive_ports': 'true'})
         switch.plug_port_to_network(3333, 33)
         m_sctd.assert_called_with(
-            ['delete interface 3333 disable',
-             'delete interface 3333 unit 0 family ethernet-switching '
+            ['delete interfaces 3333 disable',
+             'delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members',
-             'set interface 3333 unit 0 family ethernet-switching '
+             'set interfaces 3333 unit 0 family ethernet-switching '
              'vlan members 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -99,7 +99,7 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
-            ['delete interface 3333 unit 0 family ethernet-switching '
+            ['delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -109,9 +109,9 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
             {'ngs_disable_inactive_ports': 'true'})
         switch.delete_port(3333, 33)
         m_sctd.assert_called_with(
-            ['delete interface 3333 unit 0 family ethernet-switching '
+            ['delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members',
-             'set interface 3333 disable'])
+             'set interfaces 3333 disable'])
 
     def test_send_config_set(self):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
@@ -324,10 +324,10 @@ error: configuration check-out failed
             port=3333,
             segmentation_id=33)
         self.assertEqual(cmd_set,
-                         ['delete interface 3333 unit 0 '
+                         ['delete interfaces 3333 unit 0 '
                           'family ethernet-switching '
                           'vlan members',
-                          'set interface 3333 unit 0 '
+                          'set interfaces 3333 unit 0 '
                           'family ethernet-switching '
                           'vlan members 33'])
 
@@ -336,7 +336,7 @@ error: configuration check-out failed
             port=3333,
             segmentation_id=33)
         self.assertEqual(cmd_set,
-                         ['delete interface 3333 unit 0 '
+                         ['delete interfaces 3333 unit 0 '
                           'family ethernet-switching '
                           'vlan members'])
 
@@ -345,7 +345,7 @@ error: configuration check-out failed
             port=3333,
             segmentation_id=33)
         self.assertEqual(cmd_set,
-                         ['set interface 3333 unit 0 '
+                         ['set interfaces 3333 unit 0 '
                           'family ethernet-switching '
                           'vlan members 33'])
 
@@ -354,6 +354,6 @@ error: configuration check-out failed
             port=3333,
             segmentation_id=33)
         self.assertEqual(cmd_set,
-                         ['delete interface 3333 unit 0 '
+                         ['delete interfaces 3333 unit 0 '
                           'family ethernet-switching '
                           'vlan members 33'])
