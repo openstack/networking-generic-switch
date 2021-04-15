@@ -43,32 +43,32 @@ class Juniper(netmiko_devices.NetmikoSwitch):
     PLUG_PORT_TO_NETWORK = (
         # Delete any existing VLAN associations - only one VLAN may be
         # associated with an access mode port.
-        'delete interface {port} unit 0 family ethernet-switching '
+        'delete interfaces {port} unit 0 family ethernet-switching '
         'vlan members',
-        'set interface {port} unit 0 family ethernet-switching '
+        'set interfaces {port} unit 0 family ethernet-switching '
         'vlan members {segmentation_id}',
     )
 
     DELETE_PORT = (
-        'delete interface {port} unit 0 family ethernet-switching '
+        'delete interfaces {port} unit 0 family ethernet-switching '
         'vlan members',
     )
 
     ENABLE_PORT = (
-        'delete interface {port} disable',
+        'delete interfaces {port} disable',
     )
 
     DISABLE_PORT = (
-        'set interface {port} disable',
+        'set interfaces {port} disable',
     )
 
     ADD_NETWORK_TO_TRUNK = (
-        'set interface {port} unit 0 family ethernet-switching '
+        'set interfaces {port} unit 0 family ethernet-switching '
         'vlan members {segmentation_id}',
     )
 
     REMOVE_NETWORK_FROM_TRUNK = (
-        'delete interface {port} unit 0 family ethernet-switching '
+        'delete interfaces {port} unit 0 family ethernet-switching '
         'vlan members {segmentation_id}',
     )
 
