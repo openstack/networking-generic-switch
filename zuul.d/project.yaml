@@ -17,10 +17,6 @@
               - ^tools/.*$
               - ^tox.ini$
               - ^setup.cfg$
-        # NOTE(rpittau): temp disabling job until all changes
-        # for ussuri are completed
-        - ironic-grenade-dsvm-multinode-multitenant:
-            voting: false
     gate:
       queue: networking-generic-switch
       jobs:
@@ -35,6 +31,3 @@
               - ^tools/.*$
               - ^tox.ini$
               - ^setup.cfg$
-        # NOTE(rpittau): temp disabling job until all changes
-        # for ussuri are completed
-        # - ironic-grenade-dsvm-multinode-multitenant
