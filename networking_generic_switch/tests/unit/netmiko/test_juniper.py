@@ -166,10 +166,10 @@ error: configuration database locked by:
         mock_connection.commit.side_effect = ValueError(
             "Commit failed with the following errors:\n\n{0}".format(output))
 
-        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError,
-                                "Reached timeout waiting for",
-                                self.switch.save_configuration,
-                                mock_connection)
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "Reached timeout waiting for",
+                               self.switch.save_configuration,
+                               mock_connection)
         self.assertGreater(mock_connection.commit.call_count, 1)
         m_stop.assert_called_once_with(60)
         m_wait.assert_called_once_with(5)
@@ -214,10 +214,10 @@ error: configuration database locked by:
         mock_connection.commit.side_effect = ValueError(
             "Commit failed with the following errors:\n\n{0}".format(output))
 
-        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError,
-                                "Reached timeout while attempting",
-                                self.switch.save_configuration,
-                                mock_connection)
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "Reached timeout while attempting",
+                               self.switch.save_configuration,
+                               mock_connection)
         self.assertGreater(mock_connection.commit.call_count, 1)
         m_stop.assert_called_once_with(60)
         m_wait.assert_called_once_with(5)
@@ -262,10 +262,10 @@ error: configuration database locked by:
         mock_connection.commit.side_effect = ValueError(
             "Commit failed with the following errors:\n\n{0}".format(output))
 
-        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError,
-                                "Reached timeout while attempting",
-                                self.switch.save_configuration,
-                                mock_connection)
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "Reached timeout while attempting",
+                               self.switch.save_configuration,
+                               mock_connection)
         self.assertGreater(mock_connection.commit.call_count, 1)
         m_stop.assert_called_once_with(60)
         m_wait.assert_called_once_with(5)
@@ -284,10 +284,10 @@ error: configuration check-out failed
         mock_connection.commit.side_effect = ValueError(
             "Commit failed with the following errors:\n\n{0}".format(output))
 
-        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError,
-                                "Failed to commit configuration",
-                                self.switch.save_configuration,
-                                mock_connection)
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "Failed to commit configuration",
+                               self.switch.save_configuration,
+                               mock_connection)
         mock_connection.commit.assert_called_once_with()
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',

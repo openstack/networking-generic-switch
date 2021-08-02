@@ -458,11 +458,10 @@ class GenericSwitchDriver(api.MechanismDriver):
             provisioning_blocks.add_provisioning_component(
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
-            LOG.debug("Putting port {port} on {switch_info} to vlan: "
-                      "{segmentation_id}".format(
-                          port=port_id,
-                          switch_info=switch_info,
-                          segmentation_id=segmentation_id))
+            LOG.debug("Putting port %(port_id)s on %(switch_info)s to vlan: "
+                      "%(segmentation_id)s",
+                      {'port_id': port_id, 'switch_info': switch_info,
+                       'segmentation_id': segmentation_id})
             # Move port to network
             switch.plug_port_to_network(port_id, segmentation_id)
             LOG.info("Successfully bound port %(port_id)s in segment "
@@ -523,11 +522,10 @@ class GenericSwitchDriver(api.MechanismDriver):
         port_id = local_link_information[0].get('port_id')
         # If segmentation ID is None, set vlan 1
         segmentation_id = network.get('provider:segmentation_id') or 1
-        LOG.debug("Unplugging port {port} on {switch_info} from vlan: "
-                  "{segmentation_id}".format(
-                      port=port_id,
-                      switch_info=switch_info,
-                      segmentation_id=segmentation_id))
+        LOG.debug("Unplugging port %(port)s on %(switch_info)s from vlan: "
+                  "%(segmentation_id)s",
+                  {'port': port_id, 'switch_info': switch_info,
+                   'segmentation_id': segmentation_id})
         try:
             switch.delete_port(port_id, segmentation_id)
         except Exception as e:

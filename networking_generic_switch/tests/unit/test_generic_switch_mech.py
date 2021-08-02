@@ -104,8 +104,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
 
-        self.assertRaisesRegexp(ValueError, "boom",
-                                driver.create_network_postcommit, mock_context)
+        self.assertRaisesRegex(ValueError, "boom",
+                               driver.create_network_postcommit, mock_context)
         self.switch_mock.add_network.assert_called_once_with(22, 22)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
@@ -126,8 +126,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
 
-        self.assertRaisesRegexp(ValueError, "boom",
-                                driver.create_network_postcommit, mock_context)
+        self.assertRaisesRegex(ValueError, "boom",
+                               driver.create_network_postcommit, mock_context)
         self.switch_mock.add_network.assert_called_once_with(22, 22)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
@@ -196,8 +196,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
 
-        self.assertRaisesRegexp(ValueError, "boom",
-                                driver.delete_network_postcommit, mock_context)
+        self.assertRaisesRegex(ValueError, "boom",
+                               driver.delete_network_postcommit, mock_context)
         self.switch_mock.del_network.assert_called_once_with(22, 22)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to delete network', m_log.error.call_args[0][0])
@@ -218,8 +218,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
 
-        self.assertRaisesRegexp(ValueError, "boom",
-                                driver.delete_network_postcommit, mock_context)
+        self.assertRaisesRegex(ValueError, "boom",
+                               driver.delete_network_postcommit, mock_context)
         self.switch_mock.del_network.assert_called_with(22, 22)
         self.assertEqual(2, self.switch_mock.del_network.call_count)
         self.assertEqual(2, m_log.error.call_count)

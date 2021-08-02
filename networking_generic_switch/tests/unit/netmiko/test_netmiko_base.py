@@ -360,5 +360,5 @@ fake error message
 """
         msg = ("Found invalid configuration in device response. Operation: "
                "fake op. Output: %s" % output)
-        self.assertRaisesRegexp(exc.GenericSwitchNetmikoConfigError, msg,
-                                self.switch.check_output, output, 'fake op')
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError, msg,
+                               self.switch.check_output, output, 'fake op')

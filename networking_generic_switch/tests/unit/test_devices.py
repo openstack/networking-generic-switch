@@ -156,7 +156,7 @@ class TestDeviceManager(unittest.TestCase):
 
     def test__validate_network_name_format_failure(self):
         device_cfg = {'ngs_network_name_format': '{invalid}'}
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             exc.GenericSwitchNetworkNameFormatInvalid,
             r"Invalid value for 'ngs_network_name_format'",
             FakeDevice, device_cfg)
