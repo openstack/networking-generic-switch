@@ -244,3 +244,25 @@ For example::
 
 Some switches have issues assigning VLANs a name that starts with a number,
 and this configuration option can be used to avoid this.
+
+Manage VLANs
+============
+
+By default, on network creation VLANs are added to all switches. In a similar
+way, VLANs are removed when it seems they are no longer required.
+However, in some cases only a subset of the ports are managed by Neutron.
+In a similar way, when multiple switches are used, it is very common that
+the network administrator restricts the VLANs allowed. In these cases, there
+is little utility in adding and removing vlans on the switches. This process
+takes time, so not doing this can speed up a number of common operations.
+A particular case where this can cause problems is when a VLAN used for
+the switch management interface, or any other port not managed by Neutron,
+is removed by this Neutron driver.
+
+To stop networking generic switch trying to add or remove VLANs on the switch
+administrator are expected to pre-add all enabled VLANs. Once those VLANs are
+preconfigured on the switch, you can use the following configuration to stop
+networking generic switch adding or removing any VLANs::
+
+    [genericswitch:device-hostname]
+    ngs_manage_vlans = False
