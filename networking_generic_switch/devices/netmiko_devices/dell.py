@@ -18,6 +18,66 @@ from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch import exceptions as exc
 
 
+class DellOS10(netmiko_devices.NetmikoSwitch):
+    """Netmiko device driver for Dell PowerSwitch switches."""
+
+    ADD_NETWORK = (
+        "interface vlan {segmentation_id}",
+        "description {network_name}",
+        "exit",
+    )
+
+    DELETE_NETWORK = (
+        "no interface vlan {segmentation_id}",
+        "exit",
+    )
+
+    PLUG_PORT_TO_NETWORK = (
+        "interface {port}",
+        "switchport mode access",
+        "switchport access vlan {segmentation_id}",
+        "exit",
+    )
+
+    DELETE_PORT = (
+        "interface {port}",
+        "no switchport access vlan",
+        "exit",
+    )
+
+    ADD_NETWORK_TO_TRUNK = (
+        "interface {port}",
+        "switchport mode trunk",
+        "switchport trunk allowed vlan {segmentation_id}",
+        "exit",
+    )
+
+    REMOVE_NETWORK_FROM_TRUNK = (
+        "interface {port}",
+        "no switchport trunk allowed vlan {segmentation_id}",
+        "exit",
+    )
+
+    ENABLE_PORT = (
+        "interface {port}",
+        "no shutdown",
+        "exit",
+    )
+
+    DISABLE_PORT = (
+        "interface {port}",
+        "shutdown",
+        "exit",
+    )
+
+    ERROR_MSG_PATTERNS = ()
+    """Sequence of error message patterns.
+
+    Sequence of re.RegexObject objects representing patterns to check for in
+    device output that indicate a failure to apply configuration.
+    """
+
+
 class DellNos(netmiko_devices.NetmikoSwitch):
     """Netmiko device driver for Dell Force10 (OS9) switches."""
 

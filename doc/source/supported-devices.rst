@@ -10,6 +10,7 @@ The following devices are supported by this plugin:
 * Cisco IOS switches
 * Cumulus Linux (via NCLU)
 * Dell Force10
+* Dell OS10
 * Dell PowerConnect
 * HPE 5900 Series switches
 * Huawei switches

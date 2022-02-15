@@ -121,6 +121,124 @@ class TestNetmikoDellNos(test_netmiko_base.NetmikoSwitchTestBase):
                          ['interface vlan 33', 'no tagged 3333', 'exit'])
 
 
+class TestNetmikoDellOS10(test_netmiko_base.NetmikoSwitchTestBase):
+
+    def _make_switch_device(self, extra_cfg={}):
+        device_cfg = {'device_type': 'netmiko_dell_os10'}
+        device_cfg.update(extra_cfg)
+        return dell.DellOS10(device_cfg)
+
+    def test_constants(self):
+        self.assertIsNone(self.switch.SAVE_CONFIGURATION)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_add_network(self, m_exec):
+        self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        m_exec.assert_called_with(
+            ['interface vlan 33',
+             'description 0ae071f55be943e480eae41fefe85b21',
+             'exit']
+        )
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_add_network_with_trunk_ports(self, mock_exec):
+        switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
+        switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        mock_exec.assert_called_with(
+            ['interface vlan 33',
+             'description 0ae071f55be943e480eae41fefe85b21',
+             'exit',
+             'interface port1', 'switchport mode trunk',
+             'switchport trunk allowed vlan 33', 'exit',
+             'interface port2', 'switchport mode trunk',
+             'switchport trunk allowed vlan 33', 'exit']
+        )
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_del_network(self, mock_exec):
+        self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        mock_exec.assert_called_with(['no interface vlan 33', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_del_network_with_trunk_ports(self, mock_exec):
+        switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
+        switch.del_network(33, '0ae071f55be943e480eae41fefe85b21')
+        mock_exec.assert_called_with(
+            ['interface port1', 'no switchport trunk allowed vlan 33', 'exit',
+             'interface port2', 'no switchport trunk allowed vlan 33', 'exit',
+             'no interface vlan 33', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_plug_port_to_network(self, mock_exec):
+        self.switch.plug_port_to_network(3333, 33)
+        mock_exec.assert_called_with(
+            ['interface 3333', 'switchport mode access',
+             'switchport access vlan 33',
+             'exit']
+        )
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device')
+    def test_delete_port(self, mock_exec):
+        self.switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            ['interface 3333', 'no switchport access vlan', 'exit']
+        )
+
+    def test__format_commands(self):
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.ADD_NETWORK,
+            segmentation_id=22,
+            network_id=22,
+            network_name='vlan-22')
+        self.assertEqual(cmd_set,
+                         ['interface vlan 22',
+                          'description vlan-22',
+                          'exit']
+                         )
+
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.DELETE_NETWORK,
+            segmentation_id=22)
+        self.assertEqual(cmd_set, ['no interface vlan 22', 'exit'])
+
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.PLUG_PORT_TO_NETWORK,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set, ['interface 3333', 'switchport mode access',
+                                   'switchport access vlan 33', 'exit'])
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.DELETE_PORT,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set,
+                         ['interface 3333', 'no switchport access vlan',
+                          'exit'])
+
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.ADD_NETWORK_TO_TRUNK,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set,
+                         ['interface 3333', 'switchport mode trunk',
+                          'switchport trunk allowed vlan 33',
+                          'exit'])
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.REMOVE_NETWORK_FROM_TRUNK,
+            port=3333,
+            segmentation_id=33)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'no switchport trunk allowed vlan 33',
+                          'exit'])
+
+
 class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
 
     def _make_switch_device(self, extra_cfg={}):

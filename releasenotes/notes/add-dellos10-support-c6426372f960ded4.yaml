@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_dell_os10``, for managing Dell OS10
+    based switch devices.

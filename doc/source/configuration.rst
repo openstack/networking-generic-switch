@@ -92,6 +92,16 @@ for the Dell Force10 device::
     password = password
     secret = secret
 
+for the Dell OS10 device::
+
+    [genericswitch:dell-hostname]
+    device_type = netmiko_dell_os10
+    ngs_mac_address = <switch mac address>
+    ip = <switch mgmt ip address>
+    username = admin
+    password = password
+    secret = secret
+
 for the Dell PowerConnect device::
 
     [genericswitch:dell-hostname]
