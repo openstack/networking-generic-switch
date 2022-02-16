@@ -142,6 +142,18 @@ class TestDeviceManager(unittest.TestCase):
         self.assertEqual('{network_id}',
                          device.ngs_config['ngs_network_name_format'])
 
+    def test__get_trunk_ports(self):
+        device_cfg = {"ngs_trunk_ports": 'port1, Po 1/30,port42'}
+        device = FakeDevice(device_cfg)
+        trunk_ports = device._get_trunk_ports()
+        self.assertEqual(["port1", "Po 1/30", "port42"], trunk_ports)
+
+    def test__get_physical_networks(self):
+        device_cfg = {"ngs_physical_networks": 'net1,  net2, net3  '}
+        device = FakeDevice(device_cfg)
+        physnets = device._get_physical_networks()
+        self.assertEqual(["net1", "net2", "net3"], physnets)
+
     def test__disable_inactive_ports(self):
         device_cfg = {"device_type": 'netmiko_ovs_linux',
                       "ngs_disable_inactive_ports": "true"}
