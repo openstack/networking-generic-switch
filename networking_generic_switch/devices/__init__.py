@@ -42,6 +42,8 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_network_name_format', 'default': '{network_id}'},
     # If false, ngs will not add and delete VLANs from switches
     {'name': 'ngs_manage_vlans', 'default': True},
+    # If False, ngs will skip saving configuration on devices
+    {'name': 'ngs_save_configuration', 'default': True},
 ]
 
 
@@ -120,6 +122,11 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         """Return whether inactive ports should be disabled."""
         return strutils.bool_from_string(
             self.ngs_config['ngs_disable_inactive_ports'])
+
+    def _get_save_configuration(self):
+        """Return whether configuration should be saved on device."""
+        return strutils.bool_from_string(
+            self.ngs_config['ngs_save_configuration'])
 
     def _get_network_name(self, network_id, segmentation_id):
         """Return a network name to configure on switches.
