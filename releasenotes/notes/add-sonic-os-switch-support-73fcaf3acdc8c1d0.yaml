@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_sonic``, for managing switches
+    running the SONiC open source network operating system.
+
