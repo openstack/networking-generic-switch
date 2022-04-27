@@ -109,7 +109,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         if CONF.ngs_coordination.backend_url:
             self.locker = coordination.get_coordinator(
                 CONF.ngs_coordination.backend_url,
-                ('ngs-' + CONF.host).encode('ascii'))
+                ('ngs-' + device_utils.get_hostname()).encode('ascii'))
             self.locker.start()
             atexit.register(self.locker.stop)
 

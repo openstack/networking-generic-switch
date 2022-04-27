@@ -12,6 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
+
+
+CONF = cfg.CONF
+
 
 def get_switch_device(switches, switch_info=None,
                       ngs_mac_address=None):
@@ -46,3 +51,8 @@ def sanitise_config(config):
         key: "******" if key in sanitised_fields else value
         for key, value in config.items()
     }
+
+
+def get_hostname():
+    """Helper to allow isolation of CONF.host and plugin loading."""
+    return CONF.host
