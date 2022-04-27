@@ -145,6 +145,12 @@ function configure_generic_switch {
     if [ -n "$HOST_TOPOLOGY_SUBNODES" ]; then
         # NOTE(vsaienko) with multinode topology we need to add switches from all
         # the subnodes to the config on primary node
+        # NOTE(TheJulia) We *also* need to use the local key which will have
+        # access to the subnode instead of attemping to configure our own,
+        # as the plugins execute separately.
+        if [ -f /opt/stack/.ssh/id_rsa ]; then
+            GENERIC_SWITCH_KEY_FILE="/opt/stack/.ssh/id_rsa"
+        fi
         local cnt=0
         local section
         for node in $HOST_TOPOLOGY_SUBNODES; do

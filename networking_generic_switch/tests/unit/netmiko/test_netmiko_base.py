@@ -24,6 +24,7 @@ import tenacity
 from tooz import coordination
 
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch.devices import utils
 from networking_generic_switch import exceptions as exc
 
 
@@ -342,17 +343,18 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         connect_mock.send_command.assert_has_calls([mock.call('save'),
                                                     mock.call('y')])
 
+    @mock.patch.object(utils, 'get_hostname', autospec=True)
     @mock.patch.object(netmiko_devices.ngs_lock, 'PoolLock', autospec=True)
     @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
     @mock.patch.object(coordination, 'get_coordinator', autospec=True)
     def test_switch_send_commands_with_coordinator(self, get_coord_mock,
-                                                   nm_mock, lock_mock):
+                                                   nm_mock, lock_mock,
+                                                   mock_hostname):
         self.cfg.config(acquire_timeout=120, backend_url='mysql://localhost',
                         group='ngs_coordination')
-        self.cfg.config(host='viking')
         coord = mock.Mock()
         get_coord_mock.return_value = coord
-
+        mock_hostname.return_value = 'viking'
         switch = self._make_switch_device(
             extra_cfg={'ngs_max_connections': 2})
         self.assertEqual(coord, switch.locker)
@@ -370,6 +372,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                                           timeout=120)
         lock_mock.return_value.__exit__.assert_called_once()
         lock_mock.return_value.__enter__.assert_called_once()
+        mock_hostname.assert_called_once()
 
     def test_check_output(self):
         self.switch.check_output('fake output', 'fake op')
