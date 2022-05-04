@@ -23,8 +23,6 @@ GENERIC_SWITCH_USER_MAX_SESSIONS=${GENERIC_SWITCH_USER_MAX_SESSIONS:-0}
 # 0 would mean wait forever
 GENERIC_SWITCH_DLM_ACQUIRE_TIMEOUT=${GENERIC_SWITCH_DLM_ACQUIRE_TIMEOUT:-120}
 
-enable_python3_package networking-generic-switch
-
 if ( [[ "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]] ) && (! is_service_enabled etcd3); then
     die $LINENO "etcd3 service must be enabled to use coordination features of networking-generic-switch"
 fi
