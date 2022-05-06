@@ -146,8 +146,8 @@ function configure_generic_switch {
         # NOTE(TheJulia) We *also* need to use the local key which will have
         # access to the subnode instead of attemping to configure our own,
         # as the plugins execute separately.
-        if [ -f /opt/stack/.ssh/id_rsa ]; then
-            GENERIC_SWITCH_KEY_FILE="/opt/stack/.ssh/id_rsa"
+        if [ -e "$HOME/.ssh/id_rsa" ]; then
+            GENERIC_SWITCH_KEY_FILE="${HOME}/.ssh/id_rsa"
         fi
         local cnt=0
         local section
