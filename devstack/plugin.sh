@@ -75,14 +75,18 @@ function configure_generic_switch_ssh_keypair {
     fi
     # copy over stack user's authorized_keys to GENERIC_SWITCH_USER
     # mostly needed for multinode gate job
-    if [[ -e "$HOME/.ssh/authorized_keys" ]];then
+    if [[ -e "$HOME/.ssh/authorized_keys" ]]; then
         cat "$HOME/.ssh/authorized_keys" | sudo tee -a $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE
     fi
     if [[ ! -e $GENERIC_SWITCH_KEY_FILE ]]; then
         if [[ ! -d $(dirname $GENERIC_SWITCH_KEY_FILE) ]]; then
             mkdir -p $(dirname $GENERIC_SWITCH_KEY_FILE)
         fi
-        echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -m PEM -f $GENERIC_SWITCH_KEY_FILE
+        if [[ "$HOST_TOPLOGY" != "multinode" ]]; then
+            # NOTE(TheJulia): Self management of ssh keys only works locally
+            # and multinode CI jobs cannot leverage it.
+            echo -e 'n\n' | ssh-keygen -q -t rsa -P '' -m PEM -f $GENERIC_SWITCH_KEY_FILE
+        fi
     fi
     # NOTE(vsaienko) check for new line character, add if doesn't exist.
     if [[ "$(sudo tail -c1 $GENERIC_SWITCH_KEY_AUTHORIZED_KEYS_FILE | wc -l)" == "0" ]]; then
@@ -131,6 +135,13 @@ function configure_generic_switch {
         done
     fi
 
+    if [ -e "$HOME/.ssh/id_rsa" ] && [[ "$HOST_TOPOLOGY" == "multinode" ]]; then
+        # NOTE(TheJulia): Reset the key pair to utilize a pre-existing key,
+        # this is instead of generating one, which doesn't work in multinode
+        # environments. This is because the keys are managed and placed by zuul.
+        GENERIC_SWITCH_KEY_FILE="${HOME}/.ssh/id_rsa"
+    fi
+
     # Create generic_switch ml2 config
     for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
         local bridge_mac
@@ -143,12 +154,6 @@ function configure_generic_switch {
     if [ -n "$HOST_TOPOLOGY_SUBNODES" ]; then
         # NOTE(vsaienko) with multinode topology we need to add switches from all
         # the subnodes to the config on primary node
-        # NOTE(TheJulia) We *also* need to use the local key which will have
-        # access to the subnode instead of attemping to configure our own,
-        # as the plugins execute separately.
-        if [ -e "$HOME/.ssh/id_rsa" ]; then
-            GENERIC_SWITCH_KEY_FILE="${HOME}/.ssh/id_rsa"
-        fi
         local cnt=0
         local section
         for node in $HOST_TOPOLOGY_SUBNODES; do
