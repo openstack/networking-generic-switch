@@ -151,3 +151,11 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def delete_port(self, port_id, segmentation_id):
         pass
+
+    def plug_bond_to_network(self, bond_id, segmentation_id):
+        # Fall back to interface method.
+        return self.plug_port_to_network(bond_id, segmentation_id)
+
+    def unplug_bond_from_network(self, bond_id, segmentation_id):
+        # Fall back to interface method.
+        return self.delete_port(bond_id, segmentation_id)

@@ -442,28 +442,32 @@ class GenericSwitchDriver(api.MechanismDriver):
             # of the links should be processed.
             if not self._is_link_valid(port, network):
                 return
-            else:
-                for link in local_link_information:
-                    port_id = link.get('port_id')
-                    switch_info = link.get('switch_info')
-                    switch_id = link.get('switch_id')
-                    switch = device_utils.get_switch_device(
-                        self.switches, switch_info=switch_info,
-                        ngs_mac_address=switch_id)
 
-                    segments = context.segments_to_bind
-                    # If segmentation ID is None, set vlan 1
-                    segmentation_id = segments[0].get('segmentation_id') or 1
-                    LOG.debug("Putting port %(port_id)s on %(switch_info)s "
-                              "to vlan: %(segmentation_id)s",
-                              {'port_id': port_id, 'switch_info': switch_info,
-                               'segmentation_id': segmentation_id})
-                    # Move port to network
+            is_802_3ad = self._is_802_3ad(port)
+            for link in local_link_information:
+                port_id = link.get('port_id')
+                switch_info = link.get('switch_info')
+                switch_id = link.get('switch_id')
+                switch = device_utils.get_switch_device(
+                    self.switches, switch_info=switch_info,
+                    ngs_mac_address=switch_id)
+
+                segments = context.segments_to_bind
+                # If segmentation ID is None, set vlan 1
+                segmentation_id = segments[0].get('segmentation_id') or 1
+                LOG.debug("Putting port %(port_id)s on %(switch_info)s "
+                          "to vlan: %(segmentation_id)s",
+                          {'port_id': port_id, 'switch_info': switch_info,
+                           'segmentation_id': segmentation_id})
+                # Move port to network
+                if is_802_3ad and hasattr(switch, 'plug_bond_to_network'):
+                    switch.plug_bond_to_network(port_id, segmentation_id)
+                else:
                     switch.plug_port_to_network(port_id, segmentation_id)
-                    LOG.info("Successfully bound port %(port_id)s in segment "
-                             "%(segment_id)s on device %(device)s",
-                             {'port_id': port['id'], 'device': switch_info,
-                              'segment_id': segmentation_id})
+                LOG.info("Successfully bound port %(port_id)s in segment "
+                         "%(segment_id)s on device %(device)s",
+                         {'port_id': port['id'], 'device': switch_info,
+                          'segment_id': segmentation_id})
 
             context.set_binding(segments[0][api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
@@ -541,6 +545,21 @@ class GenericSwitchDriver(api.MechanismDriver):
         vif_type = port[portbindings.VIF_TYPE]
         return vif_type == portbindings.VIF_TYPE_OTHER
 
+    @staticmethod
+    def _is_802_3ad(port):
+        """Return whether a port is using 802.3ad link aggregation.
+
+        :param port: The port to check
+        :returns: Whether the port is a port group using 802.3ad link
+                  aggregation.
+        """
+        binding_profile = port['binding:profile']
+        local_group_information = binding_profile.get(
+            'local_group_information')
+        if not local_group_information:
+            return False
+        return local_group_information.get('bond_mode') in ['4', '802.3ad']
+
     def _unplug_port_from_network(self, port, network):
         """Unplug a port from a network.
 
@@ -555,6 +574,8 @@ class GenericSwitchDriver(api.MechanismDriver):
         local_link_information = binding_profile.get('local_link_information')
         if not local_link_information:
             return
+
+        is_802_3ad = self._is_802_3ad(port)
         for link in local_link_information:
             switch_info = link.get('switch_info')
             switch_id = link.get('switch_id')
@@ -571,7 +592,10 @@ class GenericSwitchDriver(api.MechanismDriver):
                       {'port': port_id, 'switch_info': switch_info,
                        'segmentation_id': segmentation_id})
             try:
-                switch.delete_port(port_id, segmentation_id)
+                if is_802_3ad and hasattr(switch, 'unplug_bond_from_network'):
+                    switch.unplug_bond_from_network(port_id, segmentation_id)
+                else:
+                    switch.delete_port(port_id, segmentation_id)
             except Exception as e:
                 LOG.error("Failed to unplug port %(port_id)s "
                           "on device: %(switch)s from network %(net_id)s "

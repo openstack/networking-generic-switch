@@ -51,12 +51,28 @@ class Cumulus(netmiko_devices.NetmikoSwitch):
         'net del interface {port} bridge access {segmentation_id}',
     ]
 
+    PLUG_BOND_TO_NETWORK = [
+        'net add bond {bond} bridge access {segmentation_id}',
+    ]
+
+    UNPLUG_BOND_FROM_NETWORK = [
+        'net del bond {bond} bridge access {segmentation_id}',
+    ]
+
     ENABLE_PORT = [
         'net del interface {port} link down',
     ]
 
     DISABLE_PORT = [
         'net add interface {port} link down',
+    ]
+
+    ENABLE_BOND = [
+        'net del bond {bond} link down',
+    ]
+
+    DISABLE_BOND = [
+        'net add bond {bond} link down',
     ]
 
     SAVE_CONFIGURATION = [

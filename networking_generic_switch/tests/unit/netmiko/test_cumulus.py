@@ -110,6 +110,51 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             ['net del interface 3333 bridge access 33'])
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="")
+    def test_plug_bond_to_network(self, mock_exec):
+        self.switch.plug_bond_to_network(3333, 33)
+        mock_exec.assert_called_with(
+            ['net del bond 3333 link down',
+             'net del bond 3333 bridge access 123',
+             'net add bond 3333 bridge access 33'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="")
+    def test_plug_bond_simple(self, mock_exec):
+        switch = self._make_switch_device({
+            'ngs_disable_inactive_ports': 'false',
+            'ngs_port_default_vlan': '',
+        })
+        switch.plug_bond_to_network(3333, 33)
+        mock_exec.assert_called_with(
+            ['net add bond 3333 bridge access 33'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="")
+    def test_unplug_bond_from_network(self, mock_exec):
+        self.switch.unplug_bond_from_network(3333, 33)
+        mock_exec.assert_called_with(
+            ['net del bond 3333 bridge access 33',
+             'net add vlan 123',
+             'net add bond 3333 bridge access 123',
+             'net add bond 3333 link down'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="")
+    def test_unplug_bond_from_network_simple(self, mock_exec):
+        switch = self._make_switch_device({
+            'ngs_disable_inactive_ports': 'false',
+            'ngs_port_default_vlan': '',
+        })
+        switch.unplug_bond_from_network(3333, 33)
+        mock_exec.assert_called_with(
+            ['net del bond 3333 bridge access 33'])
+
     def test_save(self):
         mock_connect = mock.MagicMock()
         mock_connect.save_config.side_effect = NotImplementedError
