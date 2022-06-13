@@ -19,11 +19,14 @@ from networking_generic_switch import exceptions as exc
 
 
 class DellNos(netmiko_devices.NetmikoSwitch):
-    """Netmiko device driver for Dell Force10 switches."""
+    """Netmiko device driver for Dell Force10 (OS9) switches."""
 
     ADD_NETWORK = (
         'interface vlan {segmentation_id}',
-        'name {network_name}',
+        # It's not possible to set the name on OS9: the field takes 32
+        # chars max, and cannot begin with a number. Let's set the
+        # description and leave the name empty.
+        'description {network_name}',
         'exit',
     )
 

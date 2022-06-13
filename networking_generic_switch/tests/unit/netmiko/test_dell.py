@@ -34,7 +34,8 @@ class TestNetmikoDellNos(test_netmiko_base.NetmikoSwitchTestBase):
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
-            ['interface vlan 33', 'name 0ae071f55be943e480eae41fefe85b21',
+            ['interface vlan 33',
+             'description 0ae071f55be943e480eae41fefe85b21',
              'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -43,7 +44,8 @@ class TestNetmikoDellNos(test_netmiko_base.NetmikoSwitchTestBase):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
         switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
-            ['interface vlan 33', 'name 0ae071f55be943e480eae41fefe85b21',
+            ['interface vlan 33',
+             'description 0ae071f55be943e480eae41fefe85b21',
              'exit',
              'interface vlan 33', 'tagged port1', 'exit',
              'interface vlan 33', 'tagged port2', 'exit'])
@@ -85,7 +87,7 @@ class TestNetmikoDellNos(test_netmiko_base.NetmikoSwitchTestBase):
             network_id=22,
             network_name='vlan-22')
         self.assertEqual(cmd_set,
-                         ['interface vlan 22', 'name vlan-22', 'exit'])
+                         ['interface vlan 22', 'description vlan-22', 'exit'])
 
         cmd_set = self.switch._format_commands(
             dell.DellNos.DELETE_NETWORK,
