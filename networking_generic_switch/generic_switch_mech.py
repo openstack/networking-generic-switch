@@ -39,6 +39,9 @@ class GenericSwitchDriver(api.MechanismDriver):
         called prior to this method being called.
         """
 
+        self.vif_details = {portbindings.VIF_DETAILS_CONNECTIVITY:
+                            portbindings.CONNECTIVITY_L2}
+
         gsw_devices = gsw_conf.get_devices()
         self.switches = {}
         for switch_info, device_cfg in gsw_devices.items():
