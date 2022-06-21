@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add new device setting ``ngs_ssh_disabled_algorithms``.  This allows to
+    selectively disable SSH algorithms of various types, which may help to
+    speed up SSH connection (faster key exchange algorithm) or to workaround
+    buggy SSH implementations found on some devices.

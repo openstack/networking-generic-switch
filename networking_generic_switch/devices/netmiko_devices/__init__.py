@@ -108,6 +108,11 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             raise exc.GenericSwitchNetmikoNotSupported(
                 device_type=device_type)
         self.config['device_type'] = device_type
+        # Don't pass disabled_algorithms by default to keep compatibility
+        # with older versions of Netmiko.
+        disabled_algorithms = self._get_ssh_disabled_algorithms()
+        if disabled_algorithms:
+            self.config['disabled_algorithms'] = disabled_algorithms
         if CONF.ngs.session_log_file:
             self.config['session_log'] = CONF.ngs.session_log_file
             self.config['session_log_record_writes'] = True

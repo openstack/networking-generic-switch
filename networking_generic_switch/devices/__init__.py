@@ -14,6 +14,7 @@
 
 import abc
 
+from neutron_lib.utils.helpers import parse_mappings
 from oslo_log import log as logging
 from oslo_utils import strutils
 import stevedore
@@ -31,6 +32,9 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_port_default_vlan'},
     # Comma-separated list of physical networks to which this switch is mapped.
     {'name': 'ngs_physical_networks'},
+    # Comma-separated list of entries formatted as "<type>:<algorithm>",
+    # specifying SSH algorithms to disable.
+    {'name': 'ngs_ssh_disabled_algorithms'},
     {'name': 'ngs_ssh_connect_timeout', 'default': 60},
     {'name': 'ngs_ssh_connect_interval', 'default': 10},
     {'name': 'ngs_max_connections', 'default': 1},
@@ -138,6 +142,18 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         network_name_format = self.ngs_config['ngs_network_name_format']
         return network_name_format.format(network_id=network_id,
                                           segmentation_id=segmentation_id)
+
+    def _get_ssh_disabled_algorithms(self):
+        """Return a dict of SSH algorithms to disable.
+
+        The dict is in a suitable format for feeding to Netmiko/Paramiko.
+        """
+        algorithms = self.ngs_config.get('ngs_ssh_disabled_algorithms')
+        if not algorithms:
+            return {}
+        # Builds a dict: keys are types, values are list of algorithms
+        return parse_mappings(algorithms.split(','), unique_keys=False,
+                              unique_values=False)
 
     def _do_vlan_management(self):
         """Check if drivers should add and remove VLANs from switches."""

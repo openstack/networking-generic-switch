@@ -202,3 +202,19 @@ class TestDeviceManager(unittest.TestCase):
         device = FakeDevice(device_cfg)
         name = device._get_network_name('fake-id', 22)
         self.assertEqual('fake-id_net_22', name)
+
+    def test__get_ssh_disabled_algorithms(self):
+        algos = (
+            "kex:diffie-hellman-group-exchange-sha1, "
+            "ciphers:blowfish-cbc, ciphers:3des-cbc"
+        )
+        device_cfg = {
+            "ngs_ssh_disabled_algorithms": algos
+        }
+        device = FakeDevice(device_cfg)
+        algos = device._get_ssh_disabled_algorithms()
+        expected = {
+            "kex": ["diffie-hellman-group-exchange-sha1"],
+            "ciphers": ["blowfish-cbc", "3des-cbc"],
+        }
+        self.assertEqual(expected, algos)

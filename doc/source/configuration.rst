@@ -386,3 +386,26 @@ If no physical network is declared in a switch configuration, then VLANs for
 all physical networks will be created on this switch.
 
 Note that this option is only used if ``ngs_manage_vlans = True``.
+
+SSH algorithm configuration
+===========================
+
+You may need to tune the SSH negotiation process for some devices.  Reasons
+include using a faster key exchange algorithm, disabling an algorithm that
+has a buggy implementation on the target device, or working around limitations
+related to FIPS requirements.
+
+The ``ngs_ssh_disabled_algorithms`` configuration parameter allows to selectively
+disable algorithms of a given type (key exchange, cipher, MAC, etc). It is based
+on `Paramiko's disabled_algorithms setting
+<https://docs.paramiko.org/en/stable/api/transport.html#paramiko.transport.Transport.__init__>`__.
+
+The format is a list of ``<type>:<algorithm>`` entries to disable. The same type
+can be repeated several times with different algorithms. Here is an example configuration::
+
+    [genericswitch:device-hostname]
+    ngs_ssh_disabled_algorithms = kex:diffie-hellman-group-exchange-sha1, ciphers:blowfish-cbc, ciphers:3des-cbc
+
+As of Paramiko 2.9.1, the valid types are ``ciphers``, ``macs``, ``keys``, ``pubkeys``,
+``kex``, ``gsskex``.  However, this might change depending on the version of Paramiko.
+Check Paramiko source code or documentation to determine the accepted algorithm types.
