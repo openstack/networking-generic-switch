@@ -17,6 +17,7 @@ import sys
 from neutron.db import provisioning_blocks
 from neutron_lib.api.definitions import portbindings
 from neutron_lib.callbacks import resources
+from neutron_lib import constants as const
 from neutron_lib.plugins.ml2 import api
 from oslo_log import log as logging
 
@@ -340,20 +341,50 @@ class GenericSwitchDriver(api.MechanismDriver):
         state changes that it does not know or care about.
         """
         port = context.current
+        network = context.network.current
         if self._is_port_bound(port):
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(
                 'local_link_information')
             if not local_link_information:
                 return
+            # Necessary because the "provisioning_complete" event triggers
+            # an additional call to update_port_postcommit().  We don't
+            # want to configure the port a second time.
+            if port['status'] == const.PORT_STATUS_ACTIVE:
+                LOG.debug("Port %(port_id)s is already active, "
+                          "not doing anything",
+                          {'port_id': port['id']})
+                return
+            # If binding has already succeeded, we should have valid links
+            # at this point, but check just in case.
+            if not self._is_link_valid(port, network):
+                return
+            is_802_3ad = self._is_802_3ad(port)
             for link in local_link_information:
+                port_id = link.get('port_id')
                 switch_info = link.get('switch_info')
                 switch_id = link.get('switch_id')
                 switch = device_utils.get_switch_device(
                     self.switches, switch_info=switch_info,
                     ngs_mac_address=switch_id)
-                if not switch:
-                    return
+
+                # If segmentation ID is None, set vlan 1
+                segmentation_id = network.get('provider:segmentation_id') or 1
+                LOG.debug("Putting switch port %(switch_port)s on "
+                          "%(switch_info)s in vlan %(segmentation_id)s",
+                          {'switch_port': port_id, 'switch_info': switch_info,
+                           'segmentation_id': segmentation_id})
+                # Move port to network
+                if is_802_3ad and hasattr(switch, 'plug_bond_to_network'):
+                    switch.plug_bond_to_network(port_id, segmentation_id)
+                else:
+                    switch.plug_port_to_network(port_id, segmentation_id)
+                LOG.info("Successfully plugged port %(port_id)s in segment "
+                         "%(segment_id)s on device %(device)s",
+                         {'port_id': port['id'], 'device': switch_info,
+                          'segment_id': segmentation_id})
+
             provisioning_blocks.provisioning_complete(
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
@@ -446,32 +477,7 @@ class GenericSwitchDriver(api.MechanismDriver):
             if not self._is_link_valid(port, network):
                 return
 
-            is_802_3ad = self._is_802_3ad(port)
-            for link in local_link_information:
-                port_id = link.get('port_id')
-                switch_info = link.get('switch_info')
-                switch_id = link.get('switch_id')
-                switch = device_utils.get_switch_device(
-                    self.switches, switch_info=switch_info,
-                    ngs_mac_address=switch_id)
-
-                segments = context.segments_to_bind
-                # If segmentation ID is None, set vlan 1
-                segmentation_id = segments[0].get('segmentation_id') or 1
-                LOG.debug("Putting port %(port_id)s on %(switch_info)s "
-                          "to vlan: %(segmentation_id)s",
-                          {'port_id': port_id, 'switch_info': switch_info,
-                           'segmentation_id': segmentation_id})
-                # Move port to network
-                if is_802_3ad and hasattr(switch, 'plug_bond_to_network'):
-                    switch.plug_bond_to_network(port_id, segmentation_id)
-                else:
-                    switch.plug_port_to_network(port_id, segmentation_id)
-                LOG.info("Successfully bound port %(port_id)s in segment "
-                         "%(segment_id)s on device %(device)s",
-                         {'port_id': port['id'], 'device': switch_info,
-                          'segment_id': segmentation_id})
-
+            segments = context.segments_to_bind
             context.set_binding(segments[0][api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
             provisioning_blocks.add_provisioning_component(
