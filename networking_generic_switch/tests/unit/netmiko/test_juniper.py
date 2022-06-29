@@ -249,7 +249,7 @@ error: configuration database locked by:
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
                        return_value=tenacity.wait_fixed(0.01))
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
+                       return_value=tenacity.stop_after_delay(0.5))
     def test_save_configuration_warn_does_not_exist_timeout(
             self, m_stop, m_wait):
         mock_connection = mock.Mock()
