@@ -71,6 +71,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     DELETE_PORT = None
 
+    PLUG_BOND_TO_NETWORK = None
+
+    UNPLUG_BOND_FROM_NETWORK = None
+
     ADD_NETWORK_TO_TRUNK = None
 
     REMOVE_NETWORK_FROM_TRUNK = None
@@ -78,6 +82,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
     ENABLE_PORT = None
 
     DISABLE_PORT = None
+
+    ENABLE_BOND = None
+
+    DISABLE_BOND = None
 
     SAVE_CONFIGURATION = None
 
@@ -282,6 +290,47 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 segmentation_id=ngs_port_default_vlan)
         if self._disable_inactive_ports() and self.DISABLE_PORT:
             cmds += self._format_commands(self.DISABLE_PORT, port=port)
+        return self.send_commands_to_device(cmds)
+
+    @check_output('plug bond')
+    def plug_bond_to_network(self, bond, segmentation_id):
+        cmds = []
+        if self._disable_inactive_ports() and self.ENABLE_BOND:
+            cmds += self._format_commands(self.ENABLE_BOND, bond=bond)
+        ngs_port_default_vlan = self._get_port_default_vlan()
+        if ngs_port_default_vlan:
+            cmds += self._format_commands(
+                self.UNPLUG_BOND_FROM_NETWORK,
+                bond=bond,
+                segmentation_id=ngs_port_default_vlan)
+        cmds += self._format_commands(
+            self.PLUG_BOND_TO_NETWORK,
+            bond=bond,
+            segmentation_id=segmentation_id)
+        return self.send_commands_to_device(cmds)
+
+    @check_output('unplug bond')
+    def unplug_bond_from_network(self, bond, segmentation_id):
+        cmds = self._format_commands(self.UNPLUG_BOND_FROM_NETWORK,
+                                     bond=bond,
+                                     segmentation_id=segmentation_id)
+        ngs_port_default_vlan = self._get_port_default_vlan()
+        if ngs_port_default_vlan:
+            # NOTE(mgoddard): Pass network_id and segmentation_id for drivers
+            # not yet using network_name.
+            network_name = self._get_network_name(ngs_port_default_vlan,
+                                                  ngs_port_default_vlan)
+            cmds += self._format_commands(
+                self.ADD_NETWORK,
+                segmentation_id=ngs_port_default_vlan,
+                network_id=ngs_port_default_vlan,
+                network_name=network_name)
+            cmds += self._format_commands(
+                self.PLUG_BOND_TO_NETWORK,
+                bond=bond,
+                segmentation_id=ngs_port_default_vlan)
+        if self._disable_inactive_ports() and self.DISABLE_BOND:
+            cmds += self._format_commands(self.DISABLE_BOND, bond=bond)
         return self.send_commands_to_device(cmds)
 
     def send_config_set(self, net_connect, cmd_set):

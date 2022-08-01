@@ -57,6 +57,18 @@ class TestGenericSwitchDevice(unittest.TestCase):
             self.assertIn(m, ex.exception.args[0])
         self.assertIsNone(device)
 
+    @mock.patch.object(FakeDevice, 'plug_port_to_network')
+    def test_plug_bond_to_network_fallback(self, mock_plug):
+        device = FakeDevice({'spam': 'ham'})
+        device.plug_bond_to_network(22, 33)
+        mock_plug.assert_called_once_with(22, 33)
+
+    @mock.patch.object(FakeDevice, 'delete_port')
+    def test_unplug_bond_from_network_fallback(self, mock_delete):
+        device = FakeDevice({'spam': 'ham'})
+        device.unplug_bond_from_network(22, 33)
+        mock_delete.assert_called_once_with(22, 33)
+
 
 class TestDeviceManager(unittest.TestCase):
 
