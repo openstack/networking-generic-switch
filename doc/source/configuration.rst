@@ -166,6 +166,14 @@ for the Nokia SRL series device::
     password = password
     ip = <switch mgmt ip address>
 
+for a Pluribus switch::
+
+    [genericswitch:sw-hostname]
+    device_type = netmiko_pluribus
+    username = admin
+    password = password
+    ip = <switch mgmt ip address>
+
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
