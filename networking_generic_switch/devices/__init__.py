@@ -103,7 +103,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         trunk_ports = self.ngs_config.get('ngs_trunk_ports')
         if not trunk_ports:
             return []
-        return trunk_ports.split(',')
+        return [port.strip() for port in trunk_ports.split(',')]
 
     def _get_port_default_vlan(self):
         """Return a default vlan of switch's interface if you specify."""
@@ -114,7 +114,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         physnets = self.ngs_config.get('ngs_physical_networks')
         if not physnets:
             return []
-        return physnets.split(',')
+        return [net.strip() for net in physnets.split(',')]
 
     def _disable_inactive_ports(self):
         """Return whether inactive ports should be disabled."""

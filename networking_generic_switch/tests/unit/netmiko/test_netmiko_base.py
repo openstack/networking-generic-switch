@@ -63,7 +63,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.check_output')
     def test_add_network_with_trunk_ports(self, m_check, m_sctd):
-        switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
+        switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
         m_check.assert_called_once_with('fake output', 'add network')
@@ -95,7 +95,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.check_output')
     def test_del_network_with_trunk_ports(self, m_check, m_sctd):
-        switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
+        switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_sctd.assert_called_with([])
         m_check.assert_called_once_with('fake output', 'delete network')
