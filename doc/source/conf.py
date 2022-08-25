@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-copyright = u'2017, Openstack Foundation'
+copyright = '2017, Openstack Foundation'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -72,8 +72,8 @@ latex_use_xindy = False
 latex_documents = [
     ('index',
      'doc-networking-generic-switch.tex',
-     u'Networking Generic Switch Documentation',
-     u'OpenStack Foundation', 'manual'),
+     'Networking Generic Switch Documentation',
+     'OpenStack Foundation', 'manual'),
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.

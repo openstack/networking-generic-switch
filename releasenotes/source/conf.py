@@ -55,8 +55,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Networking Generic Switch Release Notes'
-copyright = u'2018, The Networkig Generic Switch team'
+project = 'Networking Generic Switch Release Notes'
+copyright = '2018, The Networkig Generic Switch team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -216,8 +216,8 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     ('index', 'NetworkingGenericSwitchReleaseNotes.tex',
-     u'Networking Generic Switch Release Notes Documentation',
-     u'Networking Generic Switch Developers', 'manual'),
+     'Networking Generic Switch Release Notes Documentation',
+     'Networking Generic Switch Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -247,8 +247,8 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'networkinggenericswitchreleasenotes',
-     u'Networking Generic Switch Release Notes Documentation',
-     [u'Networking Generic Switch Developers'], 1)
+     'Networking Generic Switch Release Notes Documentation',
+     ['Networking Generic Switch Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -262,8 +262,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'NetworkingGenericSwitchReleaseNotes',
-     u'Networking Generic Switch Release Notes Documentation',
-     u'networking Generic Switch Developers',
+     'Networking Generic Switch Release Notes Documentation',
+     'networking Generic Switch Developers',
      'networkinggenericswitchreleasenotes',
      'Neutron plugin that provides deep Ironic/Neutron integration.',
      'Miscellaneous'),
