@@ -23,7 +23,6 @@
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
     gate:
-      queue: networking-generic-switch
       jobs:
         - networking-generic-switch-tempest-dlm
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
