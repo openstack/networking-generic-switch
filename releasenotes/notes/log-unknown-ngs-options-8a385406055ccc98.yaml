@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    To improve logging, the device name is now passed to the device driver
+    class.  If you implemented an out-of-tree device driver inheriting from
+    ``GenericSwitchDevice`` or ``NetmikoSwitch``, your code needs to be adapted
+    to accept this new argument to the ``__init__`` method.  It is recommended
+    to use the ``*args, **kwargs`` pattern to accept and pass all unhandled
+    arguments to the base class.
+fixes:
+  - |
+    Ignore unknown options starting with ``ngs_`` instead of crashing.

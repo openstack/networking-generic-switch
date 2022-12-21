@@ -72,16 +72,17 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         'vlan members {segmentation_id}',
     )
 
-    def __init__(self, device_cfg):
-        super(Juniper, self).__init__(device_cfg)
-
+    def __init__(self, device_cfg, *args, **kwargs):
         # Do not expose Juniper internal options to device config.
+        juniper_cfg = {}
         for opt in JUNIPER_INTERNAL_OPTS:
             opt_name = opt['name']
-            if opt_name in self.config:
-                self.ngs_config[opt_name] = self.config.pop(opt_name)
+            if opt_name in device_cfg:
+                juniper_cfg[opt_name] = device_cfg.pop(opt_name)
             elif 'default' in opt:
-                self.ngs_config[opt_name] = opt['default']
+                juniper_cfg[opt_name] = opt['default']
+        super(Juniper, self).__init__(device_cfg, *args, **kwargs)
+        self.ngs_config.update(juniper_cfg)
 
     def send_config_set(self, net_connect, cmd_set):
         """Send a set of configuration lines to the device.

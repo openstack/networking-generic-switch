@@ -96,8 +96,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
     device output that indicate a failure to apply configuration.
     """
 
-    def __init__(self, device_cfg):
-        super(NetmikoSwitch, self).__init__(device_cfg)
+    def __init__(self, device_cfg, *args, **kwargs):
+        super(NetmikoSwitch, self).__init__(device_cfg, *args, **kwargs)
         if self.NETMIKO_DEVICE_TYPE:
             device_type = self.NETMIKO_DEVICE_TYPE
         else:

@@ -127,8 +127,8 @@ class DellPowerConnect(netmiko_devices.NetmikoSwitch):
         self.PLUG_PORT_TO_NETWORK = self.PLUG_PORT_TO_NETWORK_GENERAL
         self.DELETE_PORT = self.DELETE_PORT_GENERAL
 
-    def __init__(self, device_cfg):
-        super(DellPowerConnect, self).__init__(device_cfg)
+    def __init__(self, device_cfg, *args, **kwargs):
+        super(DellPowerConnect, self).__init__(device_cfg, *args, **kwargs)
         port_mode = self.ngs_config['ngs_switchport_mode']
         switchport_mode = {
             'general': self._switch_to_general_mode,

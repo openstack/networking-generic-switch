@@ -45,7 +45,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         gsw_devices = gsw_conf.get_devices()
         self.switches = {}
         for switch_info, device_cfg in gsw_devices.items():
-            switch = devices.device_manager(device_cfg)
+            switch = devices.device_manager(device_cfg, switch_info)
             self.switches[switch_info] = switch
 
         LOG.info('Devices %s have been loaded', self.switches.keys())
