@@ -21,6 +21,9 @@ Switch configuration format::
     # interface will restore the default_vlan.
     ngs_port_default_vlan = <port default vlan>
 
+The ``device_type`` entry is mandatory.  Most other configuration entries
+are optional, see below.
+
 .. note::
 
     Switch will be selected by local_link_connection/switch_info
@@ -28,11 +31,13 @@ Switch configuration format::
     switches if local_link_connection/switch_info is not set.
 
 Examples
---------
+========
 
-Here is an example of
-``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``
-for the Cisco 300 series device::
+These example device configuration snippets are assumed to be part to a
+specific file ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``, but
+they could also be added directly to ``/etc/neutron/plugins/ml2/ml2_conf.ini``.
+
+Here is an example for the Cisco 300 series device::
 
     [genericswitch:sw-hostname]
     device_type = netmiko_cisco_s300
@@ -192,6 +197,9 @@ for an ArubaOS-CX switch::
     password = password
     ip = <switch mgmt ip address>
 
+General configuration
+=====================
+
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
@@ -200,9 +208,24 @@ the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
    type_drivers = local,flat,vlan,gre,vxlan
    mechanism_drivers = openvswitch,genericswitch
    ...
-   ...
 
-(Re)start ``neutron-server`` specifying this additional configuration file::
+Physical networks need to be declared in the ML2 config as well, with a range
+of VLANs that can be allocated to tenant networks.  Several physical networks
+can coexist, possibly with overlapping VLAN ranges: in that case, each switch
+configuration needs to include its physical network, see :ref:`physicalnetworks`.
+Example of ``/etc/neutron/plugins/ml2/ml2_conf.ini`` with two physical networks::
+
+   [ml2_type_vlan]
+   network_vlan_ranges = physnet1:700:799,physnet2:600:850
+
+For a given physical network, it is possible to specify several disjoint
+ranges of VLANs by simply repeating the physical network name multiple times::
+
+   [ml2_type_vlan]
+   network_vlan_ranges = physnet1:700:720,physnet1:750:760
+
+(Re)start ``neutron-server`` specifying the additional configuration file
+containing switch configuration::
 
     neutron-server \
         --config-file /etc/neutron/neutron.conf \
@@ -294,10 +317,12 @@ A particular case where this can cause problems is when a VLAN used for
 the switch management interface, or any other port not managed by Neutron,
 is removed by this Neutron driver.
 
-To stop networking generic switch trying to add or remove VLANs on the switch
-administrator are expected to pre-add all enabled VLANs. Once those VLANs are
-preconfigured on the switch, you can use the following configuration to stop
-networking generic switch adding or removing any VLANs::
+To stop networking generic switch trying to add or remove VLANs on the switch,
+administrator are expected to pre-add all enabled VLANs as well as tagging
+these VLANs on trunk ports.
+Once those VLANs and trunk ports are preconfigured on the switch, you can
+use the following configuration to stop networking generic switch adding or
+removing any VLANs::
 
     [genericswitch:device-hostname]
     ngs_manage_vlans = False
@@ -314,3 +339,50 @@ can be disabled::
 
     [genericswitch:device-hostname]
     ngs_save_configuration = False
+
+Trunk ports
+===========
+
+When VLANs are created on the switches, it is common to want to tag these
+VLANS on one or more trunk ports.  To do this, you need to declare a
+comma-separated list of trunk ports that can be managed by Networking Generic
+Switch.  It will then dynamically tag and untag VLANs on these ports whenever
+it creates and deletes VLANs.  For example::
+
+    [genericswitch:device-hostname]
+    ngs_trunk_ports = Ethernet1/48, Port-channel1
+
+This is useful when managing several switches in the same physical network,
+because they are likely to be interconnected with trunk links.
+Another important use-case is to connect the DHCP agent with a trunk port,
+because the agent needs access to all active VLANs.
+
+Note that this option is only used if ``ngs_manage_vlans = True``.
+
+.. _physicalnetworks:
+
+Multiple physical networks
+==========================
+
+It is possible to use Networking Generic Switch to manage several physical
+networks.  The desired physical network is selected by the Neutron API client
+when it creates the network object.
+
+In this case, you may want to only create VLANs on switches that belong to the
+requested physical network, especially because VLAN ranges from separate
+physical networks may overlap.  This also improves reconfiguration performance
+because fewer switches will need to be configured whenever a network is
+created/deleted.
+
+To this end, each switch can be configured with a list of physical networks
+it belongs to::
+
+    [genericswitch:device-hostname]
+    ngs_physical_networks = physnet1, physnet2
+
+Physical network names should match the names defined in the ML2 configuration.
+
+If no physical network is declared in a switch configuration, then VLANs for
+all physical networks will be created on this switch.
+
+Note that this option is only used if ``ngs_manage_vlans = True``.
