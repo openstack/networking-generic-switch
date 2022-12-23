@@ -1,4 +1,5 @@
 # Copyright 2016 Mirantis, Inc.
+# Copyright 2022 Baptiste Jonglez, Inria
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -36,4 +37,56 @@ class CiscoIos(netmiko_devices.NetmikoSwitch):
         'no switchport access vlan {segmentation_id}',
         'no switchport mode trunk',
         'switchport trunk allowed vlan none'
+    )
+
+
+class CiscoNxOS(netmiko_devices.NetmikoSwitch):
+    """Netmiko device driver for Cisco Nexus switches running NX-OS."""
+
+    ADD_NETWORK = (
+        'vlan {segmentation_id}',
+        'name {network_name}',
+        'exit',
+    )
+
+    DELETE_NETWORK = (
+        'no vlan {segmentation_id}',
+    )
+
+    PLUG_PORT_TO_NETWORK = (
+        'interface {port}',
+        'switchport mode access',
+        'switchport access vlan {segmentation_id}',
+        'exit',
+    )
+
+    DELETE_PORT = (
+        'interface {port}',
+        'no switchport access vlan',
+        'exit',
+    )
+
+    ADD_NETWORK_TO_TRUNK = (
+        'interface {port}',
+        'switchport mode trunk',
+        'switchport trunk allowed vlan add {segmentation_id}',
+        'exit',
+    )
+
+    REMOVE_NETWORK_FROM_TRUNK = (
+        'interface {port}',
+        'switchport trunk allowed vlan remove {segmentation_id}',
+        'exit',
+    )
+
+    ENABLE_PORT = (
+        'interface {port}',
+        'no shutdown',
+        'exit',
+    )
+
+    DISABLE_PORT = (
+        'interface {port}',
+        'shutdown',
+        'exit',
     )

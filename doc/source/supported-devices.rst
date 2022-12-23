@@ -9,6 +9,7 @@ The following devices are supported by this plugin:
 * Brocade ICX (FastIron)
 * Cisco 300-series switches
 * Cisco IOS switches
+* Cisco NX-OS switches (Nexus)
 * Cumulus Linux (via NCLU)
 * Dell Force10
 * Dell OS10
