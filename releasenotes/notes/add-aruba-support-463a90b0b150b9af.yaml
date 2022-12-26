@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_aruba_os``, for managing ArubaOS-CX
+    switch devices.
