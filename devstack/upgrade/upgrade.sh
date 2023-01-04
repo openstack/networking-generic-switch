@@ -43,7 +43,6 @@ source $TARGET_DEVSTACK_DIR/lib/nova
 source $TARGET_DEVSTACK_DIR/lib/apache
 source $TARGET_DEVSTACK_DIR/lib/keystone
 source $TARGET_DEVSTACK_DIR/lib/neutron
-source $TARGET_DEVSTACK_DIR/lib/neutron-legacy
 
 
 GENERIC_SWITCH_DEVSTACK_DIR=$(dirname "$0")/..
