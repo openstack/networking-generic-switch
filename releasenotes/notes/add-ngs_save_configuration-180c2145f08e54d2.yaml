@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add new device setting ``ngs_save_configuration``, allowing to disable
+    saving configuration on the device after each change.  This can speed up
+    the overall process significantly, but changes will be lost if the device
+    reboots.

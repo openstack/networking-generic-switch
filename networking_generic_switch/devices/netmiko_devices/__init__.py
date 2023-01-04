@@ -192,9 +192,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             with ngs_lock.PoolLock(self.locker, **self.lock_kwargs):
                 with self._get_connection() as net_connect:
                     output = self.send_config_set(net_connect, cmd_set)
-                    # NOTE (vsaienko) always save configuration
-                    # when configuration is applied successfully.
-                    self.save_configuration(net_connect)
+                    if self._get_save_configuration():
+                        # Save configuration only if enabled in settings
+                        # and when configuration is applied successfully.
+                        self.save_configuration(net_connect)
         except exc.GenericSwitchException:
             # Reraise without modification exceptions originating from this
             # module.

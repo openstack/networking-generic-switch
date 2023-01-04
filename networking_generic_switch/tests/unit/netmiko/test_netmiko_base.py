@@ -256,6 +256,21 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertEqual('fake output', result)
         save_mock.assert_called_once_with(connect_mock)
 
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'send_config_set')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
+    def test_send_commands_to_device_without_save_config(self, save_mock,
+                                                         send_mock, gc_mock):
+        switch = self._make_switch_device(
+            extra_cfg={'ngs_save_configuration': False})
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
+        gc_mock.return_value.__enter__.return_value = connect_mock
+        send_mock.return_value = 'fake output'
+        result = switch.send_commands_to_device(['spam ham aaaa'])
+        send_mock.assert_called_once_with(connect_mock, ['spam ham aaaa'])
+        self.assertEqual('fake output', result)
+        save_mock.assert_not_called()
+
     def test_send_config_set(self):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
         connect_mock.send_config_set.return_value = 'fake output'

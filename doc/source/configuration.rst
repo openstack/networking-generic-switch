@@ -292,3 +292,16 @@ networking generic switch adding or removing any VLANs::
 
     [genericswitch:device-hostname]
     ngs_manage_vlans = False
+
+Saving configuration on devices
+===============================
+
+By default, all configuration changes are saved on persistent storage of the
+devices, using model-specific commands.  This occurs after each change.
+
+This may be undesirable for performance reasons, or if you have external means
+of saving configuration on a regular basis.  In this case, configuration saving
+can be disabled::
+
+    [genericswitch:device-hostname]
+    ngs_save_configuration = False
