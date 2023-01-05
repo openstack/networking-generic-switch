@@ -184,6 +184,14 @@ for a Pluribus switch::
     password = password
     ip = <switch mgmt ip address>
 
+for an ArubaOS-CX switch::
+
+    [genericswitch:aruba-hostname]
+    device_type = netmiko_aruba_os
+    username = admin
+    password = password
+    ip = <switch mgmt ip address>
+
 Additionally the ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
@@ -250,6 +258,7 @@ using the ``ngs_disable_inactive_ports`` flag::
 This is currently supported by the following devices:
 
 * Juniper Junos OS
+* ArubaOS-CX
 
 Network Name Format
 ===================

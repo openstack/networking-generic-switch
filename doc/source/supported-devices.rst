@@ -5,6 +5,7 @@ Supported Devices
 The following devices are supported by this plugin:
 
 * Arista EOS
+* ArubaOS-CX switches
 * Brocade ICX (FastIron)
 * Cisco 300-series switches
 * Cisco IOS switches
