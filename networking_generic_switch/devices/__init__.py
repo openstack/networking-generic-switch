@@ -50,6 +50,10 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_save_configuration', 'default': True},
     # When true try to batch up in flight switch requests
     {'name': 'ngs_batch_requests', 'default': False},
+    # The following three are used in the Fake device driver.
+    {'name': 'ngs_fake_sleep_min_s'},
+    {'name': 'ngs_fake_sleep_max_s'},
+    {'name': 'ngs_fake_failure_prob'},
 ]
 
 

@@ -10,12 +10,52 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+import random
+import time
+
 from oslo_log import log as logging
 
 from networking_generic_switch.devices import netmiko_devices
 
 
 LOG = logging.getLogger(__name__)
+
+
+class FakeConnection(object):
+    """A Fake netmiko connection object."""
+
+    def __init__(self, device):
+        self.device = device
+
+    def enable(self):
+        pass
+
+    def send_config_set(self, config_commands, cmd_verify):
+        # Allow adding a random sleep to commands.
+        if self.device.ngs_config.get('ngs_fake_sleep_max_s'):
+            sleep_min_s = self.device.ngs_config.get('ngs_fake_sleep_min_s', 0)
+            sleep_max_s = self.device.ngs_config['ngs_fake_sleep_max_s']
+            sleep_duration = random.uniform(float(sleep_min_s),
+                                            float(sleep_max_s))
+            time.sleep(sleep_duration)
+
+        # Allow injecting random failures.
+        if self.device.ngs_config.get('ngs_fake_failure_prob'):
+            failure_prob = self.device.ngs_config['ngs_fake_failure_prob']
+            if random.random() < float(failure_prob):
+                raise Exception("Random failure!")
+
+        for cmd in config_commands:
+            LOG.info("%s", cmd)
+        return "Success!"
+
+    def save_config(self):
+        pass
+
+    def send_command(self, command):
+        LOG.info("%s", command)
+        return "Success!"
 
 
 class Fake(netmiko_devices.NetmikoSwitch):
@@ -62,11 +102,7 @@ class Fake(netmiko_devices.NetmikoSwitch):
     device output that indicate a failure to apply configuration.
     """
 
-    def send_commands_to_device(self, cmd_set):
-        if not cmd_set:
-            LOG.debug("Nothing to execute")
-            return
-
-        for cmd in cmd_set:
-            LOG.info("%s", cmd)
-        return "Success!"
+    @contextlib.contextmanager
+    def _get_connection(self):
+        """Context manager providing a netmiko SSH connection object."""
+        yield FakeConnection(self)
