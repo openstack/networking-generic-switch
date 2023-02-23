@@ -56,6 +56,16 @@ for the Cisco IOS device::
     secret = secret
     ip = <switch mgmt ip address>
 
+for the Cisco NX-OS device::
+
+    [genericswitch:sw-hostname]
+    device_type = netmiko_cisco_nxos
+    ngs_mac_address = <switch mac address>
+    ip = <switch mgmt ip address>
+    username = admin
+    password = password
+    secret = secret
+
 for the Huawei VRPV3 or VRPV5 device::
 
     [genericswitch:sw-hostname]
@@ -282,6 +292,7 @@ This is currently supported by the following devices:
 
 * Juniper Junos OS
 * ArubaOS-CX
+* Cisco NX-OS
 
 Network Name Format
 ===================
