@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    Adds a stress testing script, ``ngs-stress.py``, in the
+    ``tools/ngs-stress`` directory of the source code repository.
