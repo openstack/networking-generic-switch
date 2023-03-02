@@ -49,3 +49,7 @@ class GenericSwitchNetmikoConnectError(GenericSwitchException):
 
 class GenericSwitchNetmikoConfigError(GenericSwitchException):
     message = _("Netmiko configuration error: %(config)s, error: %(error)s")
+
+
+class GenericSwitchBatchError(GenericSwitchException):
+    message = _("Batching error: %(device)s, error: %(error)s")

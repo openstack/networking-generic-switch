@@ -47,6 +47,15 @@ class NetmikoSwitchTestBase(fixtures.TestWithFixtures):
 
 class TestNetmikoSwitch(NetmikoSwitchTestBase):
 
+    def test_batch(self):
+        self.cfg.config(backend_url='url', group='ngs_coordination')
+        self._make_switch_device({'ngs_batch_requests': True})
+
+    def test_batch_missing_backend_url(self):
+        self.assertRaisesRegex(
+            Exception, "backend_url",
+            self._make_switch_device, {'ngs_batch_requests': True})
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
                 return_value='fake output')

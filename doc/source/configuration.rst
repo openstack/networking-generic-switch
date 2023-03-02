@@ -133,8 +133,9 @@ for the Dell PowerConnect device::
     ngs_switchport_mode = access
 
 Dell PowerConnect devices have been seen to have issues with multiple
-concurrent configuration sessions. See :ref:`synchronization` for details on
-how to limit the number of concurrent active connections to each device.
+concurrent configuration sessions. See :ref:`synchronization` and
+:ref:`batching` for details on how to limit the number of concurrent active
+connections to each device.
 
 for the Brocade FastIron (ICX) device::
 
@@ -258,8 +259,16 @@ connection URL for the backend should be configured as follows::
     [ngs_coordination]
     backend_url = <backend URL>
 
-The default is to limit the number of concurrent active connections to each
-device to one, but the number may be configured per-device as follows::
+The backend URL format includes the Tooz driver as the scheme, with driver
+options passed using query string parameters. For example, to use the
+``etcd3gw`` driver with an API version of ``v3`` and a path to a CA
+certificate::
+
+    [ngs_coordination]
+    backend_url = etcd3+https://etcd.example.com?api_version=v3,ca_cert=/path/to/ca/cert.crt
+
+The default behaviour is to limit the number of concurrent active connections
+to each device to one, but the number may be configured per-device as follows::
 
     [genericswitch:device-hostname]
     ngs_max_connections = <max connections>
@@ -272,6 +281,35 @@ timeout of 60 seconds before failing. This timeout can be configured as follows
     [ngs_coordination]
     ...
     acquire_timeout = <timeout in seconds>
+
+.. _batching:
+
+Batching
+========
+
+For many network devices there is a significant SSH connection overhead which
+is incurred for each network or port configuration change. In a large scale
+system with many concurrent changes, this overhead adds up quickly. Since the
+Antelope release, the Generic Switch driver includes support to batch up switch
+configuration changes and apply them together using a single SSH connection.
+
+This is implemented using etcd as a queueing system. Commands are added
+to an input key, then a worker thread processes the available commands
+for a particular switch device. We pull off the queue using the version
+at which the keys were added, giving a FIFO style queue. The result of
+each command set are added to an output key, which the original request
+thread is watching. Distributed locks are used to serialise the
+processing of commands for each switch device.
+
+The etcd endpoint is configured using the same ``[ngs_coordination]
+backend_url`` option used in :ref:`synchronization`, with the limitation that
+only ``etcd3gw`` is supported.
+
+Additionally, each device that will use batched configuration should include
+the following option::
+
+    [genericswitch:device-hostname]
+    ngs_batch_requests = True
 
 Disabling Inactive Ports
 ========================
