@@ -50,10 +50,13 @@ Creating new device plugins
    ``networking_generic_switch.devices.GenericSwitch``
    and implement all the abstract methods it defines.
 
-   * Your class must accept a single argument for instantiation -
-      a dictionary with all fields given in the device config section
-      of the ML2 plugin config.
-      This will be available as ``self.config`` in the instantiated object.
+   * Your class must accept as first argument a dictionary that contains
+     all fields given in the device config section of the ML2 plugin config.
+     This will be available as ``self.config`` in the instantiated object.
+     The second argument is the device name as specified in the configuration.
+     It is recommended to accept and pass ``*args`` and ``**kwargs`` to the
+     __init__ method of the parent class: this helps to stay compatible with
+     future changes of the base class.
 
 #. Register your class under ``generic_switch.devices`` entrypoint.
 #. Add your device config to the plugin configuration file

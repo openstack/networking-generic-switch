@@ -53,14 +53,14 @@ NGS_INTERNAL_OPTS = [
 ]
 
 
-def device_manager(device_cfg):
+def device_manager(device_cfg, device_name=""):
     device_type = device_cfg.get('device_type', '')
     try:
         mgr = stevedore.driver.DriverManager(
             namespace=GENERIC_SWITCH_NAMESPACE,
             name=device_type,
             invoke_on_load=True,
-            invoke_args=(device_cfg,),
+            invoke_args=(device_cfg, device_name),
             on_load_failure_callback=_load_failure_hook
         )
     except stevedore.exception.NoUniqueMatch as exc:
@@ -81,9 +81,10 @@ def _load_failure_hook(manager, entrypoint, exception):
 
 class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
 
-    def __init__(self, device_cfg):
+    def __init__(self, device_cfg, device_name=""):
         self.ngs_config = {}
         self.config = {}
+        self.device_name = device_name
         # Do not expose NGS internal options to device config.
         for opt in NGS_INTERNAL_OPTS:
             opt_name = opt['name']
@@ -91,6 +92,14 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
                 self.ngs_config[opt_name] = device_cfg.pop(opt_name)
             elif 'default' in opt:
                 self.ngs_config[opt_name] = opt['default']
+        # Ignore any other option starting with 'ngs_' (to avoid passing
+        # these options to Netmiko)
+        for opt_name in [o for o in device_cfg.keys() if o.startswith("ngs_")]:
+            LOG.warning("Ignoring unknown option '%(opt_name)s' for "
+                        "device %(device)s",
+                        {'opt_name': opt_name, 'device': self.device_name})
+            device_cfg.pop(opt_name)
+
         self.config = device_cfg
 
         self._validate_network_name_format()
