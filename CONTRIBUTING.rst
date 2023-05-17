@@ -34,7 +34,7 @@ Project Hosting Details
 =======================
 
 Bug tracker
-    https://storyboard.openstack.org/#!/project/956
+    https://bugs.launchpad.net/networking-generic-switch
 
 Code Hosting
     https://opendev.org/openstack/networking-generic-switch

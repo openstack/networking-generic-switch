@@ -22,12 +22,8 @@ Project resources
 
 * Documentation: https://docs.openstack.org/networking-generic-switch/latest/
 * Source: https://opendev.org/openstack/networking-generic-switch
-* Bugs: https://storyboard.openstack.org/#!/project/956
+* Bugs: https://bugs.launchpad.net/networking-generic-switch
 * Release notes: https://docs.openstack.org/releasenotes/networking-generic-switch/
-
-Project status, bugs, and requests for feature enhancements (RFEs) are tracked
-in StoryBoard:
-https://storyboard.openstack.org/#!/project/956
 
 For information on how to contribute to Networking-generic-switch, see
 https://docs.openstack.org/networking-generic-switch/latest/contributing.html.
