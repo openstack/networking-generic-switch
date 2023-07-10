@@ -16,6 +16,8 @@ Switch configuration format::
     password = <credential password>
     key_file = <ssh key file>
     secret = <enable secret>
+    ngs_allowed_vlans = <comma-separated list of allowed vlans for switch>
+    ngs_allowed_ports = <comma-separated list of allowed ports for switch>
 
     # If set ngs_port_default_vlan to default_vlan, switch's
     # interface will restore the default_vlan.
@@ -23,6 +25,10 @@ Switch configuration format::
 
 The ``device_type`` entry is mandatory.  Most other configuration entries
 are optional, see below.
+
+The two new optional configuration parameters ``ngs_allowed_vlans`` and
+``ngs_allowed_ports`` have been introduced to manage allowed VLANs and ports
+on switches. If not set, all ports or VLANS are allowed.
 
 .. note::
 

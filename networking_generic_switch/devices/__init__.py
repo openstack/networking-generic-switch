@@ -54,6 +54,10 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_fake_sleep_min_s'},
     {'name': 'ngs_fake_sleep_max_s'},
     {'name': 'ngs_fake_failure_prob'},
+    # Allow list for VLANs and ports for this switch
+    # default open, but setting empty string blocks all ports
+    {'name': 'ngs_allowed_vlans'},
+    {'name': 'ngs_allowed_ports'},
 ]
 
 
@@ -178,6 +182,37 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         """Return whether to batch up requests to the switch."""
         return strutils.bool_from_string(
             self.ngs_config['ngs_batch_requests'])
+
+    def _get_allowed_vlans(self):
+        allowed_vlans = self.ngs_config.get('ngs_allowed_vlans')
+        if allowed_vlans is None:
+            return None
+        return allowed_vlans.split(',')
+
+    def _get_allowed_ports(self):
+        allowed_ports = self.ngs_config.get('ngs_allowed_ports')
+        if allowed_ports is None:
+            return None
+        return allowed_ports.split(',')
+
+    def is_allowed(self, port_id, segmentation_id):
+        is_port_id_allowed = True
+        allowed_ports = self._get_allowed_ports()
+        if allowed_ports is not None:
+            is_port_id_allowed = port_id in allowed_ports
+            LOG.debug("Port %(port_id) allowed: %(is_port_id_allowed",
+                      {"port_id": port_id,
+                       "is_port_id_allowed": is_port_id_allowed})
+
+        is_vlan_allowed = True
+        allowed_vlans = self._get_allowed_vlans()
+        if allowed_vlans is not None:
+            is_vlan_allowed = str(segmentation_id) in allowed_vlans
+            LOG.debug("VLAN %(vlan) allowed: %(is_allowed",
+                      {"vlan": segmentation_id,
+                       "is_allowed": is_vlan_allowed})
+
+        return is_port_id_allowed and is_vlan_allowed
 
     @abc.abstractmethod
     def add_network(self, segmentation_id, network_id):

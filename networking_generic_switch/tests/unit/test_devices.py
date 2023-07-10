@@ -118,7 +118,9 @@ class TestDeviceManager(unittest.TestCase):
                       "ngs_physical_networks": "physnet1,physnet2",
                       "ngs_port_default_vlan": "20",
                       "ngs_disable_inactive_ports": "true",
-                      "ngs_network_name_format": "net-{network_id}"}
+                      "ngs_network_name_format": "net-{network_id}",
+                      "ngs_allowed_vlans": "123,124",
+                      "ngs_allowed_ports": "Ethernet1/1,Ethernet1/2"}
         device = devices.device_manager(device_cfg)
         self.assertIsInstance(device, devices.GenericSwitchDevice)
         self.assertNotIn('ngs_mac_address', device.config)
@@ -127,6 +129,8 @@ class TestDeviceManager(unittest.TestCase):
         self.assertNotIn('ngs_trunk_ports', device.config)
         self.assertNotIn('ngs_physical_networks', device.config)
         self.assertNotIn('ngs_port_default_vlan', device.config)
+        self.assertNotIn('ngs_allowed_vlans', device.config)
+        self.assertNotIn('ngs_allowed_ports', device.config)
         self.assertEqual('aa:bb:cc:dd:ee:ff',
                          device.ngs_config['ngs_mac_address'])
         self.assertEqual('120', device.ngs_config['ngs_ssh_connect_timeout'])
@@ -139,6 +143,49 @@ class TestDeviceManager(unittest.TestCase):
                          device.ngs_config['ngs_disable_inactive_ports'])
         self.assertEqual('net-{network_id}',
                          device.ngs_config['ngs_network_name_format'])
+        self.assertEqual("123,124",
+                         device.ngs_config['ngs_allowed_vlans'])
+        self.assertEqual(["123", "124"],
+                         device._get_allowed_vlans())
+        self.assertEqual("Ethernet1/1,Ethernet1/2",
+                         device.ngs_config['ngs_allowed_ports'])
+        self.assertEqual(["Ethernet1/1", "Ethernet1/2"],
+                         device._get_allowed_ports())
+
+    def test_driver_ngs_is_allowed(self):
+        device_cfg = {"device_type": 'netmiko_ovs_linux',
+                      "ngs_allowed_vlans": "123,124",
+                      "ngs_allowed_ports": "Ethernet1/1,Ethernet1/2"}
+        device = devices.device_manager(device_cfg)
+
+        # test all allowed
+        self.assertTrue(device.is_allowed("Ethernet1/1", 123))
+        self.assertTrue(device.is_allowed("Ethernet1/2", 124))
+        # fail on vlan
+        self.assertFalse(device.is_allowed("Ethernet1/2", 125))
+        # fail on port
+        self.assertFalse(device.is_allowed("Ethernet1/3", 124))
+        # fail on both
+        self.assertFalse(device.is_allowed("Ethernet2/2", 1))
+
+    def test_driver_ngs_is_allowed_fails_on_empty_ports(self):
+        device_cfg = {"device_type": 'netmiko_ovs_linux',
+                      "ngs_allowed_vlans": "123",
+                      "ngs_allowed_ports": ""}
+        device = devices.device_manager(device_cfg)
+        self.assertFalse(device.is_allowed("Ethernet1/1", 123))
+
+    def test_driver_ngs_is_allowed_fails_on_empty_vlans(self):
+        device_cfg = {"device_type": 'netmiko_ovs_linux',
+                      "ngs_allowed_vlans": "",
+                      "ngs_allowed_ports": "Ethernet1/1"}
+        device = devices.device_manager(device_cfg)
+        self.assertFalse(device.is_allowed("Ethernet1/1", 123))
+
+    def test_driver_ngs_is_allowed_default(self):
+        device_cfg = {"device_type": 'netmiko_ovs_linux'}
+        device = devices.device_manager(device_cfg)
+        self.assertTrue(device.is_allowed("Ethernet1/1", 123))
 
     def test_driver_ngs_config_defaults(self):
         device_cfg = {"device_type": 'netmiko_ovs_linux'}
@@ -153,6 +200,8 @@ class TestDeviceManager(unittest.TestCase):
         self.assertFalse(device.ngs_config['ngs_disable_inactive_ports'])
         self.assertEqual('{network_id}',
                          device.ngs_config['ngs_network_name_format'])
+        self.assertNotIn('ngs_allowed_vlans', device.ngs_config)
+        self.assertNotIn('ngs_allowed_ports', device.ngs_config)
 
     def test__get_trunk_ports(self):
         device_cfg = {"ngs_trunk_ports": 'port1, Po 1/30,port42'}
