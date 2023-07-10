@@ -1,0 +1,4 @@
+fixes:
+  - |
+    Instead of always assuming we have all provider network metadata, instead
+    use a getter to avoid erroring in cases where that metadata may not be needed.
