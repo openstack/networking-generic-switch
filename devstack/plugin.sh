@@ -65,7 +65,7 @@ function configure_for_dlm {
     # set lock acquire timeout
     populate_ml2_config $GENERIC_SWITCH_INI_FILE ngs_coordination acquire_timeout=$GENERIC_SWITCH_DLM_ACQUIRE_TIMEOUT
     # set ectd3 backend
-    populate_ml2_config $GENERIC_SWITCH_INI_FILE ngs_coordination backend_url="etcd3+http://${SERVICE_HOST}:${ETCD_PORT:-2379}"
+    populate_ml2_config $GENERIC_SWITCH_INI_FILE ngs_coordination backend_url="etcd3+http://${SERVICE_HOST}:${ETCD_PORT:-2379}?api_version=v3"
     }
 
 function configure_generic_switch_ssh_keypair {
