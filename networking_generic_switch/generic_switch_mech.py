@@ -80,9 +80,9 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         network = context.current
         network_id = network['id']
-        provider_type = network['provider:network_type']
-        segmentation_id = network['provider:segmentation_id']
-        physnet = network['provider:physical_network']
+        provider_type = network.get('provider:network_type')
+        segmentation_id = network.get('provider:segmentation_id')
+        physnet = network.get('provider:physical_network')
 
         if provider_type == 'vlan' and segmentation_id:
             # Create vlan on all switches from this driver
@@ -165,9 +165,9 @@ class GenericSwitchDriver(api.MechanismDriver):
         deleted.
         """
         network = context.current
-        provider_type = network['provider:network_type']
-        segmentation_id = network['provider:segmentation_id']
-        physnet = network['provider:physical_network']
+        provider_type = network.get('provider:network_type')
+        segmentation_id = network.get('provider:segmentation_id')
+        physnet = network.get('provider:physical_network')
 
         if provider_type == 'vlan' and segmentation_id:
             # Delete vlan on all switches from this driver
