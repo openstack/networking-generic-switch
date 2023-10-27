@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a regression when binding 802.3ad port groups on netmiko devices
+    other than cumulus.
