@@ -294,6 +294,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     @check_output('plug bond')
     def plug_bond_to_network(self, bond, segmentation_id):
+        # Fallback to regular plug port if no specialist PLUG_BOND_TO_NETWORK
+        # commands set
+        if not self.PLUG_BOND_TO_NETWORK:
+            return self.plug_port_to_network(bond, segmentation_id)
         cmds = []
         if self._disable_inactive_ports() and self.ENABLE_BOND:
             cmds += self._format_commands(self.ENABLE_BOND, bond=bond)
@@ -311,6 +315,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     @check_output('unplug bond')
     def unplug_bond_from_network(self, bond, segmentation_id):
+        # Fallback to regular port delete if no specialist
+        # UNPLUG_BOND_FROM_NETWORK commands set
+        if not self.UNPLUG_BOND_FROM_NETWORK:
+            return self.delete_port(bond, segmentation_id)
         cmds = self._format_commands(self.UNPLUG_BOND_FROM_NETWORK,
                                      bond=bond,
                                      segmentation_id=segmentation_id)
