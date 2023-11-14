@@ -444,8 +444,9 @@ class SwitchBatch(object):
                 # tell workers which batches have now been executed
                 self.queue.record_result(batch)
 
-            try:
-                device.save_configuration(net_connect)
-            except Exception:
-                LOG.exception("Failed to save configuration")
-                # Probably not worth failing all batches for this.
+            if device._get_save_configuration():
+                try:
+                    device.save_configuration(net_connect)
+                except Exception:
+                    LOG.exception("Failed to save configuration")
+                    # Probably not worth failing all batches for this.
