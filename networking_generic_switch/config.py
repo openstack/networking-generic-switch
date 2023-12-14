@@ -20,6 +20,7 @@ LOG = logging.getLogger(__name__)
 
 coordination_opts = [
     cfg.StrOpt('backend_url',
+               secret=True,
                help='The backend URL to use for distributed coordination.'),
     cfg.IntOpt('acquire_timeout',
                min=0,
