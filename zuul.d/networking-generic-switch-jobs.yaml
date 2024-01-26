@@ -64,3 +64,10 @@
         s-proxy: False
         swift: False
         tempest: True
+
+- job:
+    name: networking-generic-switch-tox-codespell
+    parent: openstack-tox
+    timeout: 7200
+    vars:
+      tox_envlist: codespell

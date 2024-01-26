@@ -21,6 +21,8 @@
         # for ussuri are completed
         - ironic-grenade-dsvm-multinode-multitenant:
             voting: false
+        - networking-generic-switch-tox-codespell:
+            voting: false
     gate:
       jobs:
         - networking-generic-switch-tempest-dlm
