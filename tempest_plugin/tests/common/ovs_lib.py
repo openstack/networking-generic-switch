@@ -13,7 +13,7 @@
 #    under the License.
 
 
-# I'd be happy to re-use ovs_lib from neutron.agent.common
+# I'd be happy to reuse ovs_lib from neutron.agent.common
 # but Tempest all_plugin run tries to import the module
 # and has an issue with importing CLI options
 # Current approach is to re-implement a small subset of ovsctl commands
