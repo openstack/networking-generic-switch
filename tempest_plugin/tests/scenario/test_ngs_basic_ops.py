@@ -16,10 +16,10 @@ import futurist
 import futurist.waiters
 import netifaces
 from tempest.api.network import base as net_base
+from tempest.common import utils
 from tempest import config
 from tempest.lib import decorators
 from tempest.lib import exceptions
-from tempest import test
 from tempest_plugin.tests.common import ovs_lib
 
 CONF = config.CONF
@@ -118,12 +118,12 @@ class NGSBasicOpsBase(net_base.BaseAdminNetworkTest):
 
 class NGSBasicOps(NGSBasicOpsBase):
     @decorators.idempotent_id('59cb81a5-3fd5-4ad3-8c4a-c0b27435cb9c')
-    @test.services('network')
+    @utils.services('network')
     def test_ngs_basic_ops(self):
         self._test_ngs_basic_ops()
 
     @decorators.idempotent_id('282a513d-cc01-486c-aa12-1c45f7b6e5a8')
-    @test.services('network')
+    @utils.services('network')
     def test_ngs_basic_ops_switch_id(self):
         llc = [{'switch_id': self.get_local_port_mac(CONF.ngs.bridge_name),
                 'port_id': CONF.ngs.port_name}]
