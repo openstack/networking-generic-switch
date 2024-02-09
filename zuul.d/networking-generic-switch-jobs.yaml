@@ -35,18 +35,15 @@
         cinder: False
         etcd3: True
         g-api: False
-        g-reg: False
         generic_switch: True
         glace: False
         key: True
         mysql: True
         n-api-meta: False
         n-api: False
-        n-cauth: False
         n-cond: False
         n-cpu: False
         n-novnc: False
-        n-obj: False
         n-sch: False
         nova: False
         ovn-controller: False
