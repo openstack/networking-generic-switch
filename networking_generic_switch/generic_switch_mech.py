@@ -477,9 +477,47 @@ class GenericSwitchDriver(api.MechanismDriver):
             if not self._is_link_valid(port, network):
                 return
 
-            segments = context.segments_to_bind
+            is_802_3ad = self._is_802_3ad(port)
+            for link in local_link_information:
+                port_id = link.get('port_id')
+                switch_info = link.get('switch_info')
+                switch_id = link.get('switch_id')
+                switch = device_utils.get_switch_device(
+                    self.switches, switch_info=switch_info,
+                    ngs_mac_address=switch_id)
+
+                segments = context.segments_to_bind
+                # If segmentation ID is None, set vlan 1
+                segmentation_id = segments[0].get('segmentation_id') or 1
+
+                # Fail if port or vlan not in allow list
+                if not switch.is_allowed(port_id, segmentation_id):
+                    LOG.warn("Skipped binding port %(port_id)s, "
+                             "port %(port)s in segment "
+                             "%(segment_id)s on device %(device)s, as either "
+                             "the port or vlan is not on the allow list",
+                             {'port_id': port['id'], 'port': port_id,
+                              'device': switch_info,
+                              'segment_id': segmentation_id})
+                    return
+
+                LOG.debug("Putting port %(port_id)s on %(switch_info)s "
+                          "to vlan: %(segmentation_id)s",
+                          {'port_id': port_id, 'switch_info': switch_info,
+                           'segmentation_id': segmentation_id})
+                # Move port to network
+                if is_802_3ad and hasattr(switch, 'plug_bond_to_network'):
+                    switch.plug_bond_to_network(port_id, segmentation_id)
+                else:
+                    switch.plug_port_to_network(port_id, segmentation_id)
+                LOG.info("Successfully bound port %(port_id)s in segment "
+                         "%(segment_id)s on device %(device)s",
+                         {'port_id': port['id'], 'device': switch_info,
+                          'segment_id': segmentation_id})
+
             context.set_binding(segments[0][api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
+
             provisioning_blocks.add_provisioning_component(
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)

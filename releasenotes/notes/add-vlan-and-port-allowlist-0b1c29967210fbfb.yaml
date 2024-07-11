@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add support for `ngs_allowed_vlans` and `ngs_allowed_ports`
+    configuration options to allow defining specific VLANs and ports
+    allowed on a switch.
