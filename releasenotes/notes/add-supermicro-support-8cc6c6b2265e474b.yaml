@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new device driver, ``netmiko_supermicro_smis``, for managing Supermicro
+    based switch devices.

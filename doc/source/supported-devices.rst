@@ -21,6 +21,7 @@ The following devices are supported by this plugin:
 * OpenVSwitch
 * Ruijie switches
 * SONiC switches
+* Supermicro switches
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.

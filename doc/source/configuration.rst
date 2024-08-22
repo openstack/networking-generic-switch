@@ -224,6 +224,16 @@ for an ArubaOS-CX switch::
     password = password
     ip = <switch mgmt ip address>
 
+for the Supermicro device::
+
+    [genericswitch:sw-hostname]
+    device_type = netmiko_supermicro_smis
+    ngs_mac_address = <switch mac address>
+    ip = <switch mgmt ip address>
+    username = admin
+    password = password
+    secret = secret
+
 General configuration
 =====================
 
