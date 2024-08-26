@@ -11,6 +11,7 @@ The following devices are supported by this plugin:
 * Cisco IOS switches
 * Cisco NX-OS switches (Nexus)
 * Cumulus Linux (via NCLU)
+* Cumulus Linux (via NVUE)
 * Dell Force10
 * Dell OS10
 * Dell PowerConnect
