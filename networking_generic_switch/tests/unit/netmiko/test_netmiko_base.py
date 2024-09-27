@@ -58,147 +58,152 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_add_network(self, m_check, m_sctd):
         self.switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'add network')
+        m_sctd.assert_called_with(self.switch, [])
+        m_check.assert_called_once_with(self.switch,
+                                        'fake output', 'add network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_add_network_with_trunk_ports(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'add network')
+        m_sctd.assert_called_with(switch, [])
+        m_check.assert_called_once_with(switch, 'fake output', 'add network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_add_network_with_no_manage_vlans(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_manage_vlans': False})
         switch.add_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         self.assertFalse(m_sctd.called)
-        m_check.assert_called_once_with('', 'add network')
+        m_check.assert_called_once_with(switch, '', 'add network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_del_network(self, m_check, m_sctd):
         self.switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'delete network')
+        m_sctd.assert_called_with(self.switch, [])
+        m_check.assert_called_once_with(self.switch,
+                                        'fake output', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_del_network_with_trunk_ports(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'delete network')
+        m_sctd.assert_called_with(switch, [])
+        m_check.assert_called_once_with(switch,
+                                        'fake output', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_del_network_with_no_manage_vlans(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_manage_vlans': False})
         switch.del_network(22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         self.assertFalse(m_sctd.called)
-        m_check.assert_called_once_with('', 'delete network')
+        m_check.assert_called_once_with(switch, '', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_plug_port_to_network(self, m_check, m_sctd):
         self.switch.plug_port_to_network(2222, 22)
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'plug port')
+        m_sctd.assert_called_with(self.switch, [])
+        m_check.assert_called_once_with(self.switch,
+                                        'fake output', 'plug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_plug_port_has_default_vlan(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
         switch.plug_port_to_network(2222, 22)
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'plug port')
+        m_sctd.assert_called_with(switch, [])
+        m_check.assert_called_once_with(switch, 'fake output', 'plug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_plug_port_to_network_disable_inactive(self, m_check, m_sctd):
         switch = self._make_switch_device(
             {'ngs_disable_inactive_ports': 'true'})
         switch.plug_port_to_network(2222, 22)
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'plug port')
+        m_sctd.assert_called_with(switch, [])
+        m_check.assert_called_once_with(switch, 'fake output', 'plug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_delete_port(self, m_check, m_sctd):
         self.switch.delete_port(2222, 22)
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'unplug port')
+        m_sctd.assert_called_with(self.switch, [])
+        m_check.assert_called_once_with(self.switch,
+                                        'fake output', 'unplug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_delete_port_has_default_vlan(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
         switch.delete_port(2222, 22)
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'unplug port')
+        m_sctd.assert_called_with(switch, [])
+        m_check.assert_called_once_with(switch, 'fake output', 'unplug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_delete_port_disable_inactive(self, m_check, m_sctd):
         switch = self._make_switch_device(
             {'ngs_disable_inactive_ports': 'true'})
         switch.delete_port(2222, 22)
-        m_sctd.assert_called_with([])
-        m_check.assert_called_once_with('fake output', 'unplug port')
+        m_sctd.assert_called_with(switch, [])
+        m_check.assert_called_once_with(switch, 'fake output', 'unplug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.plug_port_to_network',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     def test_plug_bond_to_network_fallback(self, m_plug):
         self.switch.plug_bond_to_network(2222, 22)
-        m_plug.assert_called_with(2222, 22)
+        m_plug.assert_called_with(self.switch, 2222, 22)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.delete_port',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     def test_unplug_bond_from_network_fallback(self, m_delete):
         self.switch.unplug_bond_from_network(2222, 22)
-        m_delete.assert_called_with(2222, 22)
+        m_delete.assert_called_with(self.switch, 2222, 22)
 
     def test__format_commands(self):
         self.switch._format_commands(
@@ -206,10 +211,11 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
             segmentation_id=22, network_id=22)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
-    @mock.patch.object(netmiko, 'ConnectHandler')
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
+    @mock.patch.object(netmiko, 'ConnectHandler', autospec=True)
     def test__get_connection_connect_fail(self, m_conn_handler,
                                           m_stop, m_wait):
         m_conn = mock.MagicMock()
@@ -221,10 +227,11 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         m_wait.assert_called_once_with(10)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
-    @mock.patch.object(netmiko, 'ConnectHandler')
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
+    @mock.patch.object(netmiko, 'ConnectHandler', autospec=True)
     def test__get_connection_timeout(self, m_conn_handler, m_stop, m_wait):
         switch = self._make_switch_device({'ngs_ssh_connect_timeout': '1',
                                            'ngs_ssh_connect_interval': '1'})
@@ -240,10 +247,11 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         m_wait.assert_called_once_with(1)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
-    @mock.patch.object(netmiko, 'ConnectHandler')
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
+    @mock.patch.object(netmiko, 'ConnectHandler', autospec=True)
     def test__get_connection_caller_failure(self, m_conn_handler,
                                             m_stop, m_wait):
         m_conn = mock.MagicMock()
@@ -259,7 +267,8 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertRaises(FakeError, get_connection)
         m_conn.__exit__.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
     def test_send_commands_to_device_empty(self, gc_mock):
         connect_mock = mock.MagicMock()
         gc_mock.return_value.__enter__.return_value = connect_mock
@@ -267,21 +276,28 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         self.assertFalse(connect_mock.send_config_set.called)
         self.assertFalse(connect_mock.send_command.called)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'send_config_set')
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'send_config_set',
+                       autospec=True)
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration',
+                       autospec=True)
     def test_send_commands_to_device(self, save_mock, send_mock, gc_mock):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
         gc_mock.return_value.__enter__.return_value = connect_mock
         send_mock.return_value = 'fake output'
         result = self.switch.send_commands_to_device(['spam ham aaaa'])
-        send_mock.assert_called_once_with(connect_mock, ['spam ham aaaa'])
+        send_mock.assert_called_once_with(self.switch,
+                                          connect_mock, ['spam ham aaaa'])
         self.assertEqual('fake output', result)
-        save_mock.assert_called_once_with(connect_mock)
+        save_mock.assert_called_once_with(self.switch, connect_mock)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'send_config_set')
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'send_config_set',
+                       autospec=True)
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration',
+                       autospec=True)
     def test_send_commands_to_device_without_save_config(self, save_mock,
                                                          send_mock, gc_mock):
         switch = self._make_switch_device(
@@ -290,7 +306,8 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         gc_mock.return_value.__enter__.return_value = connect_mock
         send_mock.return_value = 'fake output'
         result = switch.send_commands_to_device(['spam ham aaaa'])
-        send_mock.assert_called_once_with(connect_mock, ['spam ham aaaa'])
+        send_mock.assert_called_once_with(switch,
+                                          connect_mock, ['spam ham aaaa'])
         self.assertEqual('fake output', result)
         save_mock.assert_not_called()
 
@@ -303,7 +320,8 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
             config_commands=['spam ham aaaa'], cmd_verify=False)
         self.assertEqual('fake output', result)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
     def test_send_commands_to_device_send_failure(self, gc_mock):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
         gc_mock.return_value.__enter__.return_value = connect_mock
@@ -317,7 +335,8 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'], cmd_verify=False)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
     def test_send_commands_to_device_send_ngs_failure(self, gc_mock):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
         gc_mock.return_value.__enter__.return_value = connect_mock
@@ -330,8 +349,10 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'], cmd_verify=False)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration',
+                       autospec=True)
     def test_send_commands_to_device_save_failure(self, save_mock, gc_mock):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
         gc_mock.return_value.__enter__.return_value = connect_mock
@@ -344,10 +365,12 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                           ['spam ham aaaa'])
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'], cmd_verify=False)
-        save_mock.assert_called_once_with(connect_mock)
+        save_mock.assert_called_once_with(self.switch, connect_mock)
 
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection')
-    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration')
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, 'save_configuration',
+                       autospec=True)
     def test_send_commands_to_device_save_ngs_failure(self, save_mock,
                                                       gc_mock):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
@@ -360,7 +383,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                           ['spam ham aaaa'])
         connect_mock.send_config_set.assert_called_once_with(
             config_commands=['spam ham aaaa'], cmd_verify=False)
-        save_mock.assert_called_once_with(connect_mock)
+        save_mock.assert_called_once_with(self.switch, connect_mock)
 
     def test_save_configuration(self):
         connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection,
@@ -371,8 +394,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
     @mock.patch.object(netmiko_devices.NetmikoSwitch, 'SAVE_CONFIGURATION',
                        ('save', 'y'))
     def test_save_configuration_with_NotImplementedError(self):
-        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection,
-                                      autospec=True)
+        connect_mock = mock.MagicMock(netmiko.base_connection.BaseConnection)
 
         def fake_save_config():
             raise NotImplementedError
@@ -383,7 +405,8 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
 
     @mock.patch.object(utils, 'get_hostname', autospec=True)
     @mock.patch.object(netmiko_devices.ngs_lock, 'PoolLock', autospec=True)
-    @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler')
+    @mock.patch.object(netmiko_devices.netmiko, 'ConnectHandler',
+                       autospec=True)
     @mock.patch.object(coordination, 'get_coordinator', autospec=True)
     def test_switch_send_commands_with_coordinator(self, get_coord_mock,
                                                    nm_mock, lock_mock,

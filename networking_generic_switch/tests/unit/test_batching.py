@@ -35,7 +35,7 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         self.switch_name = "switch1"
         self.queue = batching.SwitchQueue(self.switch_name, self.client)
 
-    @mock.patch.object(uuidutils, "generate_uuid")
+    @mock.patch.object(uuidutils, "generate_uuid", autospec=True)
     def test_add_batch(self, mock_uuid):
         mock_uuid.return_value = "uuid"
         self.client.transaction.return_value = {
@@ -77,7 +77,7 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         }
         self.client.transaction.assert_called_once_with(expected_txn)
 
-    @mock.patch.object(uuidutils, "generate_uuid")
+    @mock.patch.object(uuidutils, "generate_uuid", autospec=True)
     def test_add_batch_failure(self, mock_uuid):
         mock_uuid.return_value = "uuid"
         self.client.transaction.side_effect = Etcd3Exception
@@ -85,7 +85,7 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         self.assertRaises(Etcd3Exception,
                           self.queue.add_batch, ["cmd1", "cmd2"])
 
-    @mock.patch.object(uuidutils, "generate_uuid")
+    @mock.patch.object(uuidutils, "generate_uuid", autospec=True)
     def test_add_batch_failure2(self, mock_uuid):
         mock_uuid.return_value = "uuid"
         self.client.transaction.return_value = {"succeeded": False}
@@ -93,7 +93,8 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         self.assertRaises(exc.GenericSwitchBatchError,
                           self.queue.add_batch, ["cmd1", "cmd2"])
 
-    @mock.patch.object(batching.SwitchQueue, "_get_and_delete_result")
+    @mock.patch.object(batching.SwitchQueue, "_get_and_delete_result",
+                       autospec=True)
     def test_wait_for_result(self, mock_get):
         event = {
             "kv": {
@@ -110,7 +111,7 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         result_key = '/ngs/batch/switch1/output/uuid'
         self.client.watch_once.assert_called_once_with(
             result_key, timeout=43, start_revision=42)
-        mock_get.assert_called_once_with(result_key)
+        mock_get.assert_called_once_with(self.queue, result_key)
 
     def test_get_and_delete_result(self):
         self.client.transaction.return_value = {
@@ -226,7 +227,7 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         # Should not raise an exception.
         self.queue.record_result(batch)
 
-    @mock.patch.object(batching.SwitchQueue, "_get_raw_batches")
+    @mock.patch.object(batching.SwitchQueue, "_get_raw_batches", autospec=True)
     def test_acquire_worker_lock_timeout(self, mock_get):
         mock_get.return_value = ["work"]
         lock = mock.MagicMock()
@@ -240,7 +241,7 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
             self.queue.acquire_worker_lock,
             item, wait=wait, acquire_timeout=0.05)
 
-    @mock.patch.object(batching.SwitchQueue, "_get_raw_batches")
+    @mock.patch.object(batching.SwitchQueue, "_get_raw_batches", autospec=True)
     def test_acquire_worker_lock_no_work(self, mock_get):
         mock_get.side_effect = [["work"], None]
         lock = mock.MagicMock()
@@ -256,7 +257,7 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         self.assertEqual(2, mock_get.call_count)
         self.assertEqual(2, lock.acquire.call_count)
 
-    @mock.patch.object(batching.SwitchQueue, "_get_raw_batches")
+    @mock.patch.object(batching.SwitchQueue, "_get_raw_batches", autospec=True)
     def test_acquire_worker_lock_success(self, mock_get):
         mock_get.return_value = ["work"]
         lock = mock.MagicMock()
@@ -283,7 +284,7 @@ class SwitchBatchTest(fixtures.TestWithFixtures):
         self.batch = batching.SwitchBatch(
             self.switch_name, switch_queue=self.queue)
 
-    @mock.patch.object(batching.SwitchBatch, "_spawn")
+    @mock.patch.object(batching.SwitchBatch, "_spawn", autospec=True)
     def test_do_batch(self, mock_spawn):
         self.queue.add_batch.return_value = "item"
         self.queue.wait_for_result.return_value = "output"
@@ -311,7 +312,7 @@ class SwitchBatchTest(fixtures.TestWithFixtures):
 
         self.assertIsNone(result)
 
-    @mock.patch.object(batching.SwitchBatch, "_send_commands")
+    @mock.patch.object(batching.SwitchBatch, "_send_commands", autospec=True)
     def test_execute_pending_batches_skip3(self, mock_send):
         self.queue.get_batches.side_effect = [["work"], None]
         # Work was consumed by another worker before we got the lock.
@@ -323,7 +324,7 @@ class SwitchBatchTest(fixtures.TestWithFixtures):
         self.assertIsNone(result)
         self.assertEqual(0, mock_send.call_count)
 
-    @mock.patch.object(batching.SwitchBatch, "_send_commands")
+    @mock.patch.object(batching.SwitchBatch, "_send_commands", autospec=True)
     def test_execute_pending_batches_success(self, mock_send):
         batches = [
             {"cmds": ["cmd1", "cmd2"]},
@@ -336,11 +337,11 @@ class SwitchBatchTest(fixtures.TestWithFixtures):
 
         self.batch._execute_pending_batches(device, "item")
 
-        mock_send.assert_called_once_with(device, batches, lock)
+        mock_send.assert_called_once_with(self.batch, device, batches, lock)
         self.queue.acquire_worker_lock.assert_called_once_with("item")
         lock.release.assert_called_once_with()
 
-    @mock.patch.object(batching.SwitchBatch, "_send_commands")
+    @mock.patch.object(batching.SwitchBatch, "_send_commands", autospec=True)
     def test_execute_pending_batches_failure(self, mock_send):
         batches = [
             {"cmds": ["cmd1", "cmd2"]},

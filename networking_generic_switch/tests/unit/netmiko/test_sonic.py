@@ -32,31 +32,34 @@ class TestNetmikoSonic(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_add_network(self, mock_exec):
         self.switch.add_network(3333, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            self.switch,
             ['config vlan add 3333'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_delete_network(self, mock_exec):
         self.switch.del_network(3333, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            self.switch,
             ['config vlan del 3333'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['config vlan member del 123 3333',
              'config vlan member add -u 33 3333'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network_fails(self, mock_exec):
         mock_exec.return_value = (
             'Error: No such command "test".\n\nasdf'
@@ -65,7 +68,7 @@ class TestNetmikoSonic(test_netmiko_base.NetmikoSwitchTestBase):
                           self.switch.plug_port_to_network, 3333, 33)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network_fails_bad_port(self, mock_exec):
         mock_exec.return_value = (
             'Error: Interface name is invalid!!'
@@ -76,37 +79,38 @@ class TestNetmikoSonic(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_plug_port_simple(self, mock_exec):
         switch = self._make_switch_device({
             'ngs_disable_inactive_ports': 'false',
             'ngs_port_default_vlan': '',
         })
         switch.plug_port_to_network(3333, 33)
-        mock_exec.assert_called_with(
-            ['config vlan member add -u 33 3333'])
+        mock_exec.assert_called_with(switch,
+                                     ['config vlan member add -u 33 3333'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['config vlan member del 33 3333',
              'config vlan add 123',
              'config vlan member add -u 123 3333'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_delete_port_simple(self, mock_exec):
         switch = self._make_switch_device({
             'ngs_disable_inactive_ports': 'false',
             'ngs_port_default_vlan': '',
         })
         switch.delete_port(3333, 33)
-        mock_exec.assert_called_with(
-            ['config vlan member del 33 3333'])
+        mock_exec.assert_called_with(switch,
+                                     ['config vlan member del 33 3333'])
 
     def test_save(self):
         mock_connect = mock.MagicMock()

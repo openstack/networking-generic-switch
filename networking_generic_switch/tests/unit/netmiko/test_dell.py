@@ -30,20 +30,22 @@ class TestNetmikoDellNos(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
+            self.switch,
             ['interface vlan 33',
              'description 0ae071f55be943e480eae41fefe85b21',
              'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network_with_trunk_ports(self, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['interface vlan 33',
              'description 0ae071f55be943e480eae41fefe85b21',
              'exit',
@@ -51,33 +53,37 @@ class TestNetmikoDellNos(test_netmiko_base.NetmikoSwitchTestBase):
              'interface vlan 33', 'tagged port2', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network(self, mock_exec):
         self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        mock_exec.assert_called_with(['no interface vlan 33', 'exit'])
+        mock_exec.assert_called_with(self.switch,
+                                     ['no interface vlan 33', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network_with_trunk_ports(self, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.del_network(33, '0ae071f55be943e480eae41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['interface vlan 33', 'no tagged port1', 'exit',
              'interface vlan 33', 'no tagged port2', 'exit',
              'no interface vlan 33', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface vlan 33', 'untagged 3333', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface vlan 33', 'no untagged 3333', 'exit'])
 
     def test__format_commands(self):
@@ -132,21 +138,23 @@ class TestNetmikoDellOS10(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
+            self.switch,
             ['interface vlan 33',
              'description 0ae071f55be943e480eae41fefe85b21',
              'exit']
         )
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network_with_trunk_ports(self, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['interface vlan 33',
              'description 0ae071f55be943e480eae41fefe85b21',
              'exit',
@@ -157,55 +165,61 @@ class TestNetmikoDellOS10(test_netmiko_base.NetmikoSwitchTestBase):
         )
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network(self, mock_exec):
         self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        mock_exec.assert_called_with(['no interface vlan 33', 'exit'])
+        mock_exec.assert_called_with(self.switch,
+                                     ['no interface vlan 33', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_plug_bond_to_network(self, mock_exec):
         self.switch.plug_bond_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333', 'switchport mode access',
              'switchport access vlan 33',
              'exit']
         )
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_unplug_bond_from_network(self, mock_exec):
         self.switch.unplug_bond_from_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333', 'no switchport access vlan', 'exit']
         )
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network_with_trunk_ports(self, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.del_network(33, '0ae071f55be943e480eae41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['interface port1', 'no switchport trunk allowed vlan 33', 'exit',
              'interface port2', 'no switchport trunk allowed vlan 33', 'exit',
              'no interface vlan 33', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333', 'switchport mode access',
              'switchport access vlan 33',
              'exit']
         )
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333', 'no switchport access vlan', 'exit']
         )
 
@@ -270,14 +284,16 @@ class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_add_network(self, mock_check, mock_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            self.switch,
             ['vlan database', 'vlan 33', 'exit'])
-        mock_check.assert_called_once_with('fake output', 'add network')
+        mock_check.assert_called_once_with(self.switch,
+                                           'fake output', 'add network')
 
     def test_invalid_switchmode(self):
         with self.assertRaises(exc.GenericSwitchConfigException):
@@ -293,13 +309,14 @@ class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_add_network_with_trunk_ports(self, mock_check, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1, port2'})
         switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['vlan database', 'vlan 33', 'exit',
              'interface port1',
              'switchport general allowed vlan add 33 tagged',
@@ -307,87 +324,99 @@ class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
              'interface port2',
              'switchport general allowed vlan add 33 tagged',
              'exit'])
-        mock_check.assert_called_once_with('fake output', 'add network')
+        mock_check.assert_called_once_with(
+            switch, 'fake output', 'add network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_del_network(self, mock_check, mock_exec):
         self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        mock_exec.assert_called_with(['vlan database', 'no vlan 33', 'exit'])
-        mock_check.assert_called_once_with('fake output', 'delete network')
+        mock_exec.assert_called_with(
+            self.switch, ['vlan database', 'no vlan 33', 'exit'])
+        mock_check.assert_called_once_with(
+            self.switch, 'fake output', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_del_network_with_trunk_ports(self, mock_check, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
         switch.del_network(33, '0ae071f55be943e480eae41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['interface port1', 'switchport general allowed vlan remove 33',
              'exit',
              'interface port2', 'switchport general allowed vlan remove 33',
              'exit',
              'vlan database', 'no vlan 33', 'exit'])
-        mock_check.assert_called_once_with('fake output', 'delete network')
+        mock_check.assert_called_once_with(
+            switch, 'fake output', 'delete network')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_plug_port_to_network(self, mock_check, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333', 'switchport access vlan 33', 'exit'])
-        mock_check.assert_called_once_with('fake output',
+        mock_check.assert_called_once_with(self.switch, 'fake output',
                                            'plug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_plug_port_to_network_general_mode(self, mock_check, mock_exec):
         switch = self._make_switch_device({'ngs_switchport_mode': 'GENERAL'})
         switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            switch,
             ['interface 3333',
              'switchport general allowed vlan add 33 untagged',
              'switchport general pvid 33',
              'exit'])
-        mock_check.assert_called_once_with('fake output',
+        mock_check.assert_called_once_with(switch,
+                                           'fake output',
                                            'plug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_delete_port(self, mock_check, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333', 'switchport access vlan none', 'exit'])
-        mock_check.assert_called_once_with('fake output', 'unplug port')
+        mock_check.assert_called_once_with(
+            self.switch, 'fake output', 'unplug port')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value='fake output')
+                return_value='fake output', autospec=True)
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.check_output')
+                'NetmikoSwitch.check_output', autospec=True)
     def test_delete_port_general(self, mock_check, mock_exec):
         switch = self._make_switch_device({'ngs_switchport_mode': 'GENERAL'})
         switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            switch,
             ['interface 3333',
              'switchport general allowed vlan remove 33',
              'no switchport general pvid',
              'exit'])
-        mock_check.assert_called_once_with('fake output', 'unplug port')
+        mock_check.assert_called_once_with(
+            switch, 'fake output', 'unplug port')
 
     def test_check_output(self):
         self.switch.check_output('fake output', 'fake op')

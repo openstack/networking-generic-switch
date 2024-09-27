@@ -32,32 +32,35 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_add_network(self, mock_exec):
         self.switch.add_network(3333, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            self.switch,
             ['net add vlan 3333'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_delete_network(self, mock_exec):
         self.switch.del_network(3333, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            self.switch,
             ['net del vlan 3333'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['net del interface 3333 link down',
              'net del interface 3333 bridge access 123',
              'net add interface 3333 bridge access 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network_fails(self, mock_exec):
         mock_exec.return_value = (
             'ERROR: Command not found.\n\nasdf'
@@ -66,7 +69,7 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
                           self.switch.plug_port_to_network, 3333, 33)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network_fails_bad_port(self, mock_exec):
         mock_exec.return_value = (
             'ERROR: asd123 is not a physical interface on this switch.'
@@ -77,7 +80,7 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_plug_port_simple(self, mock_exec):
         switch = self._make_switch_device({
             'ngs_disable_inactive_ports': 'false',
@@ -85,14 +88,16 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
         })
         switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            switch,
             ['net add interface 3333 bridge access 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['net del interface 3333 bridge access 33',
              'net add vlan 123',
              'net add interface 3333 bridge access 123',
@@ -100,7 +105,7 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_delete_port_simple(self, mock_exec):
         switch = self._make_switch_device({
             'ngs_disable_inactive_ports': 'false',
@@ -108,21 +113,23 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
         })
         switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            switch,
             ['net del interface 3333 bridge access 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_plug_bond_to_network(self, mock_exec):
         self.switch.plug_bond_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['net del bond 3333 link down',
              'net del bond 3333 bridge access 123',
              'net add bond 3333 bridge access 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_plug_bond_simple(self, mock_exec):
         switch = self._make_switch_device({
             'ngs_disable_inactive_ports': 'false',
@@ -130,14 +137,16 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
         })
         switch.plug_bond_to_network(3333, 33)
         mock_exec.assert_called_with(
+            switch,
             ['net add bond 3333 bridge access 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_unplug_bond_from_network(self, mock_exec):
         self.switch.unplug_bond_from_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['net del bond 3333 bridge access 33',
              'net add vlan 123',
              'net add bond 3333 bridge access 123',
@@ -145,7 +154,7 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
-                return_value="")
+                return_value="", autospec=True)
     def test_unplug_bond_from_network_simple(self, mock_exec):
         switch = self._make_switch_device({
             'ngs_disable_inactive_ports': 'false',
@@ -153,6 +162,7 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
         })
         switch.unplug_bond_from_network(3333, 33)
         mock_exec.assert_called_with(
+            switch,
             ['net del bond 3333 bridge access 33'])
 
     def test_save(self):

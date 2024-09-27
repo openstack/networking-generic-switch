@@ -33,10 +33,10 @@ class FakeDevice(devices.GenericSwitchDevice):
     def del_network(s):
         pass
 
-    def plug_port_to_network(p, s):
+    def plug_port_to_network(self, p, s):
         pass
 
-    def delete_port(p, s):
+    def delete_port(self, p, s):
         pass
 
 
@@ -57,17 +57,17 @@ class TestGenericSwitchDevice(unittest.TestCase):
             self.assertIn(m, ex.exception.args[0])
         self.assertIsNone(device)
 
-    @mock.patch.object(FakeDevice, 'plug_port_to_network')
+    @mock.patch.object(FakeDevice, 'plug_port_to_network', autospec=True)
     def test_plug_bond_to_network_fallback(self, mock_plug):
         device = FakeDevice({'spam': 'ham'})
         device.plug_bond_to_network(22, 33)
-        mock_plug.assert_called_once_with(22, 33)
+        mock_plug.assert_called_once_with(device, 22, 33)
 
-    @mock.patch.object(FakeDevice, 'delete_port')
+    @mock.patch.object(FakeDevice, 'delete_port', autospec=True)
     def test_unplug_bond_from_network_fallback(self, mock_delete):
         device = FakeDevice({'spam': 'ham'})
         device.unplug_bond_from_network(22, 33)
-        mock_delete.assert_called_once_with(22, 33)
+        mock_delete.assert_called_once_with(device, 22, 33)
 
 
 class TestDeviceManager(unittest.TestCase):
@@ -79,7 +79,7 @@ class TestDeviceManager(unittest.TestCase):
         self.assertEqual({'device_type': 'ovs_linux'}, device.config)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.__init__')
+                'NetmikoSwitch.__init__', autospec=True)
     def test_driver_load_fail_invoke(self, switch_init_mock):
         switch_init_mock.side_effect = exc.GenericSwitchException(
             method='fake_method')
@@ -91,7 +91,7 @@ class TestDeviceManager(unittest.TestCase):
         self.assertIsNone(device)
 
     @mock.patch.object(devices.GenericSwitchDevice,
-                       '_validate_network_name_format')
+                       '_validate_network_name_format', autospec=True)
     def test_driver_load_fail_validate_network_name_format(self,
                                                            mock_validate):
         mock_validate.side_effect = exc.GenericSwitchConfigException()

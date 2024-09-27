@@ -34,18 +34,20 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
+            self.switch,
             ['set vlans 0ae071f55be943e480eae41fefe85b21 vlan-id 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network_with_trunk_ports(self, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
         switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['set vlans 0ae071f55be943e480eae41fefe85b21 vlan-id 33',
              'set interfaces port1 unit 0 family ethernet-switching '
              'vlan members 33',
@@ -53,18 +55,20 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
              'vlan members 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network(self, mock_exec):
         self.switch.del_network(33, '0ae071f55be943e480eae41fefe85b21')
         mock_exec.assert_called_with(
+            self.switch,
             ['delete vlans 0ae071f55be943e480eae41fefe85b21'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network_with_trunk_ports(self, mock_exec):
         switch = self._make_switch_device({'ngs_trunk_ports': 'port1,port2'})
         switch.del_network(33, '0ae071f55be943e480eae41fefe85b21')
         mock_exec.assert_called_with(
+            switch,
             ['delete interfaces port1 unit 0 family ethernet-switching '
              'vlan members 33',
              'delete interfaces port2 unit 0 family ethernet-switching '
@@ -72,22 +76,24 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
              'delete vlans 0ae071f55be943e480eae41fefe85b21'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members',
              'set interfaces 3333 unit 0 family ethernet-switching '
              'vlan members 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network_disable_inactive(self, m_sctd):
         switch = self._make_switch_device(
             {'ngs_disable_inactive_ports': 'true'})
         switch.plug_port_to_network(3333, 33)
         m_sctd.assert_called_with(
+            switch,
             ['delete interfaces 3333 disable',
              'delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members',
@@ -95,20 +101,22 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
              'vlan members 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port_disable_inactive(self, m_sctd):
         switch = self._make_switch_device(
             {'ngs_disable_inactive_ports': 'true'})
         switch.delete_port(3333, 33)
         m_sctd.assert_called_with(
+            switch,
             ['delete interfaces 3333 unit 0 family ethernet-switching '
              'vlan members',
              'set interfaces 3333 disable'])
@@ -128,9 +136,10 @@ class TestNetmikoJuniper(test_netmiko_base.NetmikoSwitchTestBase):
         mock_connection.commit.assert_called_once_with()
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_attempt(2))
+                       return_value=tenacity.stop_after_attempt(2),
+                       autospec=True)
     def test_save_configuration_db_locked(self, m_stop, m_wait):
         mock_connection = mock.Mock()
         output = """
@@ -152,9 +161,10 @@ error: configuration database locked by:
         m_wait.assert_called_once_with(5)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
     def test_save_configuration_db_locked_timeout(self, m_stop, m_wait):
         mock_connection = mock.Mock()
         output = """
@@ -175,9 +185,10 @@ error: configuration database locked by:
         m_wait.assert_called_once_with(5)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_attempt(2))
+                       return_value=tenacity.stop_after_attempt(2),
+                       autospec=True)
     def test_save_configuration_warn_already_exists(self, m_stop, m_wait):
         mock_connection = mock.Mock()
         output = """
@@ -199,9 +210,10 @@ error: configuration database locked by:
         m_wait.assert_called_once_with(5)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
     def test_save_configuration_warn_already_exists_timeout(
             self, m_stop, m_wait):
         mock_connection = mock.Mock()
@@ -223,9 +235,10 @@ error: configuration database locked by:
         m_wait.assert_called_once_with(5)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_attempt(2))
+                       return_value=tenacity.stop_after_attempt(2),
+                       autospec=True)
     def test_save_configuration_warn_does_not_exist(self, m_stop, m_wait):
         mock_connection = mock.Mock()
         output = """
@@ -247,9 +260,10 @@ error: configuration database locked by:
         m_wait.assert_called_once_with(5)
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.5))
+                       return_value=tenacity.stop_after_delay(0.5),
+                       autospec=True)
     def test_save_configuration_warn_does_not_exist_timeout(
             self, m_stop, m_wait):
         mock_connection = mock.Mock()
@@ -291,9 +305,10 @@ error: configuration check-out failed
         mock_connection.commit.assert_called_once_with()
 
     @mock.patch.object(netmiko_devices.tenacity, 'wait_fixed',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01), autospec=True)
     @mock.patch.object(netmiko_devices.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
     def test_save_configuration_non_default_timing(self, m_stop, m_wait):
         self.switch = self._make_switch_device({'ngs_commit_timeout': 42,
                                                 'ngs_commit_interval': 43})

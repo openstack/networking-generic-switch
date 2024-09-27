@@ -43,9 +43,11 @@ class PoolLockTest(fixtures.TestWithFixtures):
             self.assertFalse(lk.lock)
 
     @mock.patch.object(ngs_lock.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
     @mock.patch.object(ngs_lock.tenacity, 'wait_random',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01),
+                       autospec=True)
     def test_lock_contextmanager_with_coordinator(self, wait_mock, stop_mock):
         coord = mock.Mock()
         lock_mock = mock.Mock()
@@ -62,9 +64,11 @@ class PoolLockTest(fixtures.TestWithFixtures):
         stop_mock.assert_called_once_with(1)
 
     @mock.patch.object(ngs_lock.tenacity, 'stop_after_delay',
-                       return_value=tenacity.stop_after_delay(0.1))
+                       return_value=tenacity.stop_after_delay(0.1),
+                       autospec=True)
     @mock.patch.object(ngs_lock.tenacity, 'wait_random',
-                       return_value=tenacity.wait_fixed(0.01))
+                       return_value=tenacity.wait_fixed(0.01),
+                       autospec=True)
     @mock.patch.object(ngs_lock.LOG, 'error', autospec=True)
     def test_lock_contextmanager_fail(self, log_mock, wait_mock, stop_mock):
         coord = mock.Mock()

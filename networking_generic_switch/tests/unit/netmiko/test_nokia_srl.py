@@ -28,10 +28,11 @@ class TestNetmikoNokiaSRL(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.nokia.'
-                'NokiaSRL.send_commands_to_device')
+                'NokiaSRL.send_commands_to_device', autospec=True)
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
+            self.switch,
             ['set tunnel-interface vxlan0 vxlan-interface 33 type bridged',
              'set tunnel-interface vxlan0 vxlan-interface 33 ingress vni 33',
              'set tunnel-interface vxlan0 vxlan-interface 33 egress '
@@ -52,26 +53,29 @@ class TestNetmikoNokiaSRL(test_netmiko_base.NetmikoSwitchTestBase):
              'bgp-instance 1 route-target import-rt target:1:33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.nokia.'
-                'NokiaSRL.send_commands_to_device')
+                'NokiaSRL.send_commands_to_device', autospec=True)
     def test_del_network(self, mock_exec):
         self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(
+            self.switch,
             ['delete network-instance mac-vrf-33',
              'delete tunnel-interface vxlan0 vxlan-interface 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.nokia.'
-                'NokiaSRL.send_commands_to_device')
+                'NokiaSRL.send_commands_to_device', autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['set interface 3333 subinterface 33 type bridged',
              'set network-instance mac-vrf-33 interface 3333.33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.nokia.'
-                'NokiaSRL.send_commands_to_device')
+                'NokiaSRL.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['delete network-instance mac-vrf-33 interface 3333.33',
              'delete interface 3333 subinterface 33'])
 

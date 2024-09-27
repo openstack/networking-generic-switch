@@ -26,7 +26,7 @@ from networking_generic_switch import generic_switch_mech as gsm
 
 @mock.patch('networking_generic_switch.config.get_devices',
             return_value={'foo': {'device_type': 'bar', 'spam': 'ham',
-                                  'ip': 'ip'}})
+                                  'ip': 'ip'}}, autospec=True)
 class TestGenericSwitchDriver(unittest.TestCase):
     def setUp(self):
         super(TestGenericSwitchDriver, self).setUp()
@@ -36,7 +36,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock._get_physical_networks.return_value = []
         patcher = mock.patch(
             'networking_generic_switch.devices.device_manager',
-            return_value=self.switch_mock)
+            return_value=self.switch_mock, autospec=True)
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -93,7 +93,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         driver.create_network_postcommit(mock_context)
         self.assertFalse(self.switch_mock.add_network.called)
 
-    @mock.patch('networking_generic_switch.generic_switch_mech.LOG')
+    @mock.patch('networking_generic_switch.generic_switch_mech.LOG',
+                autospec=True)
     def test_create_network_postcommit_failure(self, m_log, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -111,7 +112,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
         self.assertNotIn('has been added', m_log.info.call_args[0][0])
 
-    @mock.patch('networking_generic_switch.generic_switch_mech.LOG')
+    @mock.patch('networking_generic_switch.generic_switch_mech.LOG',
+                autospec=True)
     def test_create_network_postcommit_failure_multiple(self, m_log, m_list):
         m_list.return_value = {
             'foo': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
@@ -185,7 +187,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         driver.delete_network_postcommit(mock_context)
         self.assertFalse(self.switch_mock.del_network.called)
 
-    @mock.patch('networking_generic_switch.generic_switch_mech.LOG')
+    @mock.patch('networking_generic_switch.generic_switch_mech.LOG',
+                autospec=True)
     def test_delete_network_postcommit_failure(self, m_log, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -203,7 +206,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.assertIn('Failed to delete network', m_log.error.call_args[0][0])
         self.assertNotIn('has been deleted', m_log.info.call_args[0][0])
 
-    @mock.patch('networking_generic_switch.generic_switch_mech.LOG')
+    @mock.patch('networking_generic_switch.generic_switch_mech.LOG',
+                autospec=True)
     def test_delete_network_postcommit_failure_multiple(self, m_log, m_list):
         m_list.return_value = {
             'foo': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
@@ -391,7 +395,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.delete_port.assert_called_once_with(
             '2222', 1)
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_not_bound(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -418,7 +423,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.plug_port_to_network.assert_not_called()
         self.assertFalse(m_pc.called)
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_not_baremetal(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -445,7 +451,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.plug_port_to_network.assert_not_called()
         self.assertFalse(m_pc.called)
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_no_llc(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -464,7 +471,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.plug_port_to_network.assert_not_called()
         self.assertFalse(m_pc.called)
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_not_managed_by_ngs(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -491,7 +499,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.plug_port_to_network.assert_not_called()
         self.assertFalse(m_pc.called)
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_complete_provisioning(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -527,7 +536,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                      resources.PORT,
                                      'GENERICSWITCH')
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_portgroup_postcommit_complete_provisioning(self,
                                                                m_pc,
                                                                m_list):
@@ -572,7 +582,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                          resources.PORT,
                                          'GENERICSWITCH')])
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_portgroup_postcommit_complete_provisioning_802_3ad(self,
                                                                        m_pc,
                                                                        m_list):
@@ -621,7 +632,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                          resources.PORT,
                                          'GENERICSWITCH')])
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_with_physnet(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -658,7 +670,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                      resources.PORT,
                                      'GENERICSWITCH')
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_with_different_physnet(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -690,7 +703,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.plug_port_to_network.assert_not_called()
         m_pc.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_unbind_not_bound(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -709,7 +723,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.delete_port.assert_not_called()
         m_pc.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_unbind_not_baremetal(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -736,7 +751,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.delete_port.assert_not_called()
         m_pc.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_unbind_no_llc(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -755,7 +771,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.delete_port.assert_not_called()
         m_pc.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_unbind_not_managed_by_ngs(self, m_pc,
                                                               m_list):
         driver = gsm.GenericSwitchDriver()
@@ -783,7 +800,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.delete_port.assert_not_called()
         m_pc.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_unbind(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -814,7 +832,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.delete_port.assert_called_once_with(2222, 123)
         m_pc.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'provisioning_complete')
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_portgroup_postcommit_unbind(self, m_pc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -851,7 +870,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
              mock.call(3333, 123)])
         m_pc.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_port(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -886,7 +906,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                       'GENERICSWITCH')
         self.switch_mock.plug_port_to_network.assert_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_portgroup(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -927,7 +948,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                           'GENERICSWITCH')])
         self.switch_mock.plug_port_to_network.assert_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_portgroup_802_3ad(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -973,7 +995,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.plug_port_to_network.assert_not_called()
         self.switch_mock.plug_bond_to_network.assert_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_port_with_physnet(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -1009,7 +1032,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                       'GENERICSWITCH')
         self.switch_mock.plug_port_to_network.assert_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_portgroup_port_not_supported(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -1045,7 +1069,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         m_apc.assert_not_called()
         self.switch_mock.plug_port_to_network.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_port_with_physnet_port_not_supported(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -1078,7 +1103,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         m_apc.assert_not_called()
         self.switch_mock.plug_port_to_network.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_port_port_not_supported(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -1110,7 +1136,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         m_apc.assert_not_called()
         self.switch_mock.plug_port_to_network.assert_not_called()
 
-    @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_portgroup_802_3ad_port_not_supported(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -1151,7 +1178,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.plug_port_to_network.assert_not_called()
         self.switch_mock.plug_bond_to_network.assert_not_called()
 
-        @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+        @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                           autospec=True)
         def test_bind_port_unknown_switch(self, m_apc, m_list):
             driver = gsm.GenericSwitchDriver()
             driver.initialize()
@@ -1181,7 +1209,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
             self.switch_mock.plug_port_to_network.assert_not_called()
             self.assertFalse(m_apc.called)
 
-        @mock.patch.object(provisioning_blocks, 'add_provisioning_component')
+        @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                           autospec=True)
         def test_bind_port_with_different_physnet(self, m_apc, m_list):
             driver = gsm.GenericSwitchDriver()
             driver.initialize()

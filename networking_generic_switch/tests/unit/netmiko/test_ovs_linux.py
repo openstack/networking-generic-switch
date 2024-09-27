@@ -29,30 +29,32 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network(self, m_exec):
         self.switch.add_network(44, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_exec.assert_called_with([])
+        m_exec.assert_called_with(self.switch, [])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network(self, mock_exec):
         self.switch.del_network(44, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        mock_exec.assert_called_with([])
+        mock_exec.assert_called_with(self.switch, [])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(4444, 44)
         mock_exec.assert_called_with(
+            self.switch,
             ['ovs-vsctl set port 4444 vlan_mode=access',
              'ovs-vsctl set port 4444 tag=44'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(4444, 44)
         mock_exec.assert_called_with(
+            self.switch,
             ['ovs-vsctl clear port 4444 tag',
              'ovs-vsctl clear port 4444 trunks',
              'ovs-vsctl clear port 4444 vlan_mode'])

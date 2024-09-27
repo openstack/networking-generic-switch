@@ -29,33 +29,35 @@ class TestNetmikoHuawei_vrpv8(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        m_exec.assert_called_with(['vlan 33', 'commit'])
+        m_exec.assert_called_with(self.switch, ['vlan 33', 'commit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_del_network(self, mock_exec):
         self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
-        mock_exec.assert_called_with(['undo vlan 33', 'commit'])
+        mock_exec.assert_called_with(self.switch, ['undo vlan 33', 'commit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333',
              'port link-type access',
              'port default vlan 33',
              'commit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_port_has_default_vlan(self, m_sctd):
         switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
         switch.plug_port_to_network(2222, 22)
         m_sctd.assert_called_with(
+            switch,
             ['interface 2222',
              'undo port default vlan 20',
              'commit',
@@ -65,20 +67,22 @@ class TestNetmikoHuawei_vrpv8(test_netmiko_base.NetmikoSwitchTestBase):
              'commit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
+            self.switch,
             ['interface 3333',
              'undo port default vlan 33',
              'commit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device')
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port_has_default_vlan(self, mock_exec):
         switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
         switch.delete_port(2222, 22)
         mock_exec.assert_called_with(
+            switch,
             ['interface 2222',
              'undo port default vlan 22',
              'commit',
