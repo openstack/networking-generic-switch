@@ -64,3 +64,15 @@ Creating new device plugins
    The only required option is ``device_type`` that must be equal to the
    entrypoint you have registered your plugin under, as it is used for plugin
    lookup (see provided ``Netmiko``-based plugins for example).
+
+
+Additional Contributor Resources
+================================
+GenericSwitch is a member of the Bare Metal (ironic) program in OpenStack.
+Development of GenericSwitch follows many ironic conventions.
+
+The `Ironic developer quickstart <https://docs.openstack.org/ironic/latest/contributor/dev-quickstart.html>_`
+has some relevant information -- particularly on unit testing with tox,
+integration testing with devstack, and other information that may be useful
+for GenericSwitch developers. As the documentation is written targetting
+Ironic, it should only be used as a general guideline.
