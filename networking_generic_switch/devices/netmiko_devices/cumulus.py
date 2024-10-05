@@ -159,9 +159,9 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         :returns: The output of the configuration commands.
         """
         cmd_set.append('nv config apply --assume-yes')
-        net_connect.enable()
         # NOTE: Do not exit config mode because save needs elevated
         # privileges
         return net_connect.send_config_set(config_commands=cmd_set,
                                            cmd_verify=False,
+                                           enter_config_mode=False,
                                            exit_config_mode=False)
