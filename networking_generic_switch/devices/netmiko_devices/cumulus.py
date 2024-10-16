@@ -96,7 +96,7 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
     where secret is the password needed for sudo su:
 
     [genericswitch:<hostname>]
-    device_type = netmiko_cumulus
+    device_type = netmiko_cumulus_nvue
     ip = <ip>
     username = <username>
     password = <password>
