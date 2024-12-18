@@ -74,5 +74,5 @@ Development of GenericSwitch follows many ironic conventions.
 The `Ironic developer quickstart <https://docs.openstack.org/ironic/latest/contributor/dev-quickstart.html>_`
 has some relevant information -- particularly on unit testing with tox,
 integration testing with devstack, and other information that may be useful
-for GenericSwitch developers. As the documentation is written targetting
+for GenericSwitch developers. As the documentation is written targeting
 Ironic, it should only be used as a general guideline.
