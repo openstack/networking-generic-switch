@@ -341,7 +341,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         state changes that it does not know or care about.
         """
         port = context.current
-        network = context.network.current
+        segment = context.top_bound_segment
         if self._is_port_bound(port):
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(
@@ -358,7 +358,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                 return
             # If binding has already succeeded, we should have valid links
             # at this point, but check just in case.
-            if not self._is_link_valid(port, network):
+            if not self._is_link_valid(port, segment):
                 return
             is_802_3ad = self._is_802_3ad(port)
             for link in local_link_information:
@@ -370,7 +370,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                     ngs_mac_address=switch_id)
 
                 # If segmentation ID is None, set vlan 1
-                segmentation_id = network.get('provider:segmentation_id') or 1
+                segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
                 LOG.debug("Putting switch port %(switch_port)s on "
                           "%(switch_info)s in vlan %(segmentation_id)s",
                           {'switch_port': port_id, 'switch_info': switch_info,
@@ -390,10 +390,10 @@ class GenericSwitchDriver(api.MechanismDriver):
                 GENERIC_SWITCH_ENTITY)
         elif self._is_port_bound(context.original):
             # The port has been unbound. This will cause the local link
-            # information to be lost, so remove the port from the network on
+            # information to be lost, so remove the port from the segment on
             # the switch now while we have the required information.
-            self._unplug_port_from_network(context.original,
-                                           context.network.current)
+            self._unplug_port_from_segment(context.original,
+                                           context.original_top_bound_segment)
 
     def delete_port_precommit(self, context):
         """Delete resources of a port.
@@ -422,7 +422,7 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         port = context.current
         if self._is_port_bound(port):
-            self._unplug_port_from_network(port, context.network.current)
+            self._unplug_port_from_segment(port, context.top_bound_segment)
 
     def bind_port(self, context):
         """Attempt to bind a port.
@@ -471,17 +471,33 @@ class GenericSwitchDriver(api.MechanismDriver):
         # For more info please read docstring.
 
         port = context.current
-        network = context.network.current
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
 
         if self._is_port_supported(port) and local_link_information:
+            # Filter segments where port is already assigned to subnet(s)
+            subnets = []
+            for fixed_ip in port.get('fixed_ips', []):
+                subnet_id = fixed_ip.get('subnet_id')
+                if subnet_id:
+                    subnets.append(context._plugin.get_subnet(
+                        context.plugin_context,
+                        subnet_id))
+            segments = []
+            if len(subnets) > 0:
+                for segment in context.segments_to_bind:
+                    for subnet in subnets:
+                        segment_id = subnet.get('segment_id')
+                        if segment_id is None or segment_id == segment[api.ID]:
+                            segments.append(segment)
+            else:
+                segments = context.segments_to_bind
+
             # NOTE(jamesdenton): If any link of the port is invalid, none
             # of the links should be processed.
-            if not self._is_link_valid(port, network):
+            if not self._is_link_valid(port, segments[0]):
                 return
 
-            segments = context.segments_to_bind
             context.set_binding(segments[0][api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
 
@@ -489,8 +505,8 @@ class GenericSwitchDriver(api.MechanismDriver):
                 context._plugin_context, port['id'], resources.PORT,
                 GENERIC_SWITCH_ENTITY)
 
-    def _is_link_valid(self, port, network):
-        """Return whether a link references valid switch and physnet.
+    def _is_link_valid(self, port, segment):
+        """Return whether a link references valid switch and segment.
 
         If the local link information refers to a switch that is not
         known to NGS or the switch is not associated with the respective
@@ -498,7 +514,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         be raised.
 
         :param port: The port to check
-        :param network: the network mapped to physnet
+        :param segment: The segment to check against
         :returns: Whether the link refers to a configured switch and/or switch
                   is associated with physnet
         """
@@ -521,9 +537,9 @@ class GenericSwitchDriver(api.MechanismDriver):
                            'device': switch_info})
                 return False
 
-            physnet = network['provider:physical_network']
+            physnet = segment.get(api.PHYSICAL_NETWORK)
             switch_physnets = switch._get_physical_networks()
-            segmentation_id = network.get('provider:segmentation_id') or 1
+            segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
 
             if switch_physnets and physnet not in switch_physnets:
                 LOG.error("Cannot bind port %(port)s as device %(device)s "
@@ -587,15 +603,15 @@ class GenericSwitchDriver(api.MechanismDriver):
             return False
         return local_group_information.get('bond_mode') in ['4', '802.3ad']
 
-    def _unplug_port_from_network(self, port, network):
-        """Unplug a port from a network.
+    def _unplug_port_from_segment(self, port, segment):
+        """Unplug a port from a segment.
 
         If the configuration required to unplug the port is not present
         (e.g. local link information), the port will not be unplugged and no
         exception will be raised.
 
         :param port: The port to unplug
-        :param network: The network from which to unplug the port
+        :param segment: The segment from which to unplug the port
         """
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
@@ -613,7 +629,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                 continue
             port_id = link.get('port_id')
             # If segmentation ID is None, set vlan 1
-            segmentation_id = network.get('provider:segmentation_id') or 1
+            segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
             LOG.debug("Unplugging port %(port)s on %(switch_info)s from vlan: "
                       "%(segmentation_id)s",
                       {'port': port_id, 'switch_info': switch_info,
@@ -627,12 +643,13 @@ class GenericSwitchDriver(api.MechanismDriver):
                 LOG.error("Failed to unplug port %(port_id)s "
                           "on device: %(switch)s from network %(net_id)s "
                           "reason: %(exc)s",
-                          {'port_id': port['id'], 'net_id': network['id'],
+                          {'port_id': port['id'],
+                           'net_id': segment['network_id'],
                            'switch': switch_info, 'exc': e})
                 raise e
             LOG.info('Port %(port_id)s has been unplugged from network '
                      '%(net_id)s on device %(device)s',
-                     {'port_id': port['id'], 'net_id': network['id'],
+                     {'port_id': port['id'], 'net_id': segment['network_id'],
                       'device': switch_info})
 
     def _get_devices_by_physnet(self, physnet):
