@@ -112,6 +112,14 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
 
         self._validate_network_name_format()
 
+    @property
+    def support_trunk_on_ports(self):
+        return False
+
+    @property
+    def support_trunk_on_bond_ports(self):
+        return False
+
     def _validate_network_name_format(self):
         """Validate the network name format configuration option."""
         network_name_format = self.ngs_config['ngs_network_name_format']
@@ -223,17 +231,78 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def plug_port_to_network(self, port_id, segmentation_id):
+    def plug_port_to_network(self, port_id, segmentation_id,
+                             trunk_details=None):
+        """Plug port into network.
+
+        :param port_id: Then name of the switch interface
+        :param segmentation_id: VLAN identifier of the network used as access
+               or native VLAN for port.
+
+        :param trunk_details: trunk information if port is a part of trunk
+        """
         pass
 
     @abc.abstractmethod
-    def delete_port(self, port_id, segmentation_id):
+    def delete_port(self, port_id, segmentation_id, trunk_details=None):
+        """Delete port from specific network.
+
+        :param port_id: Then name of the switch interface
+        :param segmentation_id: VLAN identifier of the network used as access
+               or native VLAN for port.
+
+        :param trunk_details: trunk information if port is a part of trunk
+        """
         pass
 
-    def plug_bond_to_network(self, bond_id, segmentation_id):
-        # Fall back to interface method.
-        return self.plug_port_to_network(bond_id, segmentation_id)
+    def plug_bond_to_network(self, bond_id, segmentation_id,
+                             trunk_details=None):
+        """Plug bond port into network.
 
-    def unplug_bond_from_network(self, bond_id, segmentation_id):
+        :param port_id: Then name of the switch interface
+        :param segmentation_id: VLAN identifier of the network used as access
+               or native VLAN for port.
+
+        :param trunk_details: trunk information if port is a part of trunk
+        """
+        kwargs = {}
+        if trunk_details:
+            kwargs["trunk_details"] = trunk_details
         # Fall back to interface method.
-        return self.delete_port(bond_id, segmentation_id)
+        return self.plug_port_to_network(bond_id, segmentation_id, **kwargs)
+
+    def unplug_bond_from_network(self, bond_id, segmentation_id,
+                                 trunk_details=None):
+        """Unplug bond port from network.
+
+        :param port_id: Then name of the switch interface
+        :param segmentation_id: VLAN identifier of the network used as access
+               or native VLAN for port.
+
+        :param trunk_details: trunk information if port is a part of trunk
+        """
+        kwargs = {}
+        if trunk_details:
+            kwargs["trunk_details"] = trunk_details
+        # Fall back to interface method.
+        return self.delete_port(bond_id, segmentation_id, **kwargs)
+
+    def add_subports_on_trunk(self, binding_profile, port_id, subports):
+        """Allow subports on trunk
+
+        :param binding_profile: Binding profile of parent port
+        :param port_id: The name of the switch port from
+               Local Link Information
+        :param subports: List with subports objects.
+        """
+        pass
+
+    def del_subports_on_trunk(self, binding_profile, port_id, subports):
+        """Allow subports on trunk
+
+        :param binding_profile: Binding profile of parent port
+        :param port_id: The name of the switch port from
+               Local Link Information
+        :param subports: List with subports objects.
+        """
+        pass

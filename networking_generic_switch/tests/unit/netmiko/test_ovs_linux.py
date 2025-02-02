@@ -14,6 +14,8 @@
 
 from unittest import mock
 
+from oslo_utils import uuidutils
+
 from networking_generic_switch.devices.netmiko_devices import ovs
 from networking_generic_switch.tests.unit.netmiko import test_netmiko_base
 
@@ -27,6 +29,10 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
 
     def test_constants(self):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
+
+    def test_features(self):
+        self.assertTrue(self.switch.support_trunk_on_ports)
+        self.assertTrue(self.switch.support_trunk_on_bond_ports)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
@@ -51,6 +57,20 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.plug_port_to_network(4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['ovs-vsctl set port 4444 vlan_mode=native-untagged',
+             'ovs-vsctl set port 4444 tag=44',
+             'ovs-vsctl add port 4444 trunks 44',
+             'ovs-vsctl add port 4444 trunks tag1',
+             'ovs-vsctl add port 4444 trunks tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(4444, 44)
         mock_exec.assert_called_with(
@@ -58,6 +78,137 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
             ['ovs-vsctl clear port 4444 tag',
              'ovs-vsctl clear port 4444 trunks',
              'ovs-vsctl clear port 4444 vlan_mode'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_delete_port_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.delete_port(4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['ovs-vsctl clear port 4444 tag',
+             'ovs-vsctl clear port 4444 trunks',
+             'ovs-vsctl clear port 4444 vlan_mode',
+             'ovs-vsctl clear port 4444 vlan_mode',
+             'ovs-vsctl clear port 4444 tag',
+             'ovs-vsctl remove port 4444 trunks 44',
+             'ovs-vsctl remove port 4444 trunks tag1',
+             'ovs-vsctl remove port 4444 trunks tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_bond_to_network_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.plug_bond_to_network(4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['ovs-vsctl set port 4444 vlan_mode=native-untagged',
+             'ovs-vsctl set port 4444 tag=44',
+             'ovs-vsctl add port 4444 trunks 44',
+             'ovs-vsctl add port 4444 trunks tag1',
+             'ovs-vsctl add port 4444 trunks tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_unplug_bond_from_network_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.unplug_bond_from_network(
+            4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['ovs-vsctl clear port 4444 tag',
+             'ovs-vsctl clear port 4444 trunks',
+             'ovs-vsctl clear port 4444 vlan_mode',
+             'ovs-vsctl clear port 4444 vlan_mode',
+             'ovs-vsctl clear port 4444 tag',
+             'ovs-vsctl remove port 4444 trunks 44',
+             'ovs-vsctl remove port 4444 trunks tag1',
+             'ovs-vsctl remove port 4444 trunks tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_add_subports_on_trunk_no_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = []
+        self.switch.add_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(self.switch, [])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_add_subports_on_trunk_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = [{"segmentation_id": "tag1"},
+                    {"segmentation_id": "tag2"}]
+        self.switch.add_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(self.switch,
+                                     ['ovs-vsctl add port 44 trunks tag1',
+                                      'ovs-vsctl add port 44 trunks tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_del_subports_on_trunk_no_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = []
+        self.switch.del_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(self.switch, [])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_del_subports_on_trunk_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = [{"segmentation_id": "tag1"},
+                    {"segmentation_id": "tag2"}]
+        self.switch.del_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(self.switch,
+                                     ['ovs-vsctl remove port 44 trunks tag1',
+                                      'ovs-vsctl remove port 44 trunks tag2'])
 
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(

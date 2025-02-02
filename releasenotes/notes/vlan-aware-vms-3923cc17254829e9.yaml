@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add support of VLAN aware instances for the following drivers
+      * OVS (as reference implementation)
+      * AristaEos
+      * CiscoIos
