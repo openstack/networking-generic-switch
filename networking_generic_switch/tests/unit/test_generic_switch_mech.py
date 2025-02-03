@@ -904,7 +904,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                       mock_context.current['id'],
                                       resources.PORT,
                                       'GENERICSWITCH')
-        self.switch_mock.plug_port_to_network.assert_called()
+        self.switch_mock.plug_port_to_network.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
@@ -946,7 +946,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                           mock_context.current['id'],
                                           resources.PORT,
                                           'GENERICSWITCH')])
-        self.switch_mock.plug_port_to_network.assert_called()
+        self.switch_mock.plug_port_to_network.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
@@ -993,7 +993,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                           resources.PORT,
                                           'GENERICSWITCH')])
         self.switch_mock.plug_port_to_network.assert_not_called()
-        self.switch_mock.plug_bond_to_network.assert_called()
+        self.switch_mock.plug_bond_to_network.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
@@ -1030,7 +1030,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                       mock_context.current['id'],
                                       resources.PORT,
                                       'GENERICSWITCH')
-        self.switch_mock.plug_port_to_network.assert_called()
+        # NOTE(vsaienko): make sure we do not call heavy methods in bind_port
+        self.switch_mock.plug_port_to_network.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
