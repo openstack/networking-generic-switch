@@ -81,8 +81,8 @@ verifies that ovs port has been assigned to correct VLAN::
    bash ~/networking-generic-switch/devstack/exercise.sh
 
 
-Test with real hardware:
-------------------------
+Test with real hardware
+-----------------------
 
 Add information about hardware switch to Networking-generic-switch
 config ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini`` and
