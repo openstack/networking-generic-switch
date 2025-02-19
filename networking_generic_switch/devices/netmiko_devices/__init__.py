@@ -15,12 +15,14 @@
 import atexit
 import contextlib
 import functools
+import hashlib
 import uuid
 
 import netmiko
 from oslo_config import cfg
 from oslo_log import log as logging
-import paramiko
+from paramiko import PKey as _pkey  # noqa - This is for a monkeypatch
+import paramiko  # noqa - Must load after the patch
 import tenacity
 from tooz import coordination
 
@@ -29,6 +31,11 @@ from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 from networking_generic_switch import locking as ngs_lock
+
+# NOTE(TheJulia) monkey patch paramiko's get_finerprint function
+# to use sha256 instead of md5, since Paramiko's maintainer doesn't
+# seem to be concerned about FIPS compliance.
+_pkey.get_fingerprint = lambda x: hashlib.sha256(x.asbytes()).digest()
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
