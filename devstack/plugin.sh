@@ -124,45 +124,46 @@ function configure_generic_switch {
     # Generate SSH keypair
     configure_generic_switch_user
 
-    sudo ovs-vsctl --may-exist add-br $GENERIC_SWITCH_TEST_BRIDGE
-    ip link show gs_port_01 || sudo ip link add gs_port_01 type dummy
-    sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT
-    if [[ "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]]; then
-        # NOTE(pas-ha) these are used for concurrent tests in tempest plugin
-        N_PORTS=$(($GENERIC_SWITCH_USER_MAX_SESSIONS * 2))
-        for ((n=0;n<$N_PORTS;n++)); do
-            sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE ${GENERIC_SWITCH_TEST_PORT}_${n}
+    if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" == "ovs" ]]; then
+        sudo ovs-vsctl --may-exist add-br $GENERIC_SWITCH_TEST_BRIDGE
+        ip link show gs_port_01 || sudo ip link add gs_port_01 type dummy
+        sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT
+        if [[ "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]]; then
+            # NOTE(pas-ha) these are used for concurrent tests in tempest plugin
+            N_PORTS=$(($GENERIC_SWITCH_USER_MAX_SESSIONS * 2))
+            for ((n=0;n<$N_PORTS;n++)); do
+                sudo ovs-vsctl --may-exist add-port $GENERIC_SWITCH_TEST_BRIDGE ${GENERIC_SWITCH_TEST_PORT}_${n}
+            done
+        fi
+
+        if [ -e "$HOME/.ssh/id_rsa" ] && [[ "$HOST_TOPOLOGY" == "multinode" ]]; then
+            # NOTE(TheJulia): Reset the key pair to utilize a pre-existing key,
+            # this is instead of generating one, which doesn't work in multinode
+            # environments. This is because the keys are managed and placed by zuul.
+            GENERIC_SWITCH_KEY_FILE="${HOME}/.ssh/id_rsa"
+        fi
+
+        # Create generic_switch ml2 config
+        for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
+            local bridge_mac
+            bridge_mac=$(ip link show dev $switch | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
+            switch="genericswitch:$switch"
+            add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER ::1 netmiko_ovs_linux "$GENERIC_SWITCH_PORT" "$bridge_mac"
         done
+        echo "HOST_TOPOLOGY: $HOST_TOPOLOGY"
+        echo "HOST_TOPOLOGY_SUBNODES: $HOST_TOPOLOGY_SUBNODES"
+        if [ -n "$HOST_TOPOLOGY_SUBNODES" ]; then
+            # NOTE(vsaienko) with multinode topology we need to add switches from all
+            # the subnodes to the config on primary node
+            local cnt=0
+            local section
+            for node in $HOST_TOPOLOGY_SUBNODES; do
+                cnt=$((cnt+1))
+                section="genericswitch:sub${cnt}${IRONIC_VM_NETWORK_BRIDGE}"
+                add_generic_switch_to_ml2_config $section $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER $node netmiko_ovs_linux "$GENERIC_SWITCH_PORT"
+            done
+        fi
     fi
-
-    if [ -e "$HOME/.ssh/id_rsa" ] && [[ "$HOST_TOPOLOGY" == "multinode" ]]; then
-        # NOTE(TheJulia): Reset the key pair to utilize a pre-existing key,
-        # this is instead of generating one, which doesn't work in multinode
-        # environments. This is because the keys are managed and placed by zuul.
-        GENERIC_SWITCH_KEY_FILE="${HOME}/.ssh/id_rsa"
-    fi
-
-    # Create generic_switch ml2 config
-    for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
-        local bridge_mac
-        bridge_mac=$(ip link show dev $switch | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
-        switch="genericswitch:$switch"
-        add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER ::1 netmiko_ovs_linux "$GENERIC_SWITCH_PORT" "$bridge_mac"
-    done
-    echo "HOST_TOPOLOGY: $HOST_TOPOLOGY"
-    echo "HOST_TOPOLOGY_SUBNODES: $HOST_TOPOLOGY_SUBNODES"
-    if [ -n "$HOST_TOPOLOGY_SUBNODES" ]; then
-        # NOTE(vsaienko) with multinode topology we need to add switches from all
-        # the subnodes to the config on primary node
-        local cnt=0
-        local section
-        for node in $HOST_TOPOLOGY_SUBNODES; do
-            cnt=$((cnt+1))
-            section="genericswitch:sub${cnt}${IRONIC_VM_NETWORK_BRIDGE}"
-            add_generic_switch_to_ml2_config $section $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER $node netmiko_ovs_linux "$GENERIC_SWITCH_PORT"
-        done
-    fi
-
     neutron_server_config_add $GENERIC_SWITCH_INI_FILE
 
 }
@@ -175,11 +176,22 @@ function add_generic_switch_to_ml2_config {
     local device_type=$5
     local port=$6
     local ngs_mac_address=$7
+    local password=$8
+    local enable_secret=$9
+    # Use curly braces above 9 to prevent expression expansion
+    local trunk_interface="${10}"
 
-    populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name key_file=$key_file
+    if [[ -n "$key_file" ]]; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name key_file=$key_file
+    elif [[ -n "$password" ]]; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name password=$password
+    fi
     populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name username=$username
     populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name ip=$ip
     populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name device_type=$device_type
+    if [[ -n "$enable_secret" ]]; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name secret=$enable_secret
+    fi
     if [[ -n "$port" ]]; then
         populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name port=$port
     fi
@@ -189,6 +201,9 @@ function add_generic_switch_to_ml2_config {
 
     if [[ "$device_type" =~ "netmiko" && "$GENERIC_SWITCH_USER_MAX_SESSIONS" -gt 0 ]]; then
         populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name ngs_max_connections=$GENERIC_SWITCH_USER_MAX_SESSIONS
+    fi
+    if [[ -n "$trunk_interface" ]]; then
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name ngs_trunk_ports=$trunk_interface
     fi
 }
 
