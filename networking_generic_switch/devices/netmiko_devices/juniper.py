@@ -15,6 +15,7 @@
 from oslo_log import log as logging
 import tenacity
 
+from networking_generic_switch._i18n import _
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
@@ -172,20 +173,26 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         try:
             commit()
         except DBLocked as e:
-            msg = ("Reached timeout waiting for switch configuration DB lock. "
-                   "Configuration might not be committed. Error: %s" % str(e))
+            msg = _("Reached timeout waiting for switch configuration "
+                    "DB lock. Configuration might not be committed. "
+                    "Device: %(device)s, error: %(error)s") % {
+                        'device': device_utils.sanitise_config(self.config),
+                        'error': e}
             LOG.error(msg)
-            raise exc.GenericSwitchNetmikoConfigError(
-                config=device_utils.sanitise_config(self.config), error=msg)
+            raise exc.GenericSwitchNetmikoConfigError()
         except (WarningStmtNotExist, WarningStmtExists) as e:
-            msg = ("Reached timeout while attempting to apply configuration. "
-                   "This is likely to be caused by multiple sessions "
-                   "configuring the device concurrently. Error: %s" % str(e))
+            msg = _("Reached timeout while attempting to apply "
+                    "configuration. This is likely to be caused by multiple "
+                    "sessions configuring the device concurrently. "
+                    "Device: %(device)s, error: %(error)s") % {
+                        'device': device_utils.sanitise_config(self.config),
+                        'error': e}
             LOG.error(msg)
-            raise exc.GenericSwitchNetmikoConfigError(
-                config=device_utils.sanitise_config(self.config), error=msg)
+            raise exc.GenericSwitchNetmikoConfigError()
         except ValueError as e:
-            msg = "Failed to commit configuration: %s" % e
+            msg = _("Failed to commit configuration: Device: %(device)s, "
+                    "error: %(error)s") % {
+                        'device': device_utils.sanitise_config(self.config),
+                        'error': e}
             LOG.error(msg)
-            raise exc.GenericSwitchNetmikoConfigError(
-                config=device_utils.sanitise_config(self.config), error=msg)
+            raise exc.GenericSwitchNetmikoConfigError()

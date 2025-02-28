@@ -26,6 +26,7 @@ import paramiko  # noqa - Must load after the patch
 import tenacity
 from tooz import coordination
 
+from networking_generic_switch._i18n import _
 from networking_generic_switch import batching
 from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
@@ -153,10 +154,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         self.batch_cmds = None
         if self._batch_requests():
             if not CONF.ngs_coordination.backend_url:
-                raise exc.GenericSwitchNetmikoConfigError(
-                    config=device_utils.sanitise_config(self.config),
-                    error="ngs_batch_requests is true but [ngs_coordination] "
-                          "backend_url is not provided")
+                error = ("ngs_batch_requests is true but [ngs_coordination] "
+                         "backend_url is not provided")
+                LOG.error(
+                    _("%(device)s, error: %(error)s"),
+                    {'device': device_utils.sanitise_config(self.config),
+                     'error': error})
+                raise exc.GenericSwitchNetmikoConfigError()
             # NOTE: we skip the lock if we are batching requests
             self.locker = None
             switch_name = self.lock_kwargs['locks_prefix']
@@ -221,13 +225,19 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         try:
             net_connect = _create_connection()
         except tenacity.RetryError as e:
-            LOG.error("Reached maximum SSH connection attempts, not retrying")
-            raise exc.GenericSwitchNetmikoConnectError(
-                config=device_utils.sanitise_config(self.config), error=e)
+            LOG.error(
+                _("Reached maximum SSH connection attempts, not retrying "
+                  "for device: %(device)s, error: %(error)s"), {
+                      'device': device_utils.sanitise_config(self.config),
+                      'error': e})
+            raise exc.GenericSwitchNetmikoConnectError()
         except Exception as e:
-            LOG.error("Unexpected exception during SSH connection")
-            raise exc.GenericSwitchNetmikoConnectError(
-                config=device_utils.sanitise_config(self.config), error=e)
+            LOG.error(
+                _("Unexpected exception during SSH connection "
+                  "to device: %(device)s, error: %(error)s"), {
+                      'device': device_utils.sanitise_config(self.config),
+                      'error': e})
+            raise exc.GenericSwitchNetmikoConnectError()
 
         # Now yield the connection to the caller.
         with net_connect:
@@ -257,8 +267,12 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             # module.
             raise
         except Exception as e:
-            raise exc.GenericSwitchNetmikoConnectError(
-                config=device_utils.sanitise_config(self.config), error=e)
+            LOG.error(
+                _("Error sending commands to device: %(device)s, "
+                  "error: %(error)s"), {
+                      'device': device_utils.sanitise_config(self.config),
+                      'error': e})
+            raise exc.GenericSwitchNetmikoConnectError()
 
         LOG.debug(output)
         return output
@@ -488,12 +502,14 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
         for pattern in self.ERROR_MSG_PATTERNS:
             if pattern.search(output):
-                msg = ("Found invalid configuration in device response. "
-                       "Operation: %(operation)s. Output: %(output)s" %
-                       {'operation': operation, 'output': output})
-                raise exc.GenericSwitchNetmikoConfigError(
-                    config=device_utils.sanitise_config(self.config),
-                    error=msg)
+                LOG.error(
+                    _("Found invalid configuration in device response. "
+                      "Operation: %(operation)s. Output: %(output)s. "
+                      "Device: %(device)s"), {
+                          'operation': operation, 'output': output,
+                          'device': device_utils.sanitise_config(self.config)
+                    })
+                raise exc.GenericSwitchNetmikoConfigError()
 
     def add_subports_on_trunk(self, binding_profile, port_id, subports):
         """Allow subports on trunk

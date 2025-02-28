@@ -177,7 +177,7 @@ error: configuration database locked by:
             "Commit failed with the following errors:\n\n{0}".format(output))
 
         self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
-                               "Reached timeout waiting for",
+                               "switch configuration operation failed",
                                self.switch.save_configuration,
                                mock_connection)
         self.assertGreater(mock_connection.commit.call_count, 1)
@@ -227,7 +227,7 @@ error: configuration database locked by:
             "Commit failed with the following errors:\n\n{0}".format(output))
 
         self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
-                               "Reached timeout while attempting",
+                               "switch configuration operation failed",
                                self.switch.save_configuration,
                                mock_connection)
         self.assertGreater(mock_connection.commit.call_count, 1)
@@ -277,7 +277,7 @@ error: configuration database locked by:
             "Commit failed with the following errors:\n\n{0}".format(output))
 
         self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
-                               "Reached timeout while attempting",
+                               "switch configuration operation failed",
                                self.switch.save_configuration,
                                mock_connection)
         self.assertGreater(mock_connection.commit.call_count, 1)
@@ -299,7 +299,7 @@ error: configuration check-out failed
             "Commit failed with the following errors:\n\n{0}".format(output))
 
         self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
-                               "Failed to commit configuration",
+                               "switch configuration operation failed",
                                self.switch.save_configuration,
                                mock_connection)
         mock_connection.commit.assert_called_once_with()

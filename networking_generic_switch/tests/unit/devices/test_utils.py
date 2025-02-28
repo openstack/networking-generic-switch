@@ -60,7 +60,9 @@ class TestDevices(unittest.TestCase):
             ngs_mac_address='11:22:33:44:55:77'))
 
     def test_sanitise_config(self):
-        config = {'username': 'fake-user', 'password': 'fake-password'}
+        config = {'username': 'fake-user', 'password': 'fake-password',
+                  'ip': '123.456.789', 'session_log': '/some/path/here',
+                  "device_type": "my_device"}
         result = device_utils.sanitise_config(config)
-        expected = {'username': 'fake-user', 'password': '******'}
+        expected = {k: '******' for k in config}
         self.assertEqual(expected, result)

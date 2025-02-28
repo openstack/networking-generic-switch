@@ -46,7 +46,8 @@ def sanitise_config(config):
     :param config: a configuration dict to sanitise.
     :returns: a copy of the configuration, with sensitive fields removed.
     """
-    sanitised_fields = {"password"}
+    sanitised_fields = {"password", "ip", "device_type", "username",
+                        "session_log"}
     return {
         key: "******" if key in sanitised_fields else value
         for key, value in config.items()

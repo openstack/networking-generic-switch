@@ -54,7 +54,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
 
     def test_batch_missing_backend_url(self):
         self.assertRaisesRegex(
-            Exception, "backend_url",
+            Exception, "switch configuration operation failed",
             self._make_switch_device, {'ngs_batch_requests': True})
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -445,7 +445,6 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
 fake switch command
 fake error message
 """
-        msg = ("Found invalid configuration in device response. Operation: "
-               "fake op. Output: %s" % output)
-        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError, msg,
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "switch configuration operation failed",
                                self.switch.check_output, output, 'fake op')

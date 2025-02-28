@@ -14,6 +14,7 @@
 
 from oslo_log import log as logging
 
+from networking_generic_switch._i18n import _
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
@@ -81,9 +82,10 @@ class NokiaSRL(netmiko_devices.NetmikoSwitch):
             # module.
             raise
         except Exception as e:
-            raise exc.GenericSwitchNetmikoConnectError(
-                config=device_utils.sanitise_config(self.config), error=e
-            )
+            LOG.error(_("Device: %(device)s, error: %(error)s"), {
+                'device': device_utils.sanitise_config(self.config),
+                'error': e})
+            raise exc.GenericSwitchNetmikoConnectError()
 
         LOG.debug(output)
         return output

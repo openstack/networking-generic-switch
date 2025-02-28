@@ -565,9 +565,8 @@ class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
         self.switch.check_output('fake output', 'fake op')
 
     def _test_check_output_error(self, output):
-        msg = ("Found invalid configuration in device response. Operation: "
-               "fake op. Output: %s" % output)
-        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError, msg,
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "switch configuration operation failed",
                                self.switch.check_output, output, 'fake op')
 
     def test_check_output_incomplete_command(self):

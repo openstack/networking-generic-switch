@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes a security vulnerability where sensitive information (IP addresses,
+    usernames, hostname and file paths) were leaked in error messages when a
+    connection to a network device fails. Error messages are now properly
+    sanitized to redact these sensitive details while preserving meaningful
+    information for troubleshooting.
