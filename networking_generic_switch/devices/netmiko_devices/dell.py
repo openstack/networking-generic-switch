@@ -198,4 +198,5 @@ class DellPowerConnect(netmiko_devices.NetmikoSwitch):
         re.compile(r'VLAN was not created by user'),
         re.compile(r'Configuration Database locked by another application \- '
                    r'try later'),
+        re.compile(r'Port is not in Layer-2 mode'),
     )
