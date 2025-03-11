@@ -27,3 +27,43 @@ class OvsLinux(netmiko_devices.NetmikoSwitch):
         'ovs-vsctl clear port {port} trunks',
         'ovs-vsctl clear port {port} vlan_mode'
     )
+
+    SET_NATIVE_VLAN = (
+        'ovs-vsctl set port {port} vlan_mode=native-untagged',
+        'ovs-vsctl set port {port} tag={segmentation_id}',
+        'ovs-vsctl add port {port} trunks {segmentation_id}',
+    )
+
+    DELETE_NATIVE_VLAN = (
+        'ovs-vsctl clear port {port} vlan_mode',
+        'ovs-vsctl clear port {port} tag',
+        'ovs-vsctl remove port {port} trunks {segmentation_id}',
+    )
+
+    SET_NATIVE_VLAN_BOND = (
+        'ovs-vsctl set port {bond} vlan_mode=native-untagged',
+        'ovs-vsctl set port {bond} tag={segmentation_id}',
+        'ovs-vsctl add port {bond} trunks {segmentation_id}',
+    )
+
+    DELETE_NATIVE_VLAN_BOND = (
+        'ovs-vsctl clear port {bond} vlan_mode',
+        'ovs-vsctl clear port {bond} tag',
+        'ovs-vsctl remove port {bond} trunks {segmentation_id}',
+    )
+
+    ADD_NETWORK_TO_TRUNK = (
+        'ovs-vsctl add port {port} trunks {segmentation_id}',
+    )
+
+    REMOVE_NETWORK_FROM_TRUNK = (
+        'ovs-vsctl remove port {port} trunks {segmentation_id}',
+    )
+
+    ADD_NETWORK_TO_BOND_TRUNK = (
+        'ovs-vsctl add port {bond} trunks {segmentation_id}',
+    )
+
+    DELETE_NETWORK_ON_BOND_TRUNK = (
+        'ovs-vsctl remove port {bond} trunks {segmentation_id}',
+    )

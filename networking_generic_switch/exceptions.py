@@ -53,3 +53,8 @@ class GenericSwitchNetmikoConfigError(GenericSwitchException):
 
 class GenericSwitchBatchError(GenericSwitchException):
     message = _("Batching error: %(device)s, error: %(error)s")
+
+
+class GenericSwitchNotSupported(GenericSwitchException):
+    message = _("Requested feature %(feature)s is not supported by "
+                "networking-generic-switch on the %(switch)s. %(error)s")

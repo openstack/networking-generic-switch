@@ -14,6 +14,8 @@
 
 from unittest import mock
 
+from oslo_utils import uuidutils
+
 from networking_generic_switch.devices.netmiko_devices import cisco
 from networking_generic_switch.tests.unit.netmiko import test_netmiko_base
 
@@ -89,3 +91,174 @@ class TestNetmikoCiscoIos(test_netmiko_base.NetmikoSwitchTestBase):
                    'no switchport mode trunk',
                    'switchport trunk allowed vlan none']
         self.assertEqual(del_exp, cmd_set)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.plug_port_to_network(4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 4444',
+             'switchport mode trunk',
+             'switchport trunk native vlan 44',
+             'switchport trunk allowed vlan add 44',
+             'interface 4444',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add tag1',
+             'interface 4444',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_delete_port_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.delete_port(4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 4444',
+             'no switchport access vlan 44',
+             'no switchport mode trunk',
+             'switchport trunk allowed vlan none',
+             'interface 4444',
+             'no switchport mode trunk',
+             'no switchport trunk native vlan 44',
+             'switchport trunk allowed vlan remove 44',
+             'interface 4444',
+             'switchport trunk allowed vlan remove tag1',
+             'interface 4444',
+             'switchport trunk allowed vlan remove tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_bond_to_network_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.plug_bond_to_network(4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 4444',
+             'switchport mode trunk',
+             'switchport trunk native vlan 44',
+             'switchport trunk allowed vlan add 44',
+             'interface 4444',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add tag1',
+             'interface 4444',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_unplug_bond_from_network_subports(self, mock_exec):
+        trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
+                                       {"segmentation_id": "tag2"}]}
+        self.switch.unplug_bond_from_network(
+            4444, 44, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 4444',
+             'no switchport access vlan 44',
+             'no switchport mode trunk',
+             'switchport trunk allowed vlan none',
+             'interface 4444',
+             'no switchport mode trunk',
+             'no switchport trunk native vlan 44',
+             'switchport trunk allowed vlan remove 44',
+             'interface 4444',
+             'switchport trunk allowed vlan remove tag1',
+             'interface 4444',
+             'switchport trunk allowed vlan remove tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_add_subports_on_trunk_no_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = []
+        self.switch.add_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(self.switch, [])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_add_subports_on_trunk_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = [{"segmentation_id": "tag1"},
+                    {"segmentation_id": "tag2"}]
+        self.switch.add_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 44',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add tag1',
+             'interface 44',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add tag2'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_del_subports_on_trunk_no_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = []
+        self.switch.del_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(self.switch, [])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_del_subports_on_trunk_subports(self, mock_exec):
+        port_id = uuidutils.generate_uuid()
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': port_id
+        }
+        subports = [{"segmentation_id": "tag1"},
+                    {"segmentation_id": "tag2"}]
+        self.switch.del_subports_on_trunk(parent_port, 44, subports=subports)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 44',
+             'switchport trunk allowed vlan remove tag1',
+             'interface 44',
+             'switchport trunk allowed vlan remove tag2'])

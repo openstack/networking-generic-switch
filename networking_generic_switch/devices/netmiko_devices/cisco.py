@@ -39,6 +39,31 @@ class CiscoIos(netmiko_devices.NetmikoSwitch):
         'switchport trunk allowed vlan none'
     )
 
+    SET_NATIVE_VLAN = (
+        'interface {port}',
+        'switchport mode trunk',
+        'switchport trunk native vlan {segmentation_id}',
+        'switchport trunk allowed vlan add {segmentation_id}',
+    )
+
+    DELETE_NATIVE_VLAN = (
+        'interface {port}',
+        'no switchport mode trunk',
+        'no switchport trunk native vlan {segmentation_id}',
+        'switchport trunk allowed vlan remove {segmentation_id}',
+    )
+
+    ADD_NETWORK_TO_TRUNK = (
+        'interface {port}',
+        'switchport mode trunk',
+        'switchport trunk allowed vlan add {segmentation_id}',
+    )
+
+    REMOVE_NETWORK_FROM_TRUNK = (
+        'interface {port}',
+        'switchport trunk allowed vlan remove {segmentation_id}',
+    )
+
 
 class CiscoNxOS(netmiko_devices.NetmikoSwitch):
     """Netmiko device driver for Cisco Nexus switches running NX-OS."""

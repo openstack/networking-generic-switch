@@ -33,6 +33,7 @@ class NetmikoSwitchTestBase(fixtures.TestWithFixtures):
         super(NetmikoSwitchTestBase, self).setUp()
         self.cfg = self.useFixture(config_fixture.Config())
         self.switch = self._make_switch_device()
+        self.ctxt = mock.MagicMock()
 
     def _make_switch_device(self, extra_cfg={}):
         patcher = mock.patch.object(
@@ -163,7 +164,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.check_output', autospec=True)
     def test_delete_port(self, m_check, m_sctd):
-        self.switch.delete_port(2222, 22)
+        self.switch.delete_port(2222, 22, trunk_details={})
         m_sctd.assert_called_with(self.switch, [])
         m_check.assert_called_once_with(self.switch,
                                         'fake output', 'unplug port')
@@ -175,7 +176,7 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                 'NetmikoSwitch.check_output', autospec=True)
     def test_delete_port_has_default_vlan(self, m_check, m_sctd):
         switch = self._make_switch_device({'ngs_port_default_vlan': '20'})
-        switch.delete_port(2222, 22)
+        switch.delete_port(2222, 22, trunk_details={})
         m_sctd.assert_called_with(switch, [])
         m_check.assert_called_once_with(switch, 'fake output', 'unplug port')
 
@@ -196,14 +197,14 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
                 return_value='fake output', autospec=True)
     def test_plug_bond_to_network_fallback(self, m_plug):
         self.switch.plug_bond_to_network(2222, 22)
-        m_plug.assert_called_with(self.switch, 2222, 22)
+        m_plug.assert_called_with(self.switch, 2222, 22, trunk_details=None)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.delete_port',
                 return_value='fake output', autospec=True)
     def test_unplug_bond_from_network_fallback(self, m_delete):
         self.switch.unplug_bond_from_network(2222, 22)
-        m_delete.assert_called_with(self.switch, 2222, 22)
+        m_delete.assert_called_with(self.switch, 2222, 22, trunk_details=None)
 
     def test__format_commands(self):
         self.switch._format_commands(
