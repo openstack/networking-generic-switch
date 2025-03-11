@@ -58,6 +58,17 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
         "exit",
     )
 
+    SET_NATIVE_VLAN = (
+        'interface {port}',
+        'switchport mode trunk',
+        'switchport access vlan {segmentation_id}',
+    )
+
+    DELETE_NATIVE_VLAN = (
+        'interface {port}',
+        'no switchport access vlan',
+    )
+
     ENABLE_PORT = (
         "interface {port}",
         "no shutdown",

@@ -117,12 +117,67 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
     ]
 
     PLUG_PORT_TO_NETWORK = [
+        'nv unset interface {port} bridge domain br_default untagged',
         'nv set interface {port} bridge domain br_default access '
         '{segmentation_id}',
     ]
 
+    ADD_NETWORK_TO_TRUNK = [
+        'nv unset interface {port} bridge domain br_default access',
+        'nv set interface {port} bridge domain br_default vlan '
+        '{segmentation_id}',
+    ]
+
+    ADD_NETWORK_TO_BOND_TRUNK = [
+        'nv unset interface {bond} bridge domain br_default access',
+        'nv set interface {bond} bridge domain br_default vlan '
+        '{segmentation_id}',
+    ]
+
+    REMOVE_NETWORK_FROM_TRUNK = (
+        'nv unset interface {port} bridge domain br_default vlan '
+        '{segmentation_id}',
+    )
+
+    DELETE_NETWORK_ON_BOND_TRUNK = (
+        'nv unset interface {bond} bridge domain br_default vlan '
+        '{segmentation_id}',
+    )
+
+    SET_NATIVE_VLAN = [
+        'nv unset interface {port} bridge domain br_default access',
+        'nv set interface {port} bridge domain br_default untagged '
+        '{segmentation_id}',
+        'nv set interface {port} bridge domain br_default vlan '
+        '{segmentation_id}',
+    ]
+
+    SET_NATIVE_VLAN_BOND = [
+        'nv unset interface {bond} bridge domain br_default access',
+        'nv set interface {bond} bridge domain br_default untagged '
+        '{segmentation_id}',
+        'nv set interface {bond} bridge domain br_default vlan '
+        '{segmentation_id}',
+    ]
+
+    DELETE_NATIVE_VLAN = (
+        'nv unset interface {port} bridge domain br_default untagged '
+        '{segmentation_id}',
+        'nv unset interface {port} bridge domain br_default vlan '
+        '{segmentation_id}',
+    )
+
+    DELETE_NATIVE_VLAN_BOND = (
+        'nv unset interface {bond} bridge domain br_default untagged '
+        '{segmentation_id}',
+        'nv unset interface {bond} bridge domain br_default vlan '
+        '{segmentation_id}',
+    )
+
     DELETE_PORT = [
         'nv unset interface {port} bridge domain br_default access',
+        'nv unset interface {port} bridge domain br_default untagged',
+        'nv unset interface {port} bridge domain br_default vlan',
     ]
 
     ENABLE_PORT = [

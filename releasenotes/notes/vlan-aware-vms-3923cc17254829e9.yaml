@@ -5,3 +5,5 @@ features:
       * OVS (as reference implementation)
       * AristaEos
       * CiscoIos
+      * DellOS 10
+      * Cumulus NVUE
