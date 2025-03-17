@@ -36,6 +36,10 @@ GENERIC_SWITCH_ENTITY = 'GENERICSWITCH'
 
 class GenericSwitchDriver(api.MechanismDriver):
 
+    @property
+    def connectivity(self):
+        return portbindings.CONNECTIVITY_L2
+
     def initialize(self):
         """Perform driver initialization.
 
