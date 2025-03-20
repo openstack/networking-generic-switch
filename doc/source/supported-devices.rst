@@ -34,6 +34,22 @@ These device plugins use `Netmiko <https://github.com/ktbyers/netmiko>`_
 library, which in turn uses `Paramiko` library to access and configure
 the switches via the SSH protocol.
 
+Cisco Nexus (netmiko_cisco_nxos)
+--------------------------------
+
+Known working firmware versions: 10.3.7
+
+Notes:
+
+ * Default state for switches is well suited for networking-generic-switch
+   as long as SSH is utilized *and* the underlying role provided to the
+   account permits configuration of switchports.
+ * Pre-configuration of upstream network trunk ports to the neutron networking
+   nodes is advisable, however the ``ngs_trunk_ports`` setting should be
+   suitable for most users as well.
+ * Use of an "enable" secret through the ``secret`` configuration option has
+   not been tested.
+
 Dell Force10 OS9 (netmiko_dell_force10)
 ---------------------------------------
 
