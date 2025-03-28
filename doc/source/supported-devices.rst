@@ -94,3 +94,21 @@ Notes:
  * This driver was tested *without* the use of an enable secret to
    permit a higher level of configuration access within the Switch.
 
+Sonic - Community Distribution (netmiko_sonic)
+----------------------------------------------
+
+Known working firmware version: master branch - March 2025
+
+Notes:
+
+ * The driver expects to be able to SSH into the switch running
+   SONiC, execute sudo, and then execute configuration commands.
+ * Ports *must* be in Layer-2 mode. As such,
+   ``sudo config interface ip remove $INTERFACE $IP_ADDRESS/$CIDR``
+   and ``sudo config switchport mode access $INTERFACE`` commands
+   may be required.
+ * Uplink switch ports should be configured in advance with the
+   ``sudo config switchport mode trunk $INTERFACE`` command.
+   Testing for the configuraiton utilized this advanced state
+   configuration of the trunk uplink ports with the ``ngs_trunk_ports``
+   configuration option for Networking-Generic-Switch.
