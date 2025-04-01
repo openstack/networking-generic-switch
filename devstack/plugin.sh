@@ -235,7 +235,9 @@ function ngs_configure_tempest {
     if [ $GENERIC_SWITCH_USER_MAX_SESSIONS -gt 0 ]; then
         iniset $TEMPEST_CONFIG ngs port_dlm_concurrency $(($GENERIC_SWITCH_USER_MAX_SESSIONS * 2))
     fi
-    iniset $TEMPEST_CONFIG baremetal_feature_enabled trunks_supported True
+    if [[ "${ML2_L3_PLUGIN:-}" =~ "trunk" ]]; then
+        iniset $TEMPEST_CONFIG baremetal_feature_enabled trunks_supported True
+    fi
 }
 
 # check for service enabled
