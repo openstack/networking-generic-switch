@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Switch configuration groups were only found in files specified by
+    `--config-file` arguments. Configuration files in `--config-dir`
+    directories are now also included.

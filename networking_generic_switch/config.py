@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import glob
+import os
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -39,13 +42,24 @@ CONF.register_opts(coordination_opts, group='ngs_coordination')
 CONF.register_opts(ngs_opts, group='ngs')
 
 
+def config_files():
+    """Generate which yields all config files in the required order"""
+    for config_file in CONF.config_file:
+        yield config_file
+    for config_dir in CONF.config_dir:
+        config_dir_glob = os.path.join(config_dir, '*.conf')
+        for config_file in sorted(glob.glob(config_dir_glob)):
+            yield config_file
+
+
 def get_devices():
     """Parse supplied config files and fetch defined supported devices."""
 
     device_tag = 'genericswitch:'
     devices = {}
 
-    for filename in CONF.config_file:
+    for filename in config_files():
+        LOG.debug(f'Searching for genericswitch config in: {filename}')
         sections = {}
         parser = cfg.ConfigParser(filename, sections)
         try:
@@ -54,6 +68,7 @@ def get_devices():
             continue
         for parsed_item, parsed_value in sections.items():
             if parsed_item.startswith(device_tag):
+                LOG.debug(f'Found genericswitch config: {parsed_item}')
                 dev_id = parsed_item.partition(device_tag)[2]
                 device_cfg = {k: v[0] for k, v
                               in parsed_value.items()}

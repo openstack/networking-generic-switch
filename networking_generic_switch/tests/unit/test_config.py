@@ -12,7 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from unittest import mock
+import os
+import shutil
+import tempfile
 
 import fixtures
 from oslo_config import fixture as config_fixture
@@ -24,34 +26,52 @@ fake_config = """
 [genericswitch:foo]
 device_type = foo_device
 spam = eggs
+"""
 
+fake_config_bar = """
 [genericswitch:bar]
 device_type = bar_device
 ham = vikings
+"""
+
+fake_config_baz = """
+[genericswitch:baz]
+device_type = baz_device
+truffle = brandy
 """
 
 
 class TestConfig(fixtures.TestWithFixtures):
     def setUp(self):
         super(TestConfig, self).setUp()
-        self.cfg = self.useFixture(config_fixture.Config())
-        self._patch_open()
-        self.cfg.conf(args=["--config-file=/some/config/path"])
 
-    def _patch_open(self):
-        m = mock.mock_open(read_data=fake_config)
-        # NOTE(pas-ha) mocks and iterators work differently in Py2 and Py3
-        # http://bugs.python.org/issue21258
-        m.return_value.__iter__ = lambda self: self
-        m.return_value.__next__ = lambda self: next(iter(self.readline, ''))
-        patcher = mock.patch('oslo_config.cfg.open', m)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        config_file_foo = tempfile.NamedTemporaryFile(
+            suffix=".conf", prefix="ngs-", delete=False).name
+        self.addCleanup(os.remove, config_file_foo)
+
+        config_dir = tempfile.mkdtemp('-ngs', 'bar-')
+        self.addCleanup(shutil.rmtree, config_dir)
+
+        config_file_bar = os.path.join(config_dir, 'bar.conf')
+        config_file_baz = os.path.join(config_dir, 'baz.conf')
+
+        with open(config_file_foo, 'w') as f:
+            f.write(fake_config)
+        with open(config_file_bar, 'w') as f:
+            f.write(fake_config_bar)
+        with open(config_file_baz, 'w') as f:
+            f.write(fake_config_baz)
+
+        self.cfg = self.useFixture(config_fixture.Config())
+        self.cfg.conf(args=[f"--config-file={config_file_foo}",
+                            f"--config-dir={config_dir}"])
 
     def test_get_devices(self):
         device_list = config.get_devices()
-        self.assertEqual(set(device_list), set(['foo', 'bar']))
+        self.assertEqual(set(device_list), set(['foo', 'bar', 'baz']))
         self.assertEqual({"device_type": "foo_device", "spam": "eggs"},
                          device_list['foo'])
         self.assertEqual({"device_type": "bar_device", "ham": "vikings"},
                          device_list['bar'])
+        self.assertEqual({"device_type": "baz_device", "truffle": "brandy"},
+                         device_list['baz'])
