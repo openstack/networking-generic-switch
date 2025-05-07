@@ -22,7 +22,6 @@ from neutron_lib.plugins import directory
 from neutron_lib.plugins.ml2 import api
 from oslo_log import log as logging
 
-from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as ngs_exc
@@ -51,11 +50,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         self.vif_details = {portbindings.VIF_DETAILS_CONNECTIVITY:
                             portbindings.CONNECTIVITY_L2}
 
-        gsw_devices = gsw_conf.get_devices()
-        self.switches = {}
-        for switch_info, device_cfg in gsw_devices.items():
-            switch = devices.device_manager(device_cfg, switch_info)
-            self.switches[switch_info] = switch
+        self.switches = devices.get_devices()
 
         LOG.info('Devices %s have been loaded', self.switches.keys())
         if not self.switches:

@@ -15,10 +15,12 @@
 import abc
 
 from neutron_lib.utils.helpers import parse_mappings
+from oslo_concurrency import lockutils
 from oslo_log import log as logging
 from oslo_utils import strutils
 import stevedore
 
+from networking_generic_switch import config as gsw_conf
 from networking_generic_switch import exceptions as gsw_exc
 
 GENERIC_SWITCH_NAMESPACE = 'generic_switch.devices'
@@ -59,6 +61,20 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_allowed_vlans'},
     {'name': 'ngs_allowed_ports'},
 ]
+
+EM_SEMAPHORE = 'ngs_device_manager'
+DEVICES = {}
+
+
+@lockutils.synchronized(EM_SEMAPHORE)
+def get_devices():
+    global DEVICES
+    gsw_devices = gsw_conf.get_devices()
+    for device_name, device_cfg in gsw_devices.items():
+        if device_name in DEVICES:
+            continue
+        DEVICES[device_name] = device_manager(device_cfg, device_name)
+    return DEVICES
 
 
 def device_manager(device_cfg, device_name=""):
