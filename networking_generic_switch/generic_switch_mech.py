@@ -347,7 +347,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         """
         port = context.current
         segment = context.top_bound_segment
-        if self._is_port_bound(port):
+        if ngs_utils.is_port_bound(port):
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(
                 'local_link_information')
@@ -416,7 +416,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                     context._plugin.update_port_status(
                         context.plugin_context, subport["port_id"],
                         const.PORT_STATUS_ACTIVE)
-        elif self._is_port_bound(context.original):
+        elif ngs_utils.is_port_bound(context.original):
             # The port has been unbound. This will cause the local link
             # information to be lost, so remove the port from the segment on
             # the switch now while we have the required information.
@@ -449,7 +449,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         """
 
         port = context.current
-        if self._is_port_bound(port):
+        if ngs_utils.is_port_bound(port):
             self._unplug_port_from_segment(port, context.top_bound_segment)
 
     def bind_port(self, context):
@@ -502,7 +502,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
 
-        if self._is_port_supported(port) and local_link_information:
+        if ngs_utils.is_port_supported(port) and local_link_information:
             # Filter segments where port is already assigned to subnet(s)
             subnets = []
             for fixed_ip in port.get('fixed_ips', []):
@@ -589,33 +589,6 @@ class GenericSwitchDriver(api.MechanismDriver):
                 return False
         return True
 
-    @staticmethod
-    def _is_port_supported(port):
-        """Return whether a port is supported by this driver.
-
-        Ports supported by this driver have a VNIC type of 'baremetal'.
-
-        :param port: The port to check
-        :returns: Whether the port is supported by the NGS driver
-        """
-        vnic_type = port[portbindings.VNIC_TYPE]
-        return vnic_type == portbindings.VNIC_BAREMETAL
-
-    @staticmethod
-    def _is_port_bound(port):
-        """Return whether a port is bound by this driver.
-
-        Ports bound by this driver have their VIF type set to 'other'.
-
-        :param port: The port to check
-        :returns: Whether the port is bound by the NGS driver
-        """
-        if not GenericSwitchDriver._is_port_supported(port):
-            return False
-
-        vif_type = port[portbindings.VIF_TYPE]
-        return vif_type == portbindings.VIF_TYPE_OTHER
-
     def _unplug_port_from_segment(self, port, segment):
         """Unplug a port from a segment.
 
@@ -695,7 +668,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                       'that has been deleted')
             return
 
-        if not self._is_port_supported(port):
+        if not ngs_utils.is_port_supported(port):
             return
 
         binding_profile = port['binding:profile']
@@ -738,7 +711,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                       'that has been deleted')
             return
 
-        if not self._is_port_supported(port):
+        if not ngs_utils.is_port_supported(port):
             return
 
         binding_profile = port['binding:profile']
