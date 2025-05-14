@@ -39,6 +39,12 @@ class FakeDevice(devices.GenericSwitchDevice):
     def delete_port(self, p, s):
         pass
 
+    def add_subports_on_trunk(self, binding_profile, port_id, subports):
+        pass
+
+    def del_subports_on_trunk(self, binding_profile, port_id, subports):
+        pass
+
 
 class TestGenericSwitchDevice(unittest.TestCase):
 

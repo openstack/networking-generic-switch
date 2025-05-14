@@ -107,10 +107,6 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     DELETE_NATIVE_VLAN_BOND = None
 
-    ADD_NETWORK_TO_TRUNK = None
-
-    REMOVE_NETWORK_FROM_TRUNK = None
-
     ADD_NETWORK_TO_BOND_TRUNK = None
 
     DELETE_NETWORK_ON_BOND_TRUNK = None
@@ -484,6 +480,55 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                             " all changes will be lost after switch"
                             " reboot", self.config['device_type'])
 
+    @check_output('add trunk subports')
+    def add_subports_on_trunk(self, binding_profile, port_id, subports):
+        """Allow subports on trunk
+
+        :param binding_profile: Binding profile of parent port
+        :param port_id: The name of the switch port from
+               Local Link Information
+        :param subports: List with subports objects.
+        """
+        cmds = []
+        is_802_3ad = ngs_utils.is_802_3ad(binding_profile)
+
+        for sub_port in subports:
+            if is_802_3ad:
+                cmds += self._format_commands(
+                    self.ADD_NETWORK_TO_BOND_TRUNK, bond=port_id,
+                    segmentation_id=sub_port['segmentation_id'])
+            else:
+                cmds += self._format_commands(
+                    self.ADD_NETWORK_TO_TRUNK, port=port_id,
+                    segmentation_id=sub_port['segmentation_id'])
+        return self.send_commands_to_device(cmds)
+
+    @check_output('delete trunk subports')
+    def del_subports_on_trunk(self, binding_profile, port_id, subports):
+        """Allow subports on trunk
+
+        :param binding_profile: Binding profile of parent port
+        :param port_id: The name of the switch port from
+               Local Link Information
+        :param subports: List with subports objects.
+        """
+
+        cmds = []
+        is_802_3ad = ngs_utils.is_802_3ad(binding_profile)
+
+        for sub_port in subports:
+            if is_802_3ad:
+                cmds += self._format_commands(
+                    self.DELETE_NETWORK_ON_BOND_TRUNK, bond=port_id,
+                    segmentation_id=sub_port['segmentation_id'])
+            else:
+                cmds += self._format_commands(
+                    self.REMOVE_NETWORK_FROM_TRUNK, port=port_id,
+                    segmentation_id=sub_port['segmentation_id'])
+        return self.send_commands_to_device(cmds)
+
+    # NOTE(stevebaker) methods decorated with @check_output need to be
+    # above this method
     def check_output(self, output, operation):
         """Check the output from the device following an operation.
 
@@ -510,48 +555,3 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                           'device': device_utils.sanitise_config(self.config)
                     })
                 raise exc.GenericSwitchNetmikoConfigError()
-
-    def add_subports_on_trunk(self, binding_profile, port_id, subports):
-        """Allow subports on trunk
-
-        :param binding_profile: Binding profile of parent port
-        :param port_id: The name of the switch port from
-               Local Link Information
-        :param subports: List with subports objects.
-        """
-        cmds = []
-        is_802_3ad = ngs_utils.is_802_3ad(binding_profile)
-
-        for sub_port in subports:
-            if is_802_3ad:
-                cmds += self._format_commands(
-                    self.ADD_NETWORK_TO_BOND_TRUNK, bond=port_id,
-                    segmentation_id=sub_port['segmentation_id'])
-            else:
-                cmds += self._format_commands(
-                    self.ADD_NETWORK_TO_TRUNK, port=port_id,
-                    segmentation_id=sub_port['segmentation_id'])
-        return self.send_commands_to_device(cmds)
-
-    def del_subports_on_trunk(self, binding_profile, port_id, subports):
-        """Allow subports on trunk
-
-        :param binding_profile: Binding profile of parent port
-        :param port_id: The name of the switch port from
-               Local Link Information
-        :param subports: List with subports objects.
-        """
-
-        cmds = []
-        is_802_3ad = ngs_utils.is_802_3ad(binding_profile)
-
-        for sub_port in subports:
-            if is_802_3ad:
-                cmds += self._format_commands(
-                    self.DELETE_NETWORK_ON_BOND_TRUNK, bond=port_id,
-                    segmentation_id=sub_port['segmentation_id'])
-            else:
-                cmds += self._format_commands(
-                    self.REMOVE_NETWORK_FROM_TRUNK, port=port_id,
-                    segmentation_id=sub_port['segmentation_id'])
-        return self.send_commands_to_device(cmds)
