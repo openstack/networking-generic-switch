@@ -33,6 +33,7 @@ Notes:
    suitable for most users as well.
  * Use of an "enable" secret through the ``secret`` configuration option has
    not been tested.
+ * Security groups not yet implemented
 
 Dell Force10 OS9 (netmiko_dell_force10)
 ---------------------------------------
@@ -53,6 +54,7 @@ Notes:
    ``secret`` was the tested path. Depending on precise switch configuration
    and access control modeling, it may be possible to use without an enable
    secret, but that has not been tested.
+ * Security groups not yet implemented
 
 Known Issues:
 
@@ -77,6 +79,7 @@ Notes:
    "ip ssh server password-authentication" commands.
  * This driver was tested *without* the use of an enable secret to
    permit a higher level of configuration access within the Switch.
+ * Security groups not yet implemented
 
 Sonic - Community Distribution (netmiko_sonic)
 ----------------------------------------------
@@ -96,3 +99,4 @@ Notes:
    Testing for the configuraiton utilized this advanced state
    configuration of the trunk uplink ports with the ``ngs_trunk_ports``
    configuration option for Networking-Generic-Switch.
+ * Security groups not yet implemented

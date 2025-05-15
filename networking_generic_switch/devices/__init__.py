@@ -60,6 +60,8 @@ NGS_INTERNAL_OPTS = [
     # default open, but setting empty string blocks all ports
     {'name': 'ngs_allowed_vlans'},
     {'name': 'ngs_allowed_ports'},
+    # Require security groups to be enabled on a per-device basis
+    {'name': 'ngs_security_groups_enabled', 'default': False}
 ]
 
 EM_SEMAPHORE = 'ngs_device_manager'
@@ -322,5 +324,58 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         :param port_id: The name of the switch port from
                Local Link Information
         :param subports: List with subports objects.
+        """
+        pass
+
+    @abc.abstractmethod
+    def add_security_group(self, sg):
+        """Add a security group to a switch
+
+        :param sg: Security group object including rules
+        """
+        pass
+
+    @abc.abstractmethod
+    def update_security_group(self, sg):
+        """Updates an existing a security group on a switch
+
+        Rules may have been added or deleted so the driver
+        needs to update the switch state to accurately reflect
+        the provided security group.
+
+        :param sg: Security group object including rules
+        """
+        pass
+
+    @abc.abstractmethod
+    def del_security_group(self, sg_id):
+        """Delete a security group
+
+        :param sg_id: Security group ID
+        """
+        pass
+
+    @abc.abstractmethod
+    def bind_security_group(self, sg, port_id, port_ids):
+        """Apply a security group to a port
+
+        The rules in the provided security group will also be
+        used to assert the state with the switch.
+
+        :param sg: Security group object including rules
+        :param port_id: Name of switch port to bind group to
+        :param port_ids: Names of all switch ports currently
+                         bound to this group
+        """
+        pass
+
+    @abc.abstractmethod
+    def unbind_security_group(self, sg_id, port_id, port_ids):
+        """Remove a bound security group from a port
+
+        :param sg_id: ID of security group to unbind
+        :param port_id: Name of switch port to unbind group from
+        :param port_ids: Names of all switch ports currently
+                         bound to this group
         """
         pass

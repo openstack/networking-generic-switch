@@ -45,6 +45,21 @@ class FakeDevice(devices.GenericSwitchDevice):
     def del_subports_on_trunk(self, binding_profile, port_id, subports):
         pass
 
+    def add_security_group(self, sg):
+        pass
+
+    def update_security_group(self, sg):
+        pass
+
+    def del_security_group(self, sg_id):
+        pass
+
+    def bind_security_group(self, sg, port_id, port_ids):
+        pass
+
+    def unbind_security_group(self, sg_id, port_id, port_ids):
+        pass
+
 
 class TestGenericSwitchDevice(unittest.TestCase):
 

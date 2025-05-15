@@ -262,6 +262,12 @@ ranges of VLANs by simply repeating the physical network name multiple times::
    [ml2_type_vlan]
    network_vlan_ranges = physnet1:700:720,physnet1:750:760
 
+If drivers support security groups then ``genericswitch_security_group`` can be appended
+to the list of ``service_plugins`` (this also needs to be enabled per switch configuration)::
+
+    [DEFAULT]
+    service_plugins = qos,ovn-router,trunk,segments,port_forwarding,log,genericswitch_security_group
+
 (Re)start ``neutron-server`` specifying the additional configuration file
 containing switch configuration::
 

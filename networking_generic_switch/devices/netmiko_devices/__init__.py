@@ -552,6 +552,54 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                     segmentation_id=sub_port['segmentation_id'])
         return self.send_commands_to_device(cmds)
 
+    def add_security_group(self, sg):
+        """Add a security group to a switch
+
+        :param sg: Security group object including rules
+        """
+        raise NotImplementedError()
+
+    def update_security_group(self, sg):
+        """Updates an existing a security group on a switch
+
+        Rules may have been added or deleted so the driver
+        needs to update the switch state to accurately reflect
+        the provided security group.
+
+        :param sg: Security group object including rules
+        """
+        raise NotImplementedError()
+
+    def del_security_group(self, sg_id):
+        """Delete a security group
+
+        :param sg_id: Security group ID
+        """
+        raise NotImplementedError()
+
+    def bind_security_group(self, sg, port_id, port_ids):
+        """Apply a security group to a port
+
+        The rules in the provided security group will also be
+        used to assert the state with the switch.
+
+        :param sg: Security group object including rules
+        :param port_id: Name of switch port to bind group to
+        :param port_ids: Names of all switch ports currently
+                         bound to this group
+        """
+        raise NotImplementedError()
+
+    def unbind_security_group(self, sg_id, port_id, port_ids):
+        """Remove a bound security group from a port
+
+        :param sg_id: ID of security group to unbind
+        :param port_id: Name of switch port to unbind group from
+        :param port_ids: Names of all switch ports currently
+                         bound to this group
+        """
+        raise NotImplementedError()
+
     # NOTE(stevebaker) methods decorated with @check_output need to be
     # above this method
     def check_output(self, output, operation):
