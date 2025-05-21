@@ -164,8 +164,13 @@ function configure_generic_switch {
             done
         fi
     fi
+    # NOTE(TheJulia): This is not respected presently with uwsgi launched
+    # neutron as it auto-identifies it's configuration files.
     neutron_server_config_add $GENERIC_SWITCH_INI_FILE
 
+    if [ -f /etc/neutron/neutron-api-uwsgi.ini ]; then
+        iniset -sudo /etc/neutron/neutron-api-uwsgi.ini uwsgi env OS_NEUTRON_CONFIG_FILES='/etc/neutron/neutron.conf;/etc/neutron/plugins/ml2/ml2_conf.ini;/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini'
+    fi
 }
 
 function add_generic_switch_to_ml2_config {
@@ -241,6 +246,26 @@ function ngs_configure_tempest {
     fi
 }
 
+function ngs_restart_neutron {
+    echo_summary "NGS doing required neutron restart. Stopping neutron."
+    # NOTE(JayF) In practice restarting OVN causes problems, I'm not sure why.
+    # This avoids the restart.
+    local existing_skip_stop_ovn
+    SKIP_STOP_OVN=True
+    # We are changing the base config, and need ot restart the neutron services
+    stop_neutron
+    # NOTE(JayF): Neutron services are initialized in a particular order, this appears to
+    # match that order as currently defined in stack.sh (2025-05-22).
+    # TODO(JayF): Introduce a function in upstream devstack that documents this order so
+    # ironic won't break anytime initialization steps are rearranged.
+    echo_summary "NGS starting neutron service"
+    start_neutron_service_and_check
+    echo_summary "NGS started neutron service, now launch neutron agents"
+    start_neutron
+    echo_summary "NGS required neutron restart completed."
+    SKIP_STOP_OVN=False
+}
+
 # check for service enabled
 if is_service_enabled generic_switch; then
 
@@ -250,7 +275,7 @@ if is_service_enabled generic_switch; then
         install_generic_switch
 
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
-        # Configure after the other layer 1 and 2 services have been configured
+        # Configure after the other layer 1 and 2 services have been started
         echo_summary "Configuring Generic_switch ML2"
 
         # Source ml2 plugin, set default config
@@ -262,7 +287,22 @@ if is_service_enabled generic_switch; then
             Q_PLUGIN_CLASS="ml2"
         fi
 
+        # TODO(JayF): This currently relies on winning a race, as many of the
+        #             files modified by this method are created during this
+        #             phase. In practice it works, but moving forward we likely
+        #             need a supported-by-devstack/neutron-upstream method to 
+        #             ensure this is done at the right moment.
         configure_generic_switch
+
+        if is_service_enabled neutron; then
+            # TODO(JayF): Similarly, we'd like to restart neutron to ensure
+            #             our config changes have taken effect; we can't do 
+            #             that reliably here because it may not be fully
+            #             configured, and extra phase is too late.
+            echo_summary "Skipping ngs_restart_neutron"
+            #ngs_restart_neutron
+        fi
+
     elif [[ "$1" == "stack" && "$2" == "test-config" ]]; then
         if is_service_enabled tempest; then
             echo_summary "Configuring Tempest NGS"
