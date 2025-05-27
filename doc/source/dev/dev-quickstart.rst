@@ -34,7 +34,7 @@ Switch to the stack user and clone DevStack::
     git clone https://github.com/openstack-dev/devstack.git devstack
 
 Create devstack/local.conf with minimal settings required to enable
-Networking-generic-switch. Here is and example of local.conf::
+Networking-generic-switch. Here is an example of local.conf::
 
     [[local|localrc]]
     # Set credentials

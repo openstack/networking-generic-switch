@@ -35,40 +35,40 @@ class Sonic(netmiko_devices.NetmikoSwitch):
     """
     NETMIKO_DEVICE_TYPE = "linux"
 
-    ADD_NETWORK = [
+    ADD_NETWORK = (
         'config vlan add {segmentation_id}',
-    ]
+    )
 
-    DELETE_NETWORK = [
+    DELETE_NETWORK = (
         'config vlan del {segmentation_id}',
-    ]
+    )
 
-    PLUG_PORT_TO_NETWORK = [
+    PLUG_PORT_TO_NETWORK = (
         'config vlan member add -u {segmentation_id} {port}',
-    ]
+    )
 
-    DELETE_PORT = [
+    DELETE_PORT = (
         'config vlan member del {segmentation_id} {port}',
-    ]
+    )
 
-    ADD_NETWORK_TO_TRUNK = [
+    ADD_NETWORK_TO_TRUNK = (
         'config vlan member add {segmentation_id} {port}',
-    ]
+    )
 
-    REMOVE_NETWORK_FROM_TRUNK = [
+    REMOVE_NETWORK_FROM_TRUNK = (
         'config vlan member del {segmentation_id} {port}',
-    ]
+    )
 
-    SAVE_CONFIGURATION = [
+    SAVE_CONFIGURATION = (
         'config save -y',
-    ]
+    )
 
-    ERROR_MSG_PATTERNS = [
+    ERROR_MSG_PATTERNS = (
         re.compile(r'VLAN[0-9]+ doesn\'t exist'),
         re.compile(r'Invalid Vlan Id , Valid Range : 1 to 4094'),
         re.compile(r'Interface name is invalid!!'),
         re.compile(r'No such command'),
-    ]
+    )
 
     def send_config_set(self, net_connect, cmd_set):
         """Send a set of configuration lines to the device.
