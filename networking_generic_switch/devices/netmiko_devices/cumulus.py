@@ -22,71 +22,73 @@ class Cumulus(netmiko_devices.NetmikoSwitch):
     Note for this switch you want config like this,
     where secret is the password needed for sudo su:
 
-    [genericswitch:<hostname>]
-    device_type = netmiko_cumulus
-    ip = <ip>
-    username = <username>
-    password = <password>
-    secret = <password for sudo>
-    ngs_physical_networks = physnet1
-    ngs_max_connections = 1
-    ngs_port_default_vlan = 123
-    ngs_disable_inactive_ports = False
+    .. code-block:: ini
+
+        [genericswitch:<hostname>]
+        device_type = netmiko_cumulus
+        ip = <ip>
+        username = <username>
+        password = <password>
+        secret = <password for sudo>
+        ngs_physical_networks = physnet1
+        ngs_max_connections = 1
+        ngs_port_default_vlan = 123
+        ngs_disable_inactive_ports = False
     """
     NETMIKO_DEVICE_TYPE = "linux"
 
-    ADD_NETWORK = [
+    ADD_NETWORK = (
         'net add vlan {segmentation_id}',
-    ]
+    )
 
-    DELETE_NETWORK = [
+    DELETE_NETWORK = (
         'net del vlan {segmentation_id}',
-    ]
+    )
 
-    PLUG_PORT_TO_NETWORK = [
+    PLUG_PORT_TO_NETWORK = (
         'net add interface {port} bridge access {segmentation_id}',
-    ]
+    )
 
-    DELETE_PORT = [
+    DELETE_PORT = (
         'net del interface {port} bridge access {segmentation_id}',
-    ]
+    )
 
-    PLUG_BOND_TO_NETWORK = [
+    PLUG_BOND_TO_NETWORK = (
         'net add bond {bond} bridge access {segmentation_id}',
-    ]
+    )
 
-    UNPLUG_BOND_FROM_NETWORK = [
+    UNPLUG_BOND_FROM_NETWORK = (
         'net del bond {bond} bridge access {segmentation_id}',
-    ]
+    )
 
-    ENABLE_PORT = [
+    ENABLE_PORT = (
         'net del interface {port} link down',
-    ]
+    )
 
-    DISABLE_PORT = [
+    DISABLE_PORT = (
         'net add interface {port} link down',
-    ]
+    )
 
-    ENABLE_BOND = [
+    ENABLE_BOND = (
         'net del bond {bond} link down',
-    ]
+    )
 
-    DISABLE_BOND = [
+    DISABLE_BOND = (
         'net add bond {bond} link down',
-    ]
+    )
 
-    SAVE_CONFIGURATION = [
+    SAVE_CONFIGURATION = (
         'net commit',
-    ]
+    )
 
-    ERROR_MSG_PATTERNS = [
+    ERROR_MSG_PATTERNS = (
         # Its tempting to add this error message, but as only one
         # bridge-access is allowed, we ignore that error for now:
         # re.compile(r'configuration does not have "bridge-access')
         re.compile(r'ERROR: Command not found.'),
         re.compile(r'command not found'),
         re.compile(r'is not a physical interface on this switch'),
-    ]
+    )
 
 
 class CumulusNVUE(netmiko_devices.NetmikoSwitch):
@@ -95,44 +97,47 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
     Note for this switch you want config like this,
     where secret is the password needed for sudo su:
 
-    [genericswitch:<hostname>]
-    device_type = netmiko_cumulus_nvue
-    ip = <ip>
-    username = <username>
-    password = <password>
-    secret = <password for sudo>
-    ngs_physical_networks = physnet1
-    ngs_max_connections = 1
-    ngs_port_default_vlan = 123
-    ngs_disable_inactive_ports = False
+    .. code-block:: ini
+
+        [genericswitch:<hostname>]
+        device_type = netmiko_cumulus_nvue
+        ip = <ip>
+        username = <username>
+        password = <password>
+        secret = <password for sudo>
+        ngs_physical_networks = physnet1
+        ngs_max_connections = 1
+        ngs_port_default_vlan = 123
+        ngs_disable_inactive_ports = False
+
     """
     NETMIKO_DEVICE_TYPE = "linux"
 
-    ADD_NETWORK = [
+    ADD_NETWORK = (
         'nv set bridge domain br_default vlan {segmentation_id}',
-    ]
+    )
 
-    DELETE_NETWORK = [
+    DELETE_NETWORK = (
         'nv unset bridge domain br_default vlan {segmentation_id}',
-    ]
+    )
 
-    PLUG_PORT_TO_NETWORK = [
+    PLUG_PORT_TO_NETWORK = (
         'nv unset interface {port} bridge domain br_default untagged',
         'nv set interface {port} bridge domain br_default access '
         '{segmentation_id}',
-    ]
+    )
 
-    ADD_NETWORK_TO_TRUNK = [
+    ADD_NETWORK_TO_TRUNK = (
         'nv unset interface {port} bridge domain br_default access',
         'nv set interface {port} bridge domain br_default vlan '
         '{segmentation_id}',
-    ]
+    )
 
-    ADD_NETWORK_TO_BOND_TRUNK = [
+    ADD_NETWORK_TO_BOND_TRUNK = (
         'nv unset interface {bond} bridge domain br_default access',
         'nv set interface {bond} bridge domain br_default vlan '
         '{segmentation_id}',
-    ]
+    )
 
     REMOVE_NETWORK_FROM_TRUNK = (
         'nv unset interface {port} bridge domain br_default vlan '
@@ -144,21 +149,21 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         '{segmentation_id}',
     )
 
-    SET_NATIVE_VLAN = [
+    SET_NATIVE_VLAN = (
         'nv unset interface {port} bridge domain br_default access',
         'nv set interface {port} bridge domain br_default untagged '
         '{segmentation_id}',
         'nv set interface {port} bridge domain br_default vlan '
         '{segmentation_id}',
-    ]
+    )
 
-    SET_NATIVE_VLAN_BOND = [
+    SET_NATIVE_VLAN_BOND = (
         'nv unset interface {bond} bridge domain br_default access',
         'nv set interface {bond} bridge domain br_default untagged '
         '{segmentation_id}',
         'nv set interface {bond} bridge domain br_default vlan '
         '{segmentation_id}',
-    ]
+    )
 
     DELETE_NATIVE_VLAN = (
         'nv unset interface {port} bridge domain br_default untagged '
@@ -174,25 +179,25 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         '{segmentation_id}',
     )
 
-    DELETE_PORT = [
+    DELETE_PORT = (
         'nv unset interface {port} bridge domain br_default access',
         'nv unset interface {port} bridge domain br_default untagged',
         'nv unset interface {port} bridge domain br_default vlan',
-    ]
+    )
 
-    ENABLE_PORT = [
+    ENABLE_PORT = (
         'nv set interface {port} link state up',
-    ]
+    )
 
-    DISABLE_PORT = [
+    DISABLE_PORT = (
         'nv set interface {port} link state down',
-    ]
+    )
 
-    SAVE_CONFIGURATION = [
+    SAVE_CONFIGURATION = (
         'nv config save',
-    ]
+    )
 
-    ERROR_MSG_PATTERNS = [
+    ERROR_MSG_PATTERNS = (
         # Its tempting to add this error message, but as only one
         # bridge-access is allowed, we ignore that error for now:
         # re.compile(r'configuration does not have "bridge-access')
@@ -204,7 +209,7 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         re.compile(r'Error: Invalid parameter'),
         re.compile(r'Unable to restart services'),
         re.compile(r'Failure during apply'),
-    ]
+    )
 
     def send_config_set(self, net_connect, cmd_set):
         """Send a set of configuration lines to the device.

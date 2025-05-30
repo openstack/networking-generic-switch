@@ -235,7 +235,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
                              trunk_details=None):
         """Plug port into network.
 
-        :param port_id: Then name of the switch interface
+        :param port_id: The name of the switch interface
         :param segmentation_id: VLAN identifier of the network used as access
                or native VLAN for port.
 
@@ -247,7 +247,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
     def delete_port(self, port_id, segmentation_id, trunk_details=None):
         """Delete port from specific network.
 
-        :param port_id: Then name of the switch interface
+        :param port_id: The name of the switch interface
         :param segmentation_id: VLAN identifier of the network used as access
                or native VLAN for port.
 
@@ -259,7 +259,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
                              trunk_details=None):
         """Plug bond port into network.
 
-        :param port_id: Then name of the switch interface
+        :param port_id: The name of the switch interface
         :param segmentation_id: VLAN identifier of the network used as access
                or native VLAN for port.
 
@@ -275,7 +275,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
                                  trunk_details=None):
         """Unplug bond port from network.
 
-        :param port_id: Then name of the switch interface
+        :param port_id: The name of the switch interface
         :param segmentation_id: VLAN identifier of the network used as access
                or native VLAN for port.
 

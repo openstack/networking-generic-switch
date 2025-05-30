@@ -16,8 +16,8 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class SupermicroSmis(netmiko_devices.NetmikoSwitch):
-    """A class to represent a Supermicro SMIS switch"""
-    """
+    """A class to represent a Supermicro SMIS switch
+
     Inherits from:
     --------------
     netmiko_devices.NetmikoSwitch
