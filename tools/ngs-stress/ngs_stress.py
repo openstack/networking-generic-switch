@@ -18,14 +18,11 @@ import sys
 import threading
 import uuid
 
-import eventlet
 from neutron_lib.utils import net
 from oslo_config import cfg
 import oslo_log.log as logging
 
 import networking_generic_switch.generic_switch_mech as generic_switch
-
-eventlet.monkey_patch()
 
 CONF = cfg.CONF
 LOG = logging.getLogger(__name__)

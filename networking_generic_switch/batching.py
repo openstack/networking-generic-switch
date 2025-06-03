@@ -14,14 +14,15 @@
 
 import atexit
 import json
+import threading
 
 import etcd3gw
 from etcd3gw import exceptions as etcd3gw_exc
 from etcd3gw.utils import _decode
 from etcd3gw.utils import _encode
 from etcd3gw.utils import _increment_last_byte
-import eventlet
 from oslo_log import log as logging
+from oslo_service import threadgroup
 from oslo_utils import netutils
 from oslo_utils import uuidutils
 import tenacity
@@ -32,7 +33,7 @@ SHUTDOWN_TIMEOUT = 60
 
 LOG = logging.getLogger(__name__)
 
-THREAD_POOL = eventlet.greenpool.GreenPool()
+THREAD_POOL = threadgroup.ThreadGroup()
 
 
 class ShutdownTimeout(Exception):
@@ -48,12 +49,12 @@ def _wait_for_threads():
     and performing switch configuration operations which should not be
     interrupted.
     """
+    active_threads = len(THREAD_POOL.threads)
     LOG.info("Waiting %d seconds for %d threads to complete",
-             SHUTDOWN_TIMEOUT, THREAD_POOL.running())
+             SHUTDOWN_TIMEOUT, active_threads)
     try:
-        with eventlet.Timeout(SHUTDOWN_TIMEOUT, ShutdownTimeout):
-            THREAD_POOL.waitall()
-    except ShutdownTimeout:
+        THREAD_POOL.stop(graceful=True, timeout=SHUTDOWN_TIMEOUT)
+    except Exception:
         LOG.error("Timed out waiting for threads to complete")
     else:
         LOG.info("Finished waiting for threads to complete")
@@ -365,13 +366,12 @@ class SwitchBatch(object):
 
     @staticmethod
     def _spawn(work_fn):
-        # TODO(johngarbutt) remove hard eventlet dependency
-        #  in a similar way to etcd3gw
         # Sleep to let possible other work to batch together
-        eventlet.sleep(0)
+        # This works with both eventlet and native threading
+        threading.Event().wait(0.001)
         # Run all pending tasks, which might be a no op
         # if pending tasks already ran
-        THREAD_POOL.spawn_n(work_fn)
+        THREAD_POOL.add_thread(work_fn)
 
     def _execute_pending_batches(self, device, item):
         """Execute all batches currently registered.
