@@ -168,9 +168,10 @@ function configure_generic_switch {
     # neutron as it auto-identifies it's configuration files.
     neutron_server_config_add $GENERIC_SWITCH_INI_FILE
 
-    if [ -f /etc/neutron/neutron-api-uwsgi.ini ]; then
-        iniset -sudo /etc/neutron/neutron-api-uwsgi.ini uwsgi env OS_NEUTRON_CONFIG_FILES='/etc/neutron/neutron.conf;/etc/neutron/plugins/ml2/ml2_conf.ini;/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini'
-    fi
+    # NOTE(JayF): It's possible in some rare cases this config doesn't exist
+    #             if so, no big deal, iniset is used in devstack and should
+    #             not lose our changes. See `write_uwsgi_config` in lib/apache
+    iniset -sudo /etc/neutron/neutron-api-uwsgi.ini uwsgi env OS_NEUTRON_CONFIG_FILES='/etc/neutron/neutron.conf;/etc/neutron/plugins/ml2/ml2_conf.ini;/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini'
 }
 
 function add_generic_switch_to_ml2_config {
