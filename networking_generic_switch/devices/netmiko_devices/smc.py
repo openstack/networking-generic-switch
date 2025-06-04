@@ -16,34 +16,8 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class SupermicroSmis(netmiko_devices.NetmikoSwitch):
-    """A class to represent a Supermicro SMIS switch
+    """A class to represent a Supermicro SMIS switch."""
 
-    Inherits from:
-    --------------
-    netmiko_devices.NetmikoSwitch
-
-    Class Attributes:
-    -----------------
-    ADD_NETWORK : tuple
-        A tuple of command strings used to add a VLAN
-        with a specific segmentation ID
-        and name the VLAN.
-
-    DELETE_NETWORK : tuple
-        A tuple of command strings used to delete a VLAN
-        by its segmentation ID.
-
-    PLUG_PORT_TO_NETWORK : tuple
-        A tuple of command strings used to configure a port
-        to connect to a specific VLAN.
-        This sets the port to access mode and assigns it
-        to the specified VLAN.
-
-    DELETE_PORT : tuple
-        A tuple of command strings used to remove a port
-        from the VLAN. This removes
-        any trunking configuration and clears VLAN assignments.
-    """
     ADD_NETWORK = (
         'vlan {segmentation_id}',
         'name {network_name}',

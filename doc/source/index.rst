@@ -9,6 +9,7 @@ Welcome to networking-generic-switch's documentation!
    configuration
    dev/dev-quickstart
    contributing
+   netmiko-device-commands
    contributor/api/modules
 
 Indices and tables
