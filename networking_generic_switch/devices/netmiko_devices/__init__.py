@@ -144,6 +144,31 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             self.config['session_log_record_writes'] = True
             self.config['session_log_file_mode'] = 'append'
 
+        _NUMERIC_CAST = {
+            "port": int,
+            "global_delay_factor": float,
+            "conn_timeout": float,
+            "auth_timeout": float,
+            "banner_timeout": float,
+            "blocking_timeout": float,
+            "timeout": float,
+            "session_timeout": float,
+            "read_timeout_override": float,
+            "keepalive": int,
+        }
+
+        for key, expected_type in _NUMERIC_CAST.items():
+            value = self.config.get(key)
+            if isinstance(value, str):
+                try:
+                    self.config[key] = expected_type(value)
+                except ValueError:
+                    LOG.error(
+                        "Invalid value %s for %s; expected %s",
+                        value, key, expected_type.__name__,
+                    )
+                    raise exc.GenericSwitchNetmikoConfigError()
+
         self.lock_kwargs = {
             'locks_pool_size': int(self.ngs_config['ngs_max_connections']),
             'locks_prefix': self.config.get(
