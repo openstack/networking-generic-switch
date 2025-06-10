@@ -21,6 +21,7 @@ from neutron.plugins.ml2 import driver_context
 from neutron_lib.callbacks import resources
 from neutron_lib.plugins import directory
 
+from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions
 from networking_generic_switch import generic_switch_mech as gsm
@@ -32,6 +33,7 @@ from networking_generic_switch import generic_switch_mech as gsm
 class TestGenericSwitchDriver(unittest.TestCase):
     def setUp(self):
         super(TestGenericSwitchDriver, self).setUp()
+        devices.DEVICES.clear()
         self.switch_mock = mock.Mock()
         self.switch_mock.config = {'device_type': 'bar', 'spam': 'ham',
                                    'ip': 'ip'}
