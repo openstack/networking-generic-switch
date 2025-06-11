@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    It is now possible to add security group support to existing drivers. This
+    is implemented as a neutron service plugin and can be enabled by appending
+    ``genericswitch_security_group`` to the neutron configuration
+    ``[DEFAULT]service_plugins`` list. The security group feature is limited to
+    applying one security group to a port.
+
+    The first driver to have security group support added is ``netmiko_cisco_nxos``.
+    Limitations specific to this driver are:
+
+    * Only ingress rules allowed
+    * Only IPv4 rules are implemented
+    * Supports rules for protocols: tcp, udp, icmp

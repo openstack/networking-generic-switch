@@ -68,6 +68,8 @@ for the Cisco NX-OS device::
     [genericswitch:sw-hostname]
     device_type = netmiko_cisco_nxos
     ngs_mac_address = <switch mac address>
+    # if security group support is required
+    ngs_security_groups_enabled = True
     ip = <switch mgmt ip address>
     username = admin
     password = password
