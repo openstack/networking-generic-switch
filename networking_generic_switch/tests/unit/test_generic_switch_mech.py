@@ -25,6 +25,7 @@ from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions
 from networking_generic_switch import generic_switch_mech as gsm
+from networking_generic_switch import utils as ngs_utils
 
 
 @mock.patch('networking_generic_switch.config.get_devices',
@@ -1099,10 +1100,11 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
-    def test_bind_portgroup_port_not_supported(self, m_apc, m_list):
+    @mock.patch.object(ngs_utils, 'is_port_supported', autospec=True)
+    def test_bind_portgroup_port_not_supported(self, m_ips, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        driver._is_port_supported = mock.MagicMock(return_value=False)
+        m_ips.return_value = False
         mock_context = mock.create_autospec(driver_context.PortContext)
         mock_context._plugin_context = mock.MagicMock()
         mock_context.current = {'binding:profile':
@@ -1134,10 +1136,12 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
-    def test_bind_port_with_physnet_port_not_supported(self, m_apc, m_list):
+    @mock.patch.object(ngs_utils, 'is_port_supported', autospec=True)
+    def test_bind_port_with_physnet_port_not_supported(self, m_ips, m_apc,
+                                                       m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        driver._is_port_supported = mock.MagicMock(return_value=False)
+        m_ips.return_value = False
         mock_context = mock.create_autospec(driver_context.PortContext)
         mock_context._plugin_context = mock.MagicMock()
         mock_context.current = {'binding:profile':
@@ -1166,10 +1170,11 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
-    def test_bind_port_port_not_supported(self, m_apc, m_list):
+    @mock.patch.object(ngs_utils, 'is_port_supported', autospec=True)
+    def test_bind_port_port_not_supported(self, m_ips, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        driver._is_port_supported = mock.MagicMock(return_value=False)
+        m_ips.return_value = False
         mock_context = mock.create_autospec(driver_context.PortContext)
         mock_context._plugin_context = mock.MagicMock()
         mock_context.current = {'binding:profile':
@@ -1199,10 +1204,12 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
-    def test_bind_portgroup_802_3ad_port_not_supported(self, m_apc, m_list):
+    @mock.patch.object(ngs_utils, 'is_port_supported', autospec=True)
+    def test_bind_portgroup_802_3ad_port_not_supported(self, m_ips, m_apc,
+                                                       m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        driver._is_port_supported = mock.MagicMock(return_value=False)
+        m_ips.return_value = False
         mock_context = mock.create_autospec(driver_context.PortContext)
         mock_context._plugin_context = mock.MagicMock()
         mock_context.current = {'binding:profile':
