@@ -303,6 +303,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         # Fall back to interface method.
         return self.delete_port(bond_id, segmentation_id, **kwargs)
 
+    @abc.abstractmethod
     def add_subports_on_trunk(self, binding_profile, port_id, subports):
         """Allow subports on trunk
 
@@ -313,6 +314,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         """
         pass
 
+    @abc.abstractmethod
     def del_subports_on_trunk(self, binding_profile, port_id, subports):
         """Allow subports on trunk
 

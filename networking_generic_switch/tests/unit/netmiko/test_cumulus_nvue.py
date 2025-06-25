@@ -237,7 +237,9 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
-    def test_add_subports_on_trunk_no_subports(self, mock_exec):
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_add_subports_on_trunk_no_subports(self, _, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
             'binding:profile': {
@@ -256,7 +258,9 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
-    def test_add_subports_on_trunk_subports(self, mock_exec):
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_add_subports_on_trunk_subports(self, _, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
             'binding:profile': {
@@ -281,7 +285,9 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
-    def test_del_subports_on_trunk_no_subports(self, mock_exec):
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_del_subports_on_trunk_no_subports(self, _, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
             'binding:profile': {
@@ -300,7 +306,9 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
-    def test_del_subports_on_trunk_subports(self, mock_exec):
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_del_subports_on_trunk_subports(self, _, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
             'binding:profile': {
