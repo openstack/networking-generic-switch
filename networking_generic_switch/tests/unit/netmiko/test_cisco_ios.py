@@ -54,12 +54,35 @@ class TestNetmikoCiscoIos(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_with_per_port_default_vlan(self, mock_exec):
+        self.switch.plug_port_to_network(3333, 33, default_vlan=35)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 3333', 'no switchport access vlan 35',
+             'no switchport mode trunk', 'switchport trunk allowed vlan none',
+             'interface 3333', 'switchport mode access',
+             'switchport access vlan 33'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
             self.switch,
             ['interface 3333', 'no switchport access vlan 33',
              'no switchport mode trunk', 'switchport trunk allowed vlan none'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_delete_port_with_per_port_default_vlan(self, mock_exec):
+        self.switch.delete_port(3333, 33, default_vlan=35)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 3333', 'no switchport access vlan 33',
+             'no switchport mode trunk', 'switchport trunk allowed vlan none',
+             'vlan 35', 'name 35',
+             'interface 3333', 'switchport mode access',
+             'switchport access vlan 35'])
 
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(

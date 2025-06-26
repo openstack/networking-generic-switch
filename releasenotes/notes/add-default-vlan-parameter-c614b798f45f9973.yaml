@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds per-port ``default_vlan`` parameter to device driver interfaces.
+    The ``plug_port_to_network``, ``delete_port``, ``plug_bond_to_network``,
+    and ``unplug_bond_from_network`` methods now accept an optional
+    ``default_vlan`` parameter that allows specifying a default VLAN on a
+    per-port basis.
+
+    This enhancement provides greater flexibility compared to the existing
+    switch-wide ``ngs_port_default_vlan`` configuration option. When both
+    are specified, the per-port value takes precedence. If neither is
+    provided, no default VLAN cleanup or restoration will be performed.
