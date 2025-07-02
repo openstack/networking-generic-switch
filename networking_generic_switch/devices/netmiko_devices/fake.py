@@ -95,6 +95,42 @@ class Fake(netmiko_devices.NetmikoSwitch):
         "disable {port}",
     )
 
+    ADD_SECURITY_GROUP = (
+        "add security group {security_group}",
+    )
+
+    REMOVE_SECURITY_GROUP = (
+        "remove security group {security_group}",
+    )
+
+    ADD_SECURITY_GROUP_RULE_INGRESS = (
+        "add ingress security group {security_group} rule {protocol} "
+        "source {remote_ip_prefix} port {port_range_min} to {port_range_max}",
+    )
+
+    REMOVE_SECURITY_GROUP_RULE_INGRESS = (
+        "remove ingress security group {security_group} rule {protocol} "
+        "source {remote_ip_prefix} port {port_range_min} to {port_range_max}",
+    )
+
+    ADD_SECURITY_GROUP_RULE_EGRESS = (
+        "add egress security group {security_group} rule {protocol} "
+        "source {remote_ip_prefix} port {port_range_min} to {port_range_max}",
+    )
+
+    REMOVE_SECURITY_GROUP_RULE_EGRESS = (
+        "remove egress security group {security_group} rule {protocol} "
+        "source {remote_ip_prefix} port {port_range_min} to {port_range_max}",
+    )
+
+    BIND_SECURITY_GROUP = (
+        "apply security group {security_group} to port {port}",
+    )
+
+    UNBIND_SECURITY_GROUP = (
+        "remove security group {security_group} from port {port}",
+    )
+
     ERROR_MSG_PATTERNS = ()
     """Sequence of error message patterns.
 

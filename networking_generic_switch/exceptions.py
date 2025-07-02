@@ -60,3 +60,8 @@ class GenericSwitchBatchError(GenericSwitchException):
 class GenericSwitchNotSupported(GenericSwitchException):
     message = _("Requested feature %(feature)s is not supported by "
                 "networking-generic-switch on the %(switch)s. %(error)s")
+
+
+class GenericSwitchSecurityGroupRuleNotSupported(GenericSwitchNotSupported):
+    message = _("Security group rule is not supported on the %(switch)s. "
+                "%(error)s")

@@ -19,6 +19,7 @@ import hashlib
 import uuid
 
 import netmiko
+from neutron_lib import constants as const
 from oslo_config import cfg
 from oslo_log import log as logging
 from paramiko import PKey as _pkey  # noqa - This is for a monkeypatch
@@ -110,6 +111,26 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
     ADD_NETWORK_TO_BOND_TRUNK = None
 
     DELETE_NETWORK_ON_BOND_TRUNK = None
+
+    ADD_SECURITY_GROUP = None
+
+    ADD_SECURITY_GROUP_COMPLETE = None
+
+    REMOVE_SECURITY_GROUP = None
+
+    ADD_SECURITY_GROUP_RULE_INGRESS = None
+
+    ADD_SECURITY_GROUP_RULE_EGRESS = None
+
+    BIND_SECURITY_GROUP = None
+
+    UNBIND_SECURITY_GROUP = None
+
+    SUPPORT_SG_PORT_RANGE = True
+    """Whether a security group rule supports a port range on this switch
+
+    Set to False for switches which support only a single port per rule.
+    """
 
     ERROR_MSG_PATTERNS = ()
     """Sequence of error message patterns.
@@ -552,13 +573,112 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                     segmentation_id=sub_port['segmentation_id'])
         return self.send_commands_to_device(cmds)
 
+    def _get_acl_names(self, sg_id):
+        """Get the ACL names for a security group.
+
+        Subclasses should override this method to provide mutiple ACL names on
+        devices which require distinct ACLs for ipv4 vs ipv6 or ingress vs
+        egress.
+
+        :param sg_id: Security group ID
+        :returns: A dict of ACL names
+        """
+        return {'security_group': f"ngs-{sg_id}"}
+
+    def _prepare_security_group_rule(self, sg_id, rule):
+        """Prepare a security group rule for use in a command.
+
+        Subclasses should override this method when the rule dict does not
+        contain the information required to run the rule commands.
+        Transformations of remote_ip_prefix will be common.
+
+        :param sg_id: Security group ID
+        :param rule: A dict containing security group rule information
+        :returns: A dict containing required substitution values
+        """
+        # reduce neutron object to a dict with only the required items
+        rule_dict = {k: getattr(rule, k) for k in (
+            'ethertype',
+            'direction',
+            'protocol',
+            'port_range_min',
+            'port_range_max',
+            'remote_ip_prefix',
+            'normalized_cidr'
+        ) if getattr(rule, k, None) is not None}
+        rule_dict.update(self._get_acl_names(sg_id))
+        return rule_dict
+
+    def _security_group_rule_commands(self, sg_id, rule):
+        rule = self._prepare_security_group_rule(sg_id, rule)
+        if rule['direction'] == 'ingress':
+            cmd_template = self.ADD_SECURITY_GROUP_RULE_INGRESS
+        else:
+            cmd_template = self.ADD_SECURITY_GROUP_RULE_EGRESS
+        if not cmd_template:
+            # This could be empty because some switches don't support egress
+            # rules. This error should propagate back to the user
+            raise NotImplementedError()
+
+        return self._format_commands(
+            cmd_template,
+            **rule)
+
+    def _validate_rule(self, rule):
+        """Validate a security group rule.
+
+        :param rule: A security group rule.
+        :returns: True if the rule should be created,
+                  False if the rule should be silently ignored
+        :raises: GenericSwitchSecurityGroupRuleNotSupported for rules not
+                 supported by this switch.
+        """
+        LOG.debug("Validating rule: %s", rule)
+
+        # handle switches which don't support port ranges
+        min_port = rule.port_range_min
+        max_port = rule.port_range_max
+        if rule.protocol in (const.PROTO_NAME_TCP,
+                             const.PROTO_NAME_UDP):
+            if not self.SUPPORT_SG_PORT_RANGE:
+                if min_port and max_port and min_port != max_port:
+                    raise exc.GenericSwitchSecurityGroupRuleNotSupported(
+                        message='Only one port per rule is supported '
+                        'on this switch')
+
+        # Ignore deny-all rule. Drivers need to be aware if this is implicit
+        # when an ACL is created or if they need to create the deny-all rule
+        # explicitly.
+        elif not rule.protocol:
+            return False
+        return True
+
+    def _security_group_commands(self, sg, delete_first=False):
+        names = self._get_acl_names(sg.id)
+        cmds = []
+        if delete_first:
+            cmds += self._format_commands(self.REMOVE_SECURITY_GROUP,
+                                          **names)
+
+        cmds += self._format_commands(self.ADD_SECURITY_GROUP,
+                                      **names)
+        for rule in sg.rules:
+            if self._validate_rule(rule):
+                cmds += self._security_group_rule_commands(sg.id, rule)
+
+        cmds += self._format_commands(self.ADD_SECURITY_GROUP_COMPLETE)
+        return cmds
+
+    @check_output('add security group')
     def add_security_group(self, sg):
         """Add a security group to a switch
 
         :param sg: Security group object including rules
         """
-        raise NotImplementedError()
+        cmds = self._security_group_commands(sg)
+        return self.send_commands_to_device(cmds)
 
+    @check_output('update security group')
     def update_security_group(self, sg):
         """Updates an existing a security group on a switch
 
@@ -568,17 +688,23 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
         :param sg: Security group object including rules
         """
-        raise NotImplementedError()
+        cmds = self._security_group_commands(sg, delete_first=True)
+        return self.send_commands_to_device(cmds)
 
+    @check_output('delete security group')
     def del_security_group(self, sg_id):
         """Delete a security group
 
         :param sg_id: Security group ID
         """
-        raise NotImplementedError()
+        names = self._get_acl_names(sg_id)
+        cmds = self._format_commands(self.REMOVE_SECURITY_GROUP,
+                                     **names)
+        return self.send_commands_to_device(cmds)
 
+    @check_output('bind security group')
     def bind_security_group(self, sg, port_id, port_ids):
-        """Apply a security group to a port
+        """Apply security group to all ports
 
         The rules in the provided security group will also be
         used to assert the state with the switch.
@@ -588,17 +714,37 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         :param port_ids: Names of all switch ports currently
                          bound to this group
         """
-        raise NotImplementedError()
+        names = self._get_acl_names(sg.id)
+        # Recreate the security group based on the passed object
+        # before binding to an interface
+        cmds = self._security_group_commands(sg, delete_first=True)
+        # Bind to all ports provided by port_ids
+        for port in port_ids:
+            cmds += self._format_commands(self.BIND_SECURITY_GROUP,
+                                          port=port, **names)
+        return self.send_commands_to_device(cmds)
 
+    @check_output('unbind security group')
     def unbind_security_group(self, sg_id, port_id, port_ids):
         """Remove a bound security group from a port
+
+        All existing bindings will also be asserted with the switch.
 
         :param sg_id: ID of security group to unbind
         :param port_id: Name of switch port to unbind group from
         :param port_ids: Names of all switch ports currently
                          bound to this group
         """
-        raise NotImplementedError()
+        names = self._get_acl_names(sg_id)
+        # Unbind the one port specified
+        cmds = self._format_commands(self.UNBIND_SECURITY_GROUP,
+                                     port=port_id,
+                                     **names)
+        # Bind to all ports provided by port_ids
+        for port in port_ids:
+            cmds += self._format_commands(self.BIND_SECURITY_GROUP,
+                                          port=port, **names)
+        return self.send_commands_to_device(cmds)
 
     # NOTE(stevebaker) methods decorated with @check_output need to be
     # above this method

@@ -98,6 +98,31 @@ class NetmikoSwitchTestBase(fixtures.TestWithFixtures):
         switch.DELETE_NETWORK_ON_BOND_TRUNK = (
             'delete network {segmentation_id} on bond trunk {port}',
         )
+        switch.ADD_SECURITY_GROUP = (
+            "add security group {security_group}",
+        )
+        switch.ADD_SECURITY_GROUP_COMPLETE = (
+            "add security group complete",
+        )
+        switch.REMOVE_SECURITY_GROUP = (
+            "remove security group {security_group}",
+        )
+        switch.ADD_SECURITY_GROUP_RULE_INGRESS = (
+            "add ingress rule {protocol} "
+            "source {remote_ip_prefix} "
+            "port {port_range_min} to {port_range_max}",
+        )
+        switch.ADD_SECURITY_GROUP_RULE_EGRESS = (
+            "add egress rule {protocol} "
+            "source {remote_ip_prefix} "
+            "port {port_range_min} to {port_range_max}",
+        )
+        switch.BIND_SECURITY_GROUP = (
+            "bind security group {security_group} to port {port}",
+        )
+        switch.UNBIND_SECURITY_GROUP = (
+            "unbind security group {security_group} from port {port}",
+        )
         return switch
 
 
@@ -272,6 +297,227 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
             'delete port 2222 from network 22',
             'disable port 2222'])
         m_check.assert_called_once_with(switch, 'fake output', 'unplug port')
+
+    def test__validate_rule(self):
+        empty_rule = mock.Mock(
+            protocol=None,
+            port_range_min=None,
+            port_range_max=None,
+        )
+        rule = mock.Mock(
+            protocol='tcp',
+            port_range_min='8080',
+            port_range_max='8088',
+        )
+        self.assertFalse(self.switch._validate_rule(empty_rule))
+        self.assertTrue(self.switch._validate_rule(rule))
+        self.switch.SUPPORT_SG_PORT_RANGE = False
+        self.assertRaises(
+            exc.GenericSwitchSecurityGroupRuleNotSupported,
+            self.switch._validate_rule, rule)
+
+    def test__prepare_security_group_rule(self):
+        # empty rule
+        rule = mock.Mock(
+            ethertype=None,
+            protocol=None,
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=None,
+            port_range_max=None,
+        )
+        self.assertEqual(
+            {
+                'security_group': 'ngs-1234'
+            },
+            self.switch._prepare_security_group_rule('1234', rule)
+        )
+        # full rule
+        rule = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='ingress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='22',
+            port_range_max='23'
+        )
+        self.assertEqual(
+            {
+                'direction': 'ingress',
+                'ethertype': 'IPv4',
+                'normalized_cidr': '0.0.0.0/0',
+                'port_range_max': '23',
+                'port_range_min': '22',
+                'protocol': 'tcp',
+                'remote_ip_prefix': '0.0.0.0/0',
+                'security_group': 'ngs-1234'
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_add_security_group(self, m_check, m_sctd):
+        rule1 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='ingress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='22',
+            port_range_max='23'
+        )
+        rule2 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='egress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='80',
+            port_range_max='80'
+        )
+        sg = mock.Mock()
+        sg.id = '1234'
+        sg.rules = [rule1, rule2]
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+        switch.add_security_group(sg)
+        m_sctd.assert_called_with(switch, [
+            'add security group ngs-1234',
+            'add ingress rule tcp source 0.0.0.0/0 '
+            'port 22 to 23',
+            'add egress rule tcp source 0.0.0.0/0 '
+            'port 80 to 80',
+            'add security group complete'])
+        m_check.assert_called_once_with(switch, 'fake output',
+                                        'add security group')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_add_security_group_no_range(self, m_check, m_sctd):
+        rule1 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='ingress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='22',
+            port_range_max='23'
+        )
+        rule2 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='egress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='80',
+            port_range_max='80'
+        )
+        sg = mock.Mock()
+        sg.id = '1234'
+        sg.rules = [rule1, rule2]
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+
+        switch.SUPPORT_SG_PORT_RANGE = False
+        self.assertRaises(
+            exc.GenericSwitchSecurityGroupRuleNotSupported,
+            switch.add_security_group, sg)
+        m_sctd.assert_not_called()
+        m_check.assert_not_called()
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_add_security_group_no_egress(self, m_check, m_sctd):
+        rule1 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='ingress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='22',
+            port_range_max='23'
+        )
+        rule2 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='egress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='80',
+            port_range_max='80'
+        )
+        sg = mock.Mock()
+        sg.id = '1234'
+        sg.rules = [rule1, rule2]
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+        switch.ADD_SECURITY_GROUP_RULE_EGRESS = None
+
+        self.assertRaises(
+            NotImplementedError,
+            switch.add_security_group, sg)
+        m_sctd.assert_not_called()
+        m_check.assert_not_called()
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_del_security_group(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+        switch.del_security_group('1234')
+        m_sctd.assert_called_with(switch, ['remove security group ngs-1234'])
+        m_check.assert_called_once_with(switch, 'fake output',
+                                        'delete security group')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_bind_security_group(self, m_check, m_sctd):
+        sg = mock.Mock()
+        sg.id = '1234'
+        sg.rules = []
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+        switch.bind_security_group(sg, 'port1', ['port1', 'port2'])
+        m_sctd.assert_called_with(switch, [
+            'remove security group ngs-1234',
+            'add security group ngs-1234',
+            'add security group complete',
+            'bind security group ngs-1234 to port port1',
+            'bind security group ngs-1234 to port port2'])
+        m_check.assert_called_once_with(switch, 'fake output',
+                                        'bind security group')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_unbind_security_group(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_disable_inactive_ports': 'true'})
+        switch.unbind_security_group('1234', 'port1', ['port2'])
+        m_sctd.assert_called_with(switch, [
+            'unbind security group ngs-1234 from port port1',
+            'bind security group ngs-1234 to port port2'])
+        m_check.assert_called_once_with(switch, 'fake output',
+                                        'unbind security group')
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.plug_port_to_network',
