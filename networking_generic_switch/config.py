@@ -24,7 +24,9 @@ LOG = logging.getLogger(__name__)
 coordination_opts = [
     cfg.StrOpt('backend_url',
                secret=True,
-               help='The backend URL to use for distributed coordination.'),
+               help='The backend URL to use for distributed coordination. '
+                    'Note that the etcd3gw driver should be used when '
+                    'ngs_batch_requests is True'),
     cfg.IntOpt('acquire_timeout',
                min=0,
                default=60,
