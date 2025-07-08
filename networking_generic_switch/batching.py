@@ -17,6 +17,7 @@ import json
 import threading
 
 import etcd3gw
+from etcd3gw.client import DEFAULT_API_PATH
 from etcd3gw import exceptions as etcd3gw_exc
 from etcd3gw.utils import _decode
 from etcd3gw.utils import _encode
@@ -322,12 +323,15 @@ class SwitchBatch(object):
             ca_cert = params.get('ca_cert')
             cert_key = params.get('cert_key')
             cert_cert = params.get('cert_cert')
-            api_version = params.get('api_version', 'v3alpha')
+            api_version = params.get('api_version')
+            if api_version:
+                api_path = '/' + api_version + '/'
+            else:
+                api_path = DEFAULT_API_PATH
             etcd_client = etcd3gw.client(
                 host=host, port=port, protocol=protocol,
                 ca_cert=ca_cert, cert_key=cert_key, cert_cert=cert_cert,
-                api_path='/' + api_version + '/',
-                timeout=30)
+                api_path=api_path, timeout=30)
             self.queue = SwitchQueue(switch_name, etcd_client)
         else:
             self.queue = switch_queue

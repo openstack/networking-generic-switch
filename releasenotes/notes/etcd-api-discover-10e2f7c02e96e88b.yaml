@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Now the etcd api version is detected automatically. The API version can
+    be overridden by the ``api_version`` query parameter of the coordination
+    backend url, or the ``ETCD3GW_API_PATH`` environment.
