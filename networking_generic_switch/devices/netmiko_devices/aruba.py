@@ -16,7 +16,10 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class ArubaOSCX(netmiko_devices.NetmikoSwitch):
-    """Built for ArubaOS-CX"""
+    """Device Name: ArubaOS-CX
+
+    Port can be disabled: True
+    """
 
     ADD_NETWORK = (
         'vlan {segmentation_id}',

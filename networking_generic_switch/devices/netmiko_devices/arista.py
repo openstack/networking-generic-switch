@@ -16,6 +16,7 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class AristaEos(netmiko_devices.NetmikoSwitch):
+    """Device Name: Arista EOS"""
     ADD_NETWORK = (
         'vlan {segmentation_id}',
         'name {network_name}',

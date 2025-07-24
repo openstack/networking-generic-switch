@@ -24,6 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BrocadeFastIron(netmiko_devices.NetmikoSwitch):
+    """Device Name: Brocade ICX (FastIron)"""
     ADD_NETWORK = (
         'vlan {segmentation_id} by port',
         'name {network_name}',

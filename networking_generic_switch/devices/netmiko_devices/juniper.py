@@ -32,7 +32,10 @@ JUNIPER_INTERNAL_OPTS = [
 
 
 class Juniper(netmiko_devices.NetmikoSwitch):
+    """Device Name: Juniper Junos OS
 
+    Port can be disabled: True
+    """
     ADD_NETWORK = (
         'set vlans {network_name} vlan-id {segmentation_id}',
     )

@@ -55,7 +55,7 @@ def config_files():
 
 
 def get_devices():
-    """Parse supplied config files and fetch defined supported devices."""
+    """Parse supplied config files and fetch defined compatible devices."""
 
     device_tag = 'genericswitch:'
     devices = {}

@@ -16,6 +16,7 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class MellanoxMlnxOS(netmiko_devices.NetmikoSwitch):
+    """Device Name: Mellanox MLNX-OS"""
     ADD_NETWORK = (
         'vlan {segmentation_id}',
         'name {network_id}',

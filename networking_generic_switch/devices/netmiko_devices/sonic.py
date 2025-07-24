@@ -17,7 +17,9 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class Sonic(netmiko_devices.NetmikoSwitch):
-    """Built for SONiC 3.x
+    """Device Name: SONiC
+
+    Built for SONiC 3.x
 
     Note for this switch you want config like this,
     where secret is the password needed for sudo su:
@@ -35,6 +37,7 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         ngs_port_default_vlan = 123
         ngs_disable_inactive_ports = False
     """
+
     NETMIKO_DEVICE_TYPE = "linux"
 
     ADD_NETWORK = (

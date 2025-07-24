@@ -21,6 +21,7 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class Cisco300(netmiko_devices.NetmikoSwitch):
+    """Device Name: Cisco 300-Series"""
     ADD_NETWORK = (
         'vlan {segmentation_id}',
     )

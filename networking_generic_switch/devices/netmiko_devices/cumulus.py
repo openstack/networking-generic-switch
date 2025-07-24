@@ -17,7 +17,11 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class Cumulus(netmiko_devices.NetmikoSwitch):
-    """Built for Cumulus 4.x
+    """Device Name: Cumulus Linux (via NCLU)
+
+    Port can be disabled: True
+
+    Built for Cumulus 4.x
 
     Note for this switch you want config like this,
     where secret is the password needed for sudo su:
@@ -92,7 +96,11 @@ class Cumulus(netmiko_devices.NetmikoSwitch):
 
 
 class CumulusNVUE(netmiko_devices.NetmikoSwitch):
-    """Built for Cumulus 5.x
+    """Device Name: Cumulus Linux(via NVUE)
+
+    Port can be disabled: True
+
+    Built for Cumulus 5.x
 
     Note for this switch you want config like this,
     where secret is the password needed for sudo su:

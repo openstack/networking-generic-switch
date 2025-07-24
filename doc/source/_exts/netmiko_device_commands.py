@@ -1,9 +1,23 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import ast
 import inspect
 import stevedore
 
 from docutils import nodes
 from docutils.parsers import rst
+from docutils.parsers.rst import directives
 from docutils.statemachine import ViewList
 from sphinx.util.nodes import nested_parse_with_titles
 
@@ -14,7 +28,7 @@ command_descriptions = {
          port to connect to a specific VLAN',
     'DELETE_PORT': 'A tuple of command strings used to remove a port from the\
          VLAN',
-    'NETMIKO_DEVICE_TYPE': 'Netmiko Supported device type',
+    'NETMIKO_DEVICE_TYPE': 'Netmiko compatible device type',
     'ADD_NETWORK_TO_TRUNK': 'Adds a network to a trunk port.',
     'REMOVE_NETWORK_FROM_TRUNK': 'Removes a network from a trunk port.',
     'ENABLE_PORT': 'Enables the port',
@@ -43,8 +57,8 @@ command_descriptions = {
         down',
 }
 
-
-class DeviceCommandsDirective(rst.Directive):
+class DeviceParser:
+    """Parses class definitions from device files"""
 
     def parse_tuples(value):
         """Parses the value in the tuples and returns a list of its contents"""
@@ -85,12 +99,20 @@ class DeviceCommandsDirective(rst.Directive):
                             if isinstance(target, ast.Name):
                                 ast_type = subnode.value
                                 if isinstance(ast_type, ast.Tuple):
-                                    cli_commands[command_name] = DeviceCommandsDirective.parse_tuples(ast_type)
+                                    cli_commands[command_name] = DeviceParser.parse_tuples(ast_type)
                                 else:
                                     cli_commands[command_name] = ast.literal_eval(ast_type)
                 if cli_commands:
                     classes[device_name] = cli_commands
         return classes
+
+
+class DeviceCommandsDirective(rst.Directive):
+    """To output documentation based on the output-type that is requested"""
+
+    option_spec = {
+        'output-type': directives.unchanged,
+    }
 
     def format_output(switch_details):
         """Formats output that is to be displayed"""
@@ -116,30 +138,70 @@ class DeviceCommandsDirective(rst.Directive):
 
     def run(self):
         """Loads the files, parses them and formats the output"""
+
+        # default output type is full device documentation. other output types
+        # display names of compatible devices or only devices capable of
+        # disabling ports
+        output_type = self.options.get('output-type', 'documentation')
+
         manager = stevedore.ExtensionManager(
             namespace='generic_switch.devices',
             invoke_on_load=False,
         )
-        output_lines = ViewList()
-        output_lines.append("Switches", "")
-        output_lines.append("========", "")
+        devices_info = []
 
         for file_loader in manager.extensions:
             switch = file_loader.plugin
             module = inspect.getmodule(switch)
             file_content = inspect.getsource(module)
             filename = module.__file__
-            parsed_device_file = DeviceCommandsDirective.parse_file(file_content, filename)
-            switch_name = switch.__name__
-            output_lines.append(f"{switch_name}:", "")
-            subheading_characters = "^"
-            subheading = subheading_characters * (len(switch_name) + 1)
-            output_lines.append(subheading, "")
+            parsed_device_file = DeviceParser.parse_file(file_content, filename)
+            switch_class_name = switch.__name__
+            device_name = switch_class_name
+            docstring = parsed_device_file.get(switch_class_name, {}).get('__doc__', '')
+            can_disable_port = False
 
-            if switch_name in parsed_device_file:
-                switch_details = parsed_device_file[switch_name]
-                output_lines.extend(DeviceCommandsDirective.format_output(switch_details))
-                output_lines.append("", "")
+            # parses docstring for device name and whether port can be disabled
+            if docstring:
+                for line in docstring.splitlines():
+                    if line.startswith('Device Name'):
+                        _, device_name = line.split(': ', 1)
+                    elif line.startswith('Port can be disabled'):
+                        _, disable_str = line.split(': ', 1)
+                        can_disable_port = disable_str.lower() == 'true'
+
+            devices_info.append({
+                'switch_class_name': switch_class_name,
+                'device_name': device_name,
+                'supports_disable': can_disable_port,
+                'parsed_data': parsed_device_file.get(switch_class_name, {})
+            })
+
+        # to store output for documentation
+        output_lines = ViewList()
+
+        if output_type == 'all-devices':
+            for device in devices_info:
+                output_lines.append(f"- {device['device_name']}", "")
+
+        elif output_type == 'devices-supporting-port-disable':
+            for device in devices_info:
+                if device['supports_disable']:
+                    output_lines.append(f"- {device['device_name']}", "")
+
+        else:
+            output_lines.append("Switches", "")
+            output_lines.append("========", "")
+            for device in devices_info:
+                switch_class_name = device['switch_class_name']
+                output_lines.append(f"{switch_class_name}:", "")
+                subheading_characters = "^"
+                subheading = subheading_characters * (len(switch_class_name) + 1)
+                output_lines.append(subheading, "")
+
+                if device['parsed_data']:
+                    output_lines.extend(DeviceCommandsDirective.format_output(device['parsed_data']))
+                    output_lines.append("", "")
 
         node = nodes.section()
         node.document = self.state.document

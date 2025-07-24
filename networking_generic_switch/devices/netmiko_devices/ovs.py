@@ -16,7 +16,7 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class OvsLinux(netmiko_devices.NetmikoSwitch):
-
+    """Device Name: OpenVSwitch"""
     PLUG_PORT_TO_NETWORK = (
         'ovs-vsctl set port {port} vlan_mode=access',
         'ovs-vsctl set port {port} tag={segmentation_id}',

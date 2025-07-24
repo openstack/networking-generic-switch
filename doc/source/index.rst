@@ -4,7 +4,7 @@ Welcome to networking-generic-switch's documentation!
 .. toctree::
    :maxdepth: 2
 
-   supported-devices
+   compatible-devices
    installation
    configuration
    dev/dev-quickstart

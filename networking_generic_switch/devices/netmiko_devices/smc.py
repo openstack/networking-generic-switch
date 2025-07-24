@@ -16,7 +16,10 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class SupermicroSmis(netmiko_devices.NetmikoSwitch):
-    """A class to represent a Supermicro SMIS switch."""
+    """Device Name: Supermicro
+
+    A class to represent a Supermicro SMIS switch.
+    """
 
     ADD_NETWORK = (
         'vlan {segmentation_id}',

@@ -17,6 +17,7 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class CiscoIos(netmiko_devices.NetmikoSwitch):
+    """Device Name: Cisco IOS"""
     ADD_NETWORK = (
         'vlan {segmentation_id}',
         'name {network_name}',
@@ -66,7 +67,10 @@ class CiscoIos(netmiko_devices.NetmikoSwitch):
 
 
 class CiscoNxOS(netmiko_devices.NetmikoSwitch):
-    """Netmiko device driver for Cisco Nexus switches running NX-OS."""
+    """Device Name: Cisco NX-OS (Nexus)
+
+    Port can be disabled: True
+    """
 
     ADD_NETWORK = (
         'vlan {segmentation_id}',

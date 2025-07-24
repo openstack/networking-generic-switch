@@ -16,6 +16,7 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class Pluribus(netmiko_devices.NetmikoSwitch):
+    """Device Name: Pluribus"""
     ADD_NETWORK = (
         'vlan-create id {segmentation_id} scope fabric\
  ports none description {network_name} auto-vxlan',

@@ -353,11 +353,10 @@ using the ``ngs_disable_inactive_ports`` flag::
     [genericswitch:device-hostname]
     ngs_disable_inactive_ports = <optional boolean>
 
-This is currently supported by the following devices:
+This is currently compatible with the following devices:
 
-* Juniper Junos OS
-* ArubaOS-CX
-* Cisco NX-OS
+.. netmiko-device-commands::
+  :output-type: devices-supporting-port-disable
 
 Network Name Format
 ===================

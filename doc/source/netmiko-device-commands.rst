@@ -7,3 +7,4 @@ by the switches and the CLI commands sent to the switch for each command
 module that is selected.
 
 .. netmiko-device-commands::
+    :output-type: documentation

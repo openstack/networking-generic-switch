@@ -24,6 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 class NokiaSRL(netmiko_devices.NetmikoSwitch):
+    """Device Name: Nokia SR Linux OS"""
     ADD_NETWORK = (
         'set tunnel-interface vxlan0 vxlan-interface {segmentation_id} '
         'type bridged',

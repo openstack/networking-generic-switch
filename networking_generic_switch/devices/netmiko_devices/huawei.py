@@ -16,7 +16,10 @@ from networking_generic_switch.devices import netmiko_devices
 
 
 class Huawei(netmiko_devices.NetmikoSwitch):
-    """For Huawei Network Operating System VRP V3 and V5."""
+    """Device Name: Huawei (VRP V3 and V5)
+
+    For Huawei Network Operating System VRP V3 and V5.
+    """
     ADD_NETWORK = (
         'vlan {segmentation_id}',
     )

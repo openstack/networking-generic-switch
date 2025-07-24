@@ -19,7 +19,10 @@ from networking_generic_switch import exceptions as exc
 
 
 class DellOS10(netmiko_devices.NetmikoSwitch):
-    """Netmiko device driver for Dell PowerSwitch switches."""
+    """Device Name: Dell OS10 (netmiko_dell_os10)
+
+    Port can be disabled: True
+    """
 
     ADD_NETWORK = (
         "interface vlan {segmentation_id}",
@@ -90,7 +93,7 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
 
 
 class DellNos(netmiko_devices.NetmikoSwitch):
-    """Netmiko device driver for Dell Force10 (OS9) switches."""
+    """Device Name: Dell Force10 (OS9)(netmiko_dell_force10)"""
 
     ADD_NETWORK = (
         'interface vlan {segmentation_id}',
@@ -132,7 +135,7 @@ class DellNos(netmiko_devices.NetmikoSwitch):
 
 
 class DellPowerConnect(netmiko_devices.NetmikoSwitch):
-    """Netmiko device driver for Dell PowerConnect switches."""
+    """Device Name: Dell PowerConnect"""
 
     def _switch_to_general_mode(self):
         self.PLUG_PORT_TO_NETWORK = self.PLUG_PORT_TO_NETWORK_GENERAL

@@ -1,27 +1,11 @@
-=================
-Supported Devices
-=================
+==================
+Compatible Devices
+==================
 
-The following devices are supported by this plugin:
+The following devices are compatible with this plugin:
 
-* Arista EOS
-* ArubaOS-CX switches
-* Brocade ICX (FastIron)
-* Cisco 300-series switches
-* Cisco IOS switches
-* Cisco NX-OS switches (Nexus)
-* Cumulus Linux (via NCLU)
-* Cumulus Linux (via NVUE)
-* Dell Force10 (netmiko_dell_force10)
-* Dell OS10 (netmiko_dell_os10)
-* Dell PowerConnect
-* HPE 5900 Series switches
-* Huawei switches
-* Juniper Junos OS switches
-* OpenVSwitch
-* Ruijie switches
-* SONiC switches
-* Supermicro switches
+.. netmiko-device-commands::
+  :output-type: all-devices
 
 This Mechanism Driver architecture allows easily to add more devices
 of any type.
