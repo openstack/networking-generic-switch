@@ -7,7 +7,7 @@
     check:
       jobs:
         - networking-generic-switch-tempest-dlm
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
+        - ironic-tempest-ipa-wholedisk-direct-multinode:
             irrelevant-files:
               - ^.*\.rst$
               - ^doc/.*$
@@ -22,7 +22,7 @@
     gate:
       jobs:
         - networking-generic-switch-tempest-dlm
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
+        - ironic-tempest-ipa-wholedisk-direct-multinode:
             irrelevant-files:
               - ^.*\.rst$
               - ^doc/.*$
