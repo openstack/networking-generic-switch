@@ -579,13 +579,13 @@ class GenericSwitchDriver(api.MechanismDriver):
 
             # Fail if port or vlan not in allow list
             if not switch.is_allowed(port_id, segmentation_id):
-                LOG.warn("Skipped binding port %(port_id)s, "
-                         "port %(port)s in segment "
-                         "%(segment_id)s on device %(device)s, as either "
-                         "the port or vlan is not on the allow list",
-                         {'port_id': port['id'], 'port': port_id,
-                          'device': switch_info,
-                          'segment_id': segmentation_id})
+                LOG.warning("Skipped binding port %(port_id)s, "
+                            "port %(port)s in segment "
+                            "%(segment_id)s on device %(device)s, as either "
+                            "the port or vlan is not on the allow list",
+                            {'port_id': port['id'], 'port': port_id,
+                             'device': switch_info,
+                             'segment_id': segmentation_id})
                 return False
         return True
 
