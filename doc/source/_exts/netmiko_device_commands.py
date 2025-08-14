@@ -55,6 +55,14 @@ command_descriptions = {
     'ENABLE_BOND': 'Enables bond interface by removing link down state',
     'DISABLE_BOND': 'Disables bond interface by setting its link state to \
         down',
+    'ADD_SECURITY_GROUP': 'Start defining a security group (ACL)',
+    'ADD_SECURITY_GROUP_COMPLETE': 'Finish defining a security group (ACL)',
+    'REMOVE_SECURITY_GROUP': 'Delete a security group',
+    'ADD_SECURITY_GROUP_RULE_INGRESS': 'Add an ingress rule to a security group',
+    'ADD_SECURITY_GROUP_RULE_EGRESS': 'Add an egress rule to a security group',
+    'BIND_SECURITY_GROUP': 'Bind a port to a security group',
+    'UNBIND_SECURITY_GROUP': 'Unbind a port from a security group',
+    'SUPPORT_SG_PORT_RANGE': 'Whether the switch ACL implementation supports port ranges',
 }
 
 class DeviceParser:
@@ -93,18 +101,54 @@ class DeviceParser:
                     cli_commands['__doc__'] = docstring
                 # Iterates through nodes, checks for type of node and extracts the value
                 for subnode in node.body:
-                    if isinstance(subnode, ast.Assign):
-                        for target in subnode.targets:
-                            command_name = target.id
-                            if isinstance(target, ast.Name):
-                                ast_type = subnode.value
-                                if isinstance(ast_type, ast.Tuple):
-                                    cli_commands[command_name] = DeviceParser.parse_tuples(ast_type)
-                                else:
-                                    cli_commands[command_name] = ast.literal_eval(ast_type)
+                    if not isinstance(subnode, ast.Assign):
+                        continue
+                    DeviceParser.parse_cli_command(cli_commands, subnode)
+
                 if cli_commands:
                     classes[device_name] = cli_commands
         return classes
+
+    def addition_op(cli_commands, left, right):
+        if isinstance(left, ast.Name):
+            left_value = cli_commands[left.id]
+        elif isinstance(left, ast.BinOp):
+            left_value = DeviceParser.addition_op(cli_commands, left.left, left.right)
+        else:
+            raise ValueError(f"unhandled op left {left}")
+
+        if isinstance(right, ast.Name):
+            right_value = cli_commands[right.id]
+        elif isinstance(right, ast.BinOp):
+            right_value = DeviceParser.addition_op(cli_commands, right.left, right.right)
+        else:
+            raise ValueError(f"unhandled op right {right}")
+        return left_value + right_value
+
+    def parse_cli_command(cli_commands, subnode):
+
+        for target in subnode.targets:
+            command_name = target.id
+            if isinstance(target, ast.Name):
+                ast_type = subnode.value
+                if isinstance(ast_type, ast.Tuple):
+                    cli_commands[command_name] = DeviceParser.parse_tuples(ast_type)
+                elif isinstance(ast_type, ast.BinOp):
+                    if isinstance(ast_type.op, ast.Add):
+                        cli_commands[command_name] = DeviceParser.addition_op(
+                            cli_commands, ast_type.left, ast_type.right)
+                    else:
+                        raise ValueError(f"Unsupported binary operation {subnode.op} for command {command_name}")
+                elif isinstance(ast_type, ast.Call):
+                    cli_commands[command_name] = ast.unparse(ast_type)
+                elif isinstance(ast_type, ast.Name):
+                    cli_commands[command_name] = cli_commands[ast_type.id]
+                else:
+                    try:
+                        cli_commands[command_name] = ast.literal_eval(ast_type)
+                    except ValueError as e:
+                        print(f"WARNING: could not parse command {command_name}: {e}")
+
 
 
 class DeviceCommandsDirective(rst.Directive):
@@ -123,17 +167,23 @@ class DeviceCommandsDirective(rst.Directive):
             formatted_output.append("", "")
             del switch_details['__doc__']
         for command_name, cli_commands in switch_details.items():
-            desc = command_descriptions.get(command_name, 'No description provided')
-            formatted_output.append(f"    - {command_name}: {desc}", "")
-            formatted_output.append(f"        - CLI commands:", "")
-            if isinstance(cli_commands, list):
-                if cli_commands:
-                    for command in cli_commands:
-                        formatted_output.append(f"            - {command}", "")
-                else:
-                    formatted_output.append(f"            - No cli commands for this switch command", "")
+            desc = command_descriptions.get(command_name)
+            if not desc:
+                # Ignore this undocumented command
+                print(f"Ignoring undocumented command {command_name}")
+                continue
+            formatted_output.append(f"{command_name}:", "")
+            formatted_output.append("~" * (len(command_name) + 1), "")
+            formatted_output.append(desc, "")
+            if isinstance(cli_commands, (list, tuple)):
+                formatted_output.append("", "")
+                formatted_output.append(".. code-block:: output", "")
+                formatted_output.append("", "")
+                for command in cli_commands:
+                    formatted_output.append(f"{' '*4}{command}", "")
+                formatted_output.append("", "")
             else:
-                formatted_output.append(f"            - {cli_commands}", "")
+                formatted_output.append(f"``{cli_commands}``", "")
         return formatted_output
 
     def run(self):
@@ -195,9 +245,7 @@ class DeviceCommandsDirective(rst.Directive):
             for device in devices_info:
                 switch_class_name = device['switch_class_name']
                 output_lines.append(f"{switch_class_name}:", "")
-                subheading_characters = "^"
-                subheading = subheading_characters * (len(switch_class_name) + 1)
-                output_lines.append(subheading, "")
+                output_lines.append('^' * (len(switch_class_name) + 1), "")
 
                 if device['parsed_data']:
                     output_lines.extend(DeviceCommandsDirective.format_output(device['parsed_data']))
