@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    The ``netmiko_sonic`` driver now supports security groups on upstream
+    distributions of SONiC, supporting the following:
+
+    * Ingress and egress rules
+    * IPv4 and IPv6
+    * Rule filters for IP protocols TCP, UDP and ICMP
+
+    The security group (ACL) implementation of Dell Enterprise SONiC 4.5
+    diverges from upstream enough to require the addition of a new driver
+    ``netmiko_dell_enterprise_sonic``. This driver should be specified when
+    running this distribution of SONiC on Dell hardware.
+
+    Dell Enterprise SONiC 4.5 also lacks support for ICMP filter rules, and
+    this is enforced by ``netmiko_dell_enterprise_sonic``.
