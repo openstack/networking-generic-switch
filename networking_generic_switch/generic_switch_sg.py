@@ -37,7 +37,7 @@ class GenericSwitchSecurityGroupHandler(service_base.ServicePluginBase):
     """Security Group Handler for generic networking hardware.
 
     Registers for the notification of security group updates.
-    Once a notification is recieved, it takes appropriate actions by updating
+    Once a notification is received, it takes appropriate actions by updating
     hardware appropriately.
     """
 

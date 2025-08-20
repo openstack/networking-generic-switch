@@ -99,7 +99,7 @@ Notes:
    may be required.
  * Uplink switch ports should be configured in advance with the
    ``sudo config switchport mode trunk $INTERFACE`` command.
-   Testing for the configuraiton utilized this advanced state
+   Testing for the configuration utilized this advanced state
    configuration of the trunk uplink ports with the ``ngs_trunk_ports``
    configuration option for Networking-Generic-Switch.
  * Security groups not yet implemented
