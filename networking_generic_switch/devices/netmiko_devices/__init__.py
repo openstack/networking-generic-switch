@@ -22,6 +22,7 @@ import netmiko
 from neutron_lib import constants as const
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import strutils
 from paramiko import PKey as _pkey  # noqa - This is for a monkeypatch
 import paramiko  # noqa - Must load after the patch
 import tenacity
@@ -161,9 +162,17 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             self.config['session_log_record_writes'] = True
             self.config['session_log_file_mode'] = 'append'
 
-        _NUMERIC_CAST = {
+        _NETMIKO_CAST = {
             "port": int,
+            "verbose": bool,
             "global_delay_factor": float,
+            "global_cmd_verify": bool,
+            "use_keys": bool,
+            "disable_sha2_fix": bool,
+            "allow_agent": bool,
+            "ssh_strict": bool,
+            "system_host_keys": bool,
+            "alt_host_keys": bool,
             "conn_timeout": float,
             "auth_timeout": float,
             "banner_timeout": float,
@@ -171,14 +180,24 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             "timeout": float,
             "session_timeout": float,
             "read_timeout_override": float,
-            "keepalive": int,
+            "keepalive": float,
+            "fast_cli": bool,
+            "_legacy_mode": bool,
+            "session_log_record_writes": bool,
+            "allow_auto_change": bool,
+            "auto_connect": bool,
+            "delay_factor_compat": bool,
+            "disable_lf_normalization": bool,
         }
 
-        for key, expected_type in _NUMERIC_CAST.items():
+        for key, expected_type in _NETMIKO_CAST.items():
             value = self.config.get(key)
             if isinstance(value, str):
                 try:
-                    self.config[key] = expected_type(value)
+                    if expected_type == bool:
+                        self.config[key] = strutils.bool_from_string(value)
+                    else:
+                        self.config[key] = expected_type(value)
                 except ValueError:
                     LOG.error(
                         "Invalid value %s for %s; expected %s",
