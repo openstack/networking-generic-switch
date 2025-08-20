@@ -21,7 +21,7 @@ from networking_generic_switch.tests.unit.netmiko import test_netmiko_base
 class TestNetmikoAruba(test_netmiko_base.NetmikoSwitchTestBase):
 
     def _make_switch_device(self, extra_cfg={}):
-        device_cfg = {'device_type': 'netmiko_aruba_os'}
+        device_cfg = {'device_type': 'netmiko_aruba_aoscx'}
         device_cfg.update(extra_cfg)
         return aruba.ArubaOSCX(device_cfg)
 
