@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Add error checking for Dell Force10 and OS10 devices.
