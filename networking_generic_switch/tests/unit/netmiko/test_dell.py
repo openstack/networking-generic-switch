@@ -414,6 +414,281 @@ class TestNetmikoDellOS10(test_netmiko_base.NetmikoSwitchTestBase):
             ['interface 44', 'no switchport trunk allowed vlan tag1', 'exit',
              'interface 44', 'no switchport trunk allowed vlan tag2', 'exit'])
 
+    def test__prepare_security_group_rule(self):
+        # empty rule
+        rule = mock.Mock(
+            ethertype=None,
+            protocol=None,
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=None,
+            port_range_max=None,
+        )
+        self.assertEqual(
+            {
+                'security_group_egress': 'ngs-in-1234',
+                'security_group_ingress': 'ngs-out-1234',
+                'filter': ''
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+        # tcp, no ports
+        rule = mock.Mock(
+            ethertype=None,
+            protocol='tcp',
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=None,
+            port_range_max=None,
+        )
+        self.assertEqual(
+            {
+                'security_group_egress': 'ngs-in-1234',
+                'security_group_ingress': 'ngs-out-1234',
+                'protocol': 'tcp',
+                'filter': ''
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+        # udp, one port
+        rule = mock.Mock(
+            ethertype=None,
+            protocol='udp',
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=53,
+            port_range_max=None,
+        )
+        self.assertEqual(
+            {
+                'security_group_egress': 'ngs-in-1234',
+                'security_group_ingress': 'ngs-out-1234',
+                'protocol': 'udp',
+                'port_range_min': 53,
+                'filter': 'eq 53'
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+        # # tcp, port range
+        rule = mock.Mock(
+            ethertype=None,
+            protocol='tcp',
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=8080,
+            port_range_max=8089,
+        )
+        self.assertEqual(
+            {
+                'security_group_egress': 'ngs-in-1234',
+                'security_group_ingress': 'ngs-out-1234',
+                'protocol': 'tcp',
+                'port_range_min': 8080,
+                'port_range_max': 8089,
+                'filter': 'range 8080 8089'
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+        # # icmp, all
+        rule = mock.Mock(
+            ethertype=None,
+            protocol='icmp',
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=None,
+            port_range_max=None,
+        )
+        self.assertEqual(
+            {
+                'security_group_egress': 'ngs-in-1234',
+                'security_group_ingress': 'ngs-out-1234',
+                'protocol': 'icmp',
+                'filter': ''
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+        # # icmp, type
+        rule = mock.Mock(
+            ethertype=None,
+            protocol='icmp',
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=3,
+            port_range_max=None,
+        )
+        self.assertEqual(
+            {
+                'security_group_egress': 'ngs-in-1234',
+                'security_group_ingress': 'ngs-out-1234',
+                'protocol': 'icmp',
+                'port_range_min': 3,
+                'filter': '3'
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+        # # icmp, type and code
+        rule = mock.Mock(
+            ethertype=None,
+            protocol='icmp',
+            direction=None,
+            remote_ip_prefix=None,
+            normalized_cidr=None,
+            port_range_min=3,
+            port_range_max=1,
+        )
+        self.assertEqual(
+            {
+                'security_group_egress': 'ngs-in-1234',
+                'security_group_ingress': 'ngs-out-1234',
+                'protocol': 'icmp',
+                'port_range_min': 3,
+                'port_range_max': 1,
+                'filter': '3 1'
+            },
+            self.switch._prepare_security_group_rule('1234', rule))
+
+    def test__validate_rule(self):
+        # acceptable rule
+        self.assertTrue(self.switch._validate_rule(mock.Mock(
+            protocol='tcp',
+            ethertype='IPv4',
+            direction='egress'
+        )))
+
+        # no ipv6
+        self.assertRaises(
+            exc.GenericSwitchSecurityGroupRuleNotSupported,
+            self.switch._validate_rule,
+            mock.Mock(
+                protocol='tcp',
+                ethertype='IPv6',
+                direction='egress'
+            )
+        )
+
+        # restricted protocols
+        self.assertRaises(
+            exc.GenericSwitchSecurityGroupRuleNotSupported,
+            self.switch._validate_rule,
+            mock.Mock(
+                protocol='vrrp',
+                ethertype='IPv4',
+                direction='egress'
+            )
+        )
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_add_security_group(self, m_check, m_sctd):
+        rule1 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='ingress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='22',
+            port_range_max='23'
+        )
+        rule2 = mock.Mock(
+            ethertype='IPv4',
+            protocol='tcp',
+            direction='egress',
+            remote_ip_prefix='0.0.0.0/0',
+            normalized_cidr='0.0.0.0/0',
+            port_range_min='80',
+            port_range_max='80'
+        )
+        sg = mock.Mock()
+        sg.id = '1234'
+        sg.rules = [rule1, rule2]
+        self.switch.add_security_group(sg)
+        m_sctd.assert_called_with(self.switch, [
+            'ip access-list ngs-out-1234',
+            'exit',
+            'ip access-list ngs-in-1234',
+            'exit',
+            'ip access-list ngs-out-1234',
+            'permit tcp 0.0.0.0/0 any range 22 23',
+            'exit',
+            'ip access-list ngs-in-1234',
+            'permit tcp any 0.0.0.0/0 eq 80',
+            'exit'])
+        m_check.assert_called_once_with(self.switch, 'fake output',
+                                        'add security group')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_del_security_group(self, mock_exec):
+        self.switch.del_security_group('1234abcd')
+        mock_exec.assert_called_with(
+            self.switch, [
+                'no ip access-list ngs-out-1234abcd',
+                'no ip access-list ngs-in-1234abcd'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_bind_security_group(self, m_check, m_sctd):
+        sg = mock.Mock()
+        sg.id = '1234'
+        sg.rules = []
+        self.switch.bind_security_group(sg, 'eth1/1/1',
+                                        ['eth1/1/1', 'eth1/1/2'])
+        m_sctd.assert_called_with(self.switch, [
+            'no ip access-list ngs-out-1234',
+            'no ip access-list ngs-in-1234',
+            'ip access-list ngs-out-1234',
+            'exit',
+            'ip access-list ngs-in-1234',
+            'exit',
+            'interface eth1/1/1',
+            'ip access-group ngs-in-1234 in',
+            'ip access-group ngs-out-1234 out',
+            'exit',
+            'show ip access-lists in',
+            'show ip access-lists out',
+            'interface eth1/1/2',
+            'ip access-group ngs-in-1234 in',
+            'ip access-group ngs-out-1234 out',
+            'exit',
+            'show ip access-lists in',
+            'show ip access-lists out'])
+        m_check.assert_called_once_with(self.switch, 'fake output',
+                                        'bind security group')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_unbind_security_group(self, m_check, m_sctd):
+        self.switch.unbind_security_group('1234', 'eth1/1/1', ['eth1/1/2'])
+        m_sctd.assert_called_with(self.switch, [
+            'interface eth1/1/1',
+            'no ip access-group ngs-in-1234 in',
+            'no ip access-group ngs-out-1234 out',
+            'exit',
+            'interface eth1/1/2',
+            'ip access-group ngs-in-1234 in',
+            'ip access-group ngs-out-1234 out',
+            'exit',
+            'show ip access-lists in',
+            'show ip access-lists out'])
+        m_check.assert_called_once_with(self.switch, 'fake output',
+                                        'unbind security group')
+
 
 class TestNetmikoDellPowerConnect(test_netmiko_base.NetmikoSwitchTestBase):
 

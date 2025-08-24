@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The ``netmiko_dell_os10`` driver now supports security groups on
+    switches running Dell OS10, supporting the following:
+    
+    * Ingress and egress rules
+    * IPv4
+    * Rule filters for IP protocols TCP, UDP and ICMP
