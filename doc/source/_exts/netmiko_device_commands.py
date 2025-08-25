@@ -163,7 +163,7 @@ class DeviceCommandsDirective(rst.Directive):
         formatted_output = ViewList()
         if '__doc__' in switch_details:
             for line in switch_details['__doc__'].splitlines():
-                formatted_output.append(f"    {line}", "")
+                formatted_output.append(line, "")
             formatted_output.append("", "")
             del switch_details['__doc__']
         for command_name, cli_commands in switch_details.items():
@@ -184,6 +184,7 @@ class DeviceCommandsDirective(rst.Directive):
                 formatted_output.append("", "")
             else:
                 formatted_output.append(f"``{cli_commands}``", "")
+                formatted_output.append("", "")
         return formatted_output
 
     def run(self):
@@ -249,7 +250,7 @@ class DeviceCommandsDirective(rst.Directive):
 
                 if device['parsed_data']:
                     output_lines.extend(DeviceCommandsDirective.format_output(device['parsed_data']))
-                    output_lines.append("", "")
+                output_lines.append("", "")
 
         node = nodes.section()
         node.document = self.state.document
