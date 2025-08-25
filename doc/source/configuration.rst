@@ -484,3 +484,23 @@ can be repeated several times with different algorithms. Here is an example conf
 As of Paramiko 2.9.1, the valid types are ``ciphers``, ``macs``, ``keys``, ``pubkeys``,
 ``kex``, ``gsskex``.  However, this might change depending on the version of Paramiko.
 Check Paramiko source code or documentation to determine the accepted algorithm types.
+
+Advanced Netmiko configuration
+==============================
+
+It is sometimes necessary to perform advanced configuration of Netmiko, for instance
+to tune connection timeout or other low-level SSH parameters.
+
+Any device configuration parameter that does not start with the ``ngs_`` prefix will
+be passed directly to Netmiko.  Well-known Netmiko parameters are passed through a
+type conversion step to ensure compatibility with Netmiko.
+
+Here is an example configuration with a float, a boolean and a string::
+
+    [genericswitch:device-hostname]
+    conn_timeout = 1.5
+    alt_host_keys = True
+    alt_key_file = /path/to/host_keys
+
+A list and description of available parameters can be consulted in the `Netmiko documentation
+<https://ktbyers.github.io/netmiko/docs/netmiko/index.html#netmiko.BaseConnection>`__.
