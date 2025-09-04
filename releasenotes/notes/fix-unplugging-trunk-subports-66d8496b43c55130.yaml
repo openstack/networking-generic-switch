@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed incorrect command when unplugging bond subports.
+    Previously, when a bond was unplugged from a network with trunk subports,
+    the system would incorrectly try to add subports instead of removing them.
+    This bug has been fixed, and the system now uses the correct command to remove subports,
+    ensuring proper bond cleanup.

@@ -460,7 +460,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                           segmentation_id=segmentation_id)
             for sub_port in trunk_details.get('sub_ports', []):
                 cmds += self._format_commands(
-                    self.ADD_NETWORK_TO_BOND_TRUNK, bond=bond,
+                    self.DELETE_NETWORK_ON_BOND_TRUNK, bond=bond,
                     segmentation_id=sub_port['segmentation_id'])
 
         if ngs_port_default_vlan:
