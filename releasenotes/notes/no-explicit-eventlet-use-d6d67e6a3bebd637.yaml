@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    Explicit usage and monkey-patching with eventlet have been removed. Since
+    this is a Neutron plugin, Neutron may still load eventlet modules, but
+    netowrking-generic-switch no longer explicitly uses it. Operators should
+    be sensitive to potential performance changes, although none are expected.
