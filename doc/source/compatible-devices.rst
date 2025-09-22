@@ -33,7 +33,10 @@ Notes:
    suitable for most users as well.
  * Use of an "enable" secret through the ``secret`` configuration option has
    not been tested.
- * Security groups not yet implemented
+ * Security group limitations:
+    * Only ingress rules allowed
+    * Only IPv4 rules are implemented
+    * Supports rules for protocols: tcp, udp, icmp
 
 Dell Force10 OS9 (netmiko_dell_force10)
 ---------------------------------------
