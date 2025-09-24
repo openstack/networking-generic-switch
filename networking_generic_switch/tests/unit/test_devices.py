@@ -115,7 +115,8 @@ class TestDeviceManager(unittest.TestCase):
                        '_validate_network_name_format', autospec=True)
     def test_driver_load_fail_validate_network_name_format(self,
                                                            mock_validate):
-        mock_validate.side_effect = exc.GenericSwitchConfigException()
+        mock_validate.side_effect = exc.GenericSwitchNetworkNameFormatInvalid(
+            name_format="dummy {invalid} network name format")
         device_cfg = {'device_type': 'netmiko_ovs_linux'}
         device = None
         with self.assertRaises(exc.GenericSwitchEntrypointLoadError):
