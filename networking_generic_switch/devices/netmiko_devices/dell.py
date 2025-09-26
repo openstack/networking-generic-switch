@@ -14,6 +14,8 @@
 
 import re
 
+from neutron_lib import constants as const
+
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch import exceptions as exc
 
@@ -22,6 +24,12 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
     """Device Name: Dell OS10 (netmiko_dell_os10)
 
     Port can be disabled: True
+
+    Security Group Implementation
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    Only IPv4 rules are implemented. Both ingress and egress rules are
+    supported.
     """
 
     ADD_NETWORK = (
@@ -84,12 +92,101 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
         "exit",
     )
 
+    ADD_SECURITY_GROUP = (
+        'ip access-list {security_group_ingress}',
+        'exit',
+        'ip access-list {security_group_egress}',
+        'exit',
+    )
+
+    ADD_SECURITY_GROUP_COMPLETE = None
+
+    REMOVE_SECURITY_GROUP = (
+        'no ip access-list {security_group_ingress}',
+        'no ip access-list {security_group_egress}',
+    )
+
+    ADD_SECURITY_GROUP_RULE_INGRESS = (
+        'ip access-list {security_group_ingress}',
+        'permit {protocol} {remote_ip_prefix} any {filter}',
+        'exit',
+    )
+
+    ADD_SECURITY_GROUP_RULE_EGRESS = (
+        'ip access-list {security_group_egress}',
+        'permit {protocol} any {remote_ip_prefix} {filter}',
+        'exit',
+    )
+
+    BIND_SECURITY_GROUP = (
+        'interface {port}',
+        'ip access-group {security_group_egress} in',
+        'ip access-group {security_group_ingress} out',
+        'exit',
+        'show ip access-lists in',
+        'show ip access-lists out',
+    )
+
+    UNBIND_SECURITY_GROUP = (
+        'interface {port}',
+        'no ip access-group {security_group_egress} in',
+        'no ip access-group {security_group_ingress} out',
+        'exit',
+    )
+
     ERROR_MSG_PATTERNS = ()
     """Sequence of error message patterns.
 
     Sequence of re.RegexObject objects representing patterns to check for in
     device output that indicate a failure to apply configuration.
     """
+
+    def _get_acl_names(self, sg_id):
+
+        # Add 'in' and 'out' names interface ingress and egress (device egress
+        # and ingress) rules
+        return {
+            'security_group_egress': f"ngs-in-{sg_id}",
+            'security_group_ingress': f"ngs-out-{sg_id}"
+        }
+
+    def _prepare_security_group_rule(self, sg_id, rule):
+        rule_dict = super(DellOS10, self)._prepare_security_group_rule(
+            sg_id, rule)
+        min_port = rule_dict.get('port_range_min')
+        max_port = rule_dict.get('port_range_max')
+        filter = ''
+        if rule_dict.get('protocol') in (const.PROTO_NAME_TCP,
+                                         const.PROTO_NAME_UDP):
+            if min_port and max_port and min_port != max_port:
+                filter = f'range {min_port} {max_port}'
+            elif min_port:
+                filter = f'eq {min_port}'
+
+        if rule_dict.get('protocol') == const.PROTO_NAME_ICMP:
+            if min_port is not None and max_port is not None:
+                filter = f'{min_port} {max_port}'
+            elif min_port is not None:
+                filter = f'{min_port}'
+
+        rule_dict['filter'] = filter
+        return rule_dict
+
+    def _validate_rule(self, rule):
+        if not super(DellOS10, self)._validate_rule(rule):
+            return False
+
+        if rule.ethertype != const.IPv4:
+            raise exc.GenericSwitchSecurityGroupRuleNotSupported(
+                switch=self.device_name,
+                error='Only IPv4 rules are supported.')
+        if rule.protocol not in (const.PROTO_NAME_TCP,
+                                 const.PROTO_NAME_UDP,
+                                 const.PROTO_NAME_ICMP):
+            raise exc.GenericSwitchSecurityGroupRuleNotSupported(
+                switch=self.device_name,
+                error='Only protocols tcp, udp, icmp are supported.')
+        return True
 
 
 class DellNos(netmiko_devices.NetmikoSwitch):
