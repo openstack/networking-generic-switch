@@ -252,9 +252,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'binding:vif_type': 'other',
                                 'id': 'aaaa-bbbb-cccc'}
-        mock_context.top_bound_segment = {'segmentation_id': 123,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': 123,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.delete_port.assert_called_once_with(
@@ -280,9 +280,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'binding:vif_type': 'other',
                                 'id': 'aaaa-bbbb-cccc'}
-        mock_context.top_bound_segment = {'segmentation_id': 123,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': 123,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.delete_port.assert_has_calls(
@@ -313,9 +313,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'binding:vif_type': 'other',
                                 'id': 'aaaa-bbbb-cccc'}
-        mock_context.top_bound_segment = {'segmentation_id': 123,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': 123,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.unplug_bond_from_network.assert_has_calls(
@@ -341,9 +341,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'binding:vif_type': 'other',
                                 'id': 'aaaa-bbbb-cccc'}
-        mock_context.top_bound_segment = {'segmentation_id': 123,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': 123,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
 
         self.assertRaises(exceptions.GenericSwitchNetmikoMethodError,
                           driver.delete_port_postcommit,
@@ -383,9 +383,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'binding:vnic_type': 'baremetal',
                                 'binding:vif_type': 'other',
                                 'id': 'aaaa-bbbb-cccc'}
-        mock_context.top_bound_segment = {'segmentation_id': None,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-cccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': None,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-cccc'}
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.delete_port.assert_called_once_with(
@@ -519,9 +519,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
-        mock_context.top_bound_segment = {'segmentation_id': 42,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': 42,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once_with(
             2222, 42)
@@ -560,9 +560,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
-        mock_context.top_bound_segment = {'segmentation_id': 42,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': 42,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_has_calls(
             [mock.call(2222, 42),
@@ -608,9 +608,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
-        mock_context.top_bound_segment = {'segmentation_id': 42,
-                                          'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.bottom_bound_segment = {'segmentation_id': 42,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_bond_to_network.assert_has_calls(
             [mock.call(2222, 42),
@@ -646,7 +646,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
-        mock_context.top_bound_segment = {'physical_network': 'physnet1'}
+        mock_context.bottom_bound_segment = {'physical_network': 'physnet1'}
         self.switch_mock._get_physical_networks.return_value = ['physnet1']
 
         driver.update_port_postcommit(mock_context)
@@ -681,7 +681,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
-        mock_context.top_bound_segment = {'physical_network': 'physnet1'}
+        mock_context.bottom_bound_segment = {'physical_network': 'physnet1'}
         self.switch_mock._get_physical_networks.return_value = ['physnet2']
 
         driver.update_port_postcommit(mock_context)
@@ -808,7 +808,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'other'}
-        mock_context.original_top_bound_segment = {
+        mock_context.original_bottom_bound_segment = {
             'segmentation_id': 123,
             'physical_network': 'physnet1',
             'network_id': 'aaaa-bbbb-ccc'
@@ -850,9 +850,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
 
-        mock_context.top_bound_segment = {'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc',
-                                          'segmentation_id': 123}
+        mock_context.bottom_bound_segment = {'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc',
+                                             'segmentation_id': 123}
         self.switch_mock._get_physical_networks.return_value = ['physnet1']
         self.switch_mock.support_trunk_on_bond_ports = False
         self.switch_mock.support_trunk_on_ports = False
@@ -893,9 +893,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
-        mock_context.top_bound_segment = {'physical_network': 'physnet1',
-                                          'network_id': 'aaaa-bbbb-ccc',
-                                          'segmentation_id': 123}
+        mock_context.bottom_bound_segment = {'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc',
+                                             'segmentation_id': 123}
         self.switch_mock._get_physical_networks.return_value = ['physnet1']
         self.switch_mock.support_trunk_on_bond_ports = True
         self.switch_mock.support_trunk_on_ports = True
@@ -931,7 +931,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'binding:vnic_type': 'baremetal',
                                  'id': '123',
                                  'binding:vif_type': 'other'}
-        mock_context.original_top_bound_segment = {
+        mock_context.original_bottom_bound_segment = {
             'segmentation_id': 123,
             'physical_network': 'physnet1',
             'network_id': 'aaaa-bbbb-ccc'

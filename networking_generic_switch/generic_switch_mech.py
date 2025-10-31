@@ -346,7 +346,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         state changes that it does not know or care about.
         """
         port = context.current
-        segment = context.top_bound_segment
+        segment = context.bottom_bound_segment
         if ngs_utils.is_port_bound(port):
             binding_profile = port['binding:profile']
             local_link_information = binding_profile.get(
@@ -420,8 +420,8 @@ class GenericSwitchDriver(api.MechanismDriver):
             # The port has been unbound. This will cause the local link
             # information to be lost, so remove the port from the segment on
             # the switch now while we have the required information.
-            self._unplug_port_from_segment(context.original,
-                                           context.original_top_bound_segment)
+            self._unplug_port_from_segment(
+                context.original, context.original_bottom_bound_segment)
 
     def delete_port_precommit(self, context):
         """Delete resources of a port.
@@ -450,7 +450,7 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         port = context.current
         if ngs_utils.is_port_bound(port):
-            self._unplug_port_from_segment(port, context.top_bound_segment)
+            self._unplug_port_from_segment(port, context.bottom_bound_segment)
 
     def bind_port(self, context):
         """Attempt to bind a port.
