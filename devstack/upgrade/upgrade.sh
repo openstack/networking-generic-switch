@@ -50,12 +50,7 @@ source $GENERIC_SWITCH_DEVSTACK_DIR/plugin.sh
 
 neutron_plugin_configure_common
 Q_PLUGIN_CONF_FILE=$Q_PLUGIN_CONF_PATH/$Q_PLUGIN_CONF_FILENAME
-if [ "$Q_AGENT" == "linuxbridge" ]; then
-    AGENT_BINARY=${AGENT_BINARY:-"$NEUTRON_BIN_DIR/neutron-linuxbridge-agent"}
-else
-    # fall back to openvswitch as the default
-    AGENT_BINARY=${AGENT_BINARY:-"$NEUTRON_BIN_DIR/neutron-openvswitch-agent"}
-fi
+AGENT_BINARY=${AGENT_BINARY:-"$NEUTRON_BIN_DIR/neutron-openvswitch-agent"}
 
 # Print the commands being run so that we can see the command that triggers
 # an error.  It is also useful for following allowing as the install occurs.
