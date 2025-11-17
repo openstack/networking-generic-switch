@@ -222,7 +222,7 @@ for a Pluribus switch::
 for an ArubaOS-CX switch::
 
     [genericswitch:aruba-hostname]
-    device_type = netmiko_aruba_os
+    device_type = netmiko_aruba_aoscx
     username = admin
     password = password
     ip = <switch mgmt ip address>

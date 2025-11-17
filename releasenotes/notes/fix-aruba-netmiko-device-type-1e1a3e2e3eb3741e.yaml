@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    Any Aruba AOS-CX device using the "aruba_os" device type in its configuration
+    needs a configuration update.  The device type should be replaced with
+    "aruba_aoscx".
+fixes:
+  - |
+    Fix Netmiko device type for Aruba AOS-CX.  The previously-used device type,
+    "aruba_os", is meant for wireless controllers, not for switches running
+    AOS-CX.  As a result, trying to run any command over SSH with Netmiko would
+    fail on Aruba AOS-CX switches.
