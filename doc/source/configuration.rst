@@ -14,6 +14,7 @@ Switch configuration format::
     port = <ssh port>
     username = <credential username>
     password = <credential password>
+    use_keys = <set to True when key_file is set>
     key_file = <ssh key file>
     secret = <enable secret>
     ngs_allowed_vlans = <comma-separated list of allowed vlans for switch>

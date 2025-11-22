@@ -183,6 +183,7 @@ function add_generic_switch_to_ml2_config {
 
     if [[ -n "$key_file" ]]; then
         populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name key_file=$key_file
+        populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name use_keys=True
     elif [[ -n "$password" ]]; then
         populate_ml2_config $GENERIC_SWITCH_INI_FILE $switch_name password=$password
     fi
