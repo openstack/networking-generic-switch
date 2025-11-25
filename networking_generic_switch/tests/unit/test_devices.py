@@ -33,6 +33,18 @@ class FakeDevice(devices.GenericSwitchDevice):
     def del_network(s):
         pass
 
+    def plug_switch_to_network(self, vni, vlan):
+        pass
+
+    def unplug_switch_from_network(self, vni, vlan):
+        pass
+
+    def vlan_has_ports(self, segmentation_id):
+        return False
+
+    def vlan_has_vni(self, segmentation_id, vni):
+        return False
+
     def plug_port_to_network(self, p, s):
         pass
 

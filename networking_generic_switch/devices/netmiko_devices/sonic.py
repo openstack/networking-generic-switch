@@ -69,6 +69,16 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         'config vlan del {segmentation_id}',
     )
 
+    # TODO(TheJulia): L2VNI Support for SONiC
+    # SONiC requires a VTEP name parameter which is deployment-specific.
+    # Implementation requires:
+    # 1. New config parameter: vtep_name (e.g., "vtep", "vtep1")
+    # 2. Commands:
+    #    PLUG: config vxlan map add {vtep_name} {segmentation_id} {vni}
+    #    UNPLUG: config vxlan map del {vtep_name} {segmentation_id} {vni}
+    # 3. Query: show vxlan vlanvnimap | grep "{segmentation_id}"
+    # Example output: "Vlan100    5000       vtep"
+
     PLUG_PORT_TO_NETWORK = (
         'config vlan member add -u {segmentation_id} {port}',
     )

@@ -79,6 +79,14 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     DELETE_NETWORK = None
 
+    PLUG_SWITCH_TO_NETWORK = None
+
+    UNPLUG_SWITCH_FROM_NETWORK = None
+
+    SHOW_VLAN_PORTS = None
+
+    SHOW_VLAN_VNI = None
+
     PLUG_PORT_TO_NETWORK = None
 
     DELETE_PORT = None
@@ -382,6 +390,123 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                       network_id=network_id,
                                       network_name=network_name)
         return self.send_commands_to_device(cmds)
+
+    @check_output('plug vni')
+    def plug_switch_to_network(self, vni: int, segmentation_id: int,
+                               physnet: str = None):
+        # NOTE: PLUG_SWITCH_TO_NETWORK commands typically start with
+        # 'vlan {segmentation_id}' which creates the VLAN if it doesn't
+        # exist. This is necessary for L2VNI scenarios where the VLAN
+        # segment may be dynamically allocated and not created via
+        # add_network().
+        #
+        # physnet parameter added for per-physnet mcast-group resolution
+        # in vendor-specific implementations (e.g., Cisco NX-OS).
+        # Devices that don't need physnet can ignore this parameter.
+        cmds = [
+            self._format_commands(
+                self.PLUG_SWITCH_TO_NETWORK,
+                vni=vni,
+                segmentation_id=segmentation_id)
+        ]
+
+        return self.send_commands_to_device(cmds)
+
+    @check_output('unplug vni')
+    def unplug_switch_from_network(self, vni: int, segmentation_id: int,
+                                   physnet: str = None):
+        # physnet parameter added for signature consistency with
+        # plug_switch_to_network. Most implementations won't need it.
+        cmds = [
+            self._format_commands(
+                self.UNPLUG_SWITCH_FROM_NETWORK,
+                vni=vni,
+                segmentation_id=segmentation_id)
+        ]
+
+        return self.send_commands_to_device(cmds)
+
+    def vlan_has_ports(self, segmentation_id: int) -> bool:
+        """Check if a VLAN has any ports attached.
+
+        :param segmentation_id: VLAN identifier to check
+        :returns: True if VLAN has ports, False otherwise.
+        """
+        if not self.SHOW_VLAN_PORTS:
+            # If no command defined, conservatively assume ports exist
+            LOG.warning("SHOW_VLAN_PORTS not implemented for %s, "
+                        "assuming VLAN %s has ports",
+                        self.device_name, segmentation_id)
+            return True
+
+        cmd = self._format_commands(
+            self.SHOW_VLAN_PORTS,
+            segmentation_id=segmentation_id)
+
+        try:
+            with self._get_connection() as net_connect:
+                output = net_connect.send_command(cmd[0])
+                return self._parse_vlan_ports(output, segmentation_id)
+        except Exception as e:
+            LOG.error("Failed to check VLAN %s ports on %s: %s",
+                      segmentation_id, self.device_name, e)
+            # On error, conservatively assume ports exist
+            return True
+
+    def _parse_vlan_ports(self, output: str, segmentation_id: int) -> bool:
+        """Parse output of SHOW_VLAN_PORTS command.
+
+        Subclasses should override this for vendor-specific parsing.
+
+        :param output: Command output from switch
+        :param segmentation_id: VLAN identifier being checked
+        :returns: True if VLAN has ports, False otherwise
+        """
+        # Default implementation: conservatively assume ports exist
+        return True
+
+    def vlan_has_vni(self, segmentation_id: int, vni: int) -> bool:
+        """Check if a VLAN has a specific VNI configured.
+
+        :param segmentation_id: VLAN identifier to check
+        :param vni: VNI to check for
+        :returns: True if VLAN has this VNI configured, False otherwise
+        """
+        if not self.SHOW_VLAN_VNI:
+            # If no command defined, conservatively return False
+            # (assume VNI not configured, will attempt to configure)
+            LOG.warning("SHOW_VLAN_VNI not implemented for %s, "
+                        "cannot check if VNI %s is on VLAN %s",
+                        self.device_name, vni, segmentation_id)
+            return False
+
+        cmd = self._format_commands(
+            self.SHOW_VLAN_VNI,
+            segmentation_id=segmentation_id)
+
+        try:
+            with self._get_connection() as net_connect:
+                output = net_connect.send_command(cmd[0])
+                return self._parse_vlan_vni(output, segmentation_id, vni)
+        except Exception as e:
+            LOG.error("Failed to check VLAN %s VNI %s on %s: %s",
+                      segmentation_id, vni, self.device_name, e)
+            # On error, conservatively return False (will attempt to configure)
+            return False
+
+    def _parse_vlan_vni(self, output: str, segmentation_id: int,
+                        vni: int) -> bool:
+        """Parse output to check if VLAN has VNI configured.
+
+        Subclasses should override this for vendor-specific parsing.
+
+        :param output: Command output from switch
+        :param segmentation_id: VLAN identifier being checked
+        :param vni: VNI to check for
+        :returns: True if VLAN has this VNI, False otherwise
+        """
+        # Default implementation: return False (assume not configured)
+        return False
 
     @check_output('plug port')
     def plug_port_to_network(self, port, segmentation_id, trunk_details=None,

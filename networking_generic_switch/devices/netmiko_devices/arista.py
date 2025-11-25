@@ -26,6 +26,16 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         'no vlan {segmentation_id}',
     )
 
+    # TODO(TheJulia): L2VNI Support for Arista EOS
+    # Arista uses a dedicated VXLAN interface model (e.g., "interface Vxlan1")
+    # rather than per-VLAN vn-segment configuration. Implementation requires:
+    # 1. New config parameter: vxlan_interface (default: "Vxlan1")
+    # 2. Commands:
+    #    PLUG: interface {vxlan_interface} -> vxlan vlan {seg_id} vni {vni}
+    #    UNPLUG: interface {vxlan_interface} -> no vxlan vlan {seg_id}
+    # 3. Query: show interfaces {vxlan_interface}
+    # See: https://www.arista.com/en/um-eos/eos-vxlan-configuration
+
     PLUG_PORT_TO_NETWORK = (
         'interface {port}',
         'switchport mode access',

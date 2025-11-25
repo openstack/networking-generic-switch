@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    Adds VXLAN support for Cisco NX-OS switches using BGP EVPN with
+    ingress-replication. This enables VXLAN overlay networks for bare metal
+    deployments with Cisco Nexus switches acting as VXLAN Tunnel Endpoints
+    (VTEPs).
+
+    **Prerequisites**: This feature requires the ``networking-baremetal``
+    plugin with the ``baremetal-l2vni`` mechanism driver, which handles
+    hierarchical port binding and allocates local VLAN segments that are
+    mapped to VXLAN VNIs on the switch fabric.
+
+    The implementation uses BGP EVPN control plane with ingress-replication
+    for BUM (Broadcast, Unknown unicast, and Multicast) traffic handling.
+    This approach aligns with Cisco best practices and scales properly with
+    Neutron's dynamic VNI assignment model.
+
+    For each VXLAN network, the driver automatically configures:
+
+    * BGP EVPN control plane (VNI L2, route distinguisher, route targets)
+    * VLAN to VNI mapping (vn-segment)
+    * NVE interface membership with ingress-replication protocol bgp
+
+    Configuration is minimal - only the NVE interface name needs to be
+    specified (defaults to ``nve1``). Switch prerequisites include BGP EVPN
+    configuration with the NVE interface set to ``host-reachability protocol
+    bgp``.
+
+    See the VXLAN L2VNI Support section in the configuration documentation
+    for complete setup instructions and examples.
