@@ -121,6 +121,7 @@ Supported Platforms
    :maxdepth: 1
 
    cisco-nxos
+   cisco-ndfc
    arista-eos
    sonic
    cumulus-nvue

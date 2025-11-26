@@ -303,7 +303,7 @@ in detail at :ref:`restconf-specific-options`.
    * - ``ngs_restconf_base_path``
      - ``/restconf/data``
      - Base path for RESTCONF data resources.
-   * - ``ngs_verify_ssl``
+   * - ``ngs_verify_tls``
      - ``True``
      - Whether to verify the server's TLS certificate.
    * - ``ngs_openconfig_network_instance``

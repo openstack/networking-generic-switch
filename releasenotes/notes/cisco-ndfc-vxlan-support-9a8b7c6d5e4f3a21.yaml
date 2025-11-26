@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Adds an experimental Cisco NDFC (Nexus Dashboard Fabric Controller) driver
+    for managing Cisco NX-OS switches through NDFC's REST API. This driver is
+    based on publicly available NDFC API documentation and supports VLAN
+    management, port configuration (access and trunk modes), and full VXLAN
+    L2VNI hierarchical port binding for overlay networks.
+
+    NDFC provides centralized fabric management with audit trails, templating,
+    and policy-based configuration. The driver uses a global session pool to
+    share authenticated sessions across switches with matching credentials,
+    reducing authentication overhead. All NDFC templates, policies, and VRF
+    names are configurable to match your fabric design.
+
+    See the NDFC section in the configuration documentation for details on
+    session management, interface name requirements, and template configuration.
