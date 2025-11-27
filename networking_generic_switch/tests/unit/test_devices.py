@@ -298,6 +298,7 @@ class TestDeviceManager(unittest.TestCase):
             "password": "p",
             "conn_timeout": "20.0",
             "global_delay_factor": "2.5",
+            "keepalive": "12",
             "port": "2222",
         }
         device = devices.device_manager(config)
@@ -308,5 +309,38 @@ class TestDeviceManager(unittest.TestCase):
         self.assertIsInstance(device.config["global_delay_factor"], float)
         self.assertEqual(device.config["global_delay_factor"], 2.5)
 
+        self.assertIsInstance(device.config["keepalive"], float)
+        self.assertEqual(device.config["keepalive"], 12.)
+
         self.assertIsInstance(device.config["port"], int)
         self.assertEqual(device.config["port"], 2222)
+
+    def test_bool_params_cast(self):
+        config = {
+            "device_type": 'netmiko_ovs_linux',
+            "ip": "10.1.2.3",
+            "username": "u",
+            "password": "p",
+            "verbose": "true",
+            "global_cmd_verify": "True",
+            "use_keys": "TRUE",
+            "disable_sha2_fix": "yes",
+            "allow_agent": "y",
+            "ssh_strict": "false",
+            "system_host_keys": "False",
+            "alt_host_keys": "FALSE",
+            "fast_cli": "no",
+            "_legacy_mode": "n",
+            "session_log_record_writes": "FooBar",
+        }
+        device = devices.device_manager(config)
+
+        for param in ["global_cmd_verify", "use_keys", "disable_sha2_fix",
+                      "allow_agent"]:
+            self.assertIsInstance(device.config[param], bool)
+            self.assertEqual(device.config[param], True)
+
+        for param in ["ssh_strict", "system_host_keys", "alt_host_keys",
+                      "fast_cli", "_legacy_mode", "session_log_record_writes"]:
+            self.assertIsInstance(device.config[param], bool)
+            self.assertEqual(device.config[param], False)

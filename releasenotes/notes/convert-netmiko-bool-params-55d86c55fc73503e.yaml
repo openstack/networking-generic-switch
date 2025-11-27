@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Convert boolean configuration parameters before passing them to Netmiko.
+    Previously, we were only converting numeric parameters (int/floats).
+    This allows full configurability of low-level Netmiko parameters, such as
+    SSH key management.
