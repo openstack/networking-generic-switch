@@ -598,8 +598,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
     def _get_acl_names(self, sg_id):
         """Get the ACL names for a security group.
 
-        Subclasses should override this method to provide mutiple ACL names on
-        devices which require distinct ACLs for ipv4 vs ipv6 or ingress vs
+        Subclasses should override this method to provide multiple ACL names
+        on devices which require distinct ACLs for ipv4 vs ipv6 or ingress vs
         egress.
 
         :param sg_id: Security group ID

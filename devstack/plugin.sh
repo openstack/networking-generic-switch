@@ -253,7 +253,7 @@ function ngs_restart_neutron {
     # This avoids the restart.
     local existing_skip_stop_ovn
     SKIP_STOP_OVN=True
-    # We are changing the base config, and need ot restart the neutron services
+    # We are changing the base config, and need to restart the neutron services
     stop_neutron
     # NOTE(JayF): Neutron services are initialized in a particular order, this appears to
     # match that order as currently defined in stack.sh (2025-05-22).
