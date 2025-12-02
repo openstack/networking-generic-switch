@@ -1,0 +1,12 @@
+---
+repos:
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        args:
+          - -S
+          - '*.pyc,*.pyo'
+        files: ^(networking_generic_switch|doc|releasenotes|tools|devstack)/.*$|README\.rst$
+
+

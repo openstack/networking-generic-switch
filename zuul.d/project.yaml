@@ -17,8 +17,8 @@
               - ^tools/.*$
               - ^tox.ini$
               - ^setup.cfg$
-        - networking-generic-switch-tox-codespell:
-            voting: false
+        - networking-generic-switch-tox-codespell
+
     gate:
       jobs:
         - networking-generic-switch-tempest-dlm
