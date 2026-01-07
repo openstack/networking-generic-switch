@@ -35,6 +35,13 @@ class Juniper(netmiko_devices.NetmikoSwitch):
     """Device Name: Juniper Junos OS
 
     Port can be disabled: True
+
+    VXLAN L2VNI Support
+    ~~~~~~~~~~~~~~~~~~~
+
+    Juniper Junos supports VXLAN L2VNI configuration on QFX and EX series
+    switches. VLANs are referenced by name (created during add_network), and
+    the VNI is mapped using the ``vxlan vni`` command.
     """
     ADD_NETWORK = (
         'set vlans {network_name} vlan-id {segmentation_id}',
@@ -43,6 +50,16 @@ class Juniper(netmiko_devices.NetmikoSwitch):
     DELETE_NETWORK = (
         'delete vlans {network_name}',
     )
+
+    PLUG_SWITCH_TO_NETWORK = (
+        'set vlans {vlan_name} vxlan vni {vni}',
+    )
+
+    UNPLUG_SWITCH_FROM_NETWORK = (
+        'delete vlans {vlan_name} vxlan vni',
+    )
+
+    SHOW_VLANS = ('show vlans',)
 
     PLUG_PORT_TO_NETWORK = (
         # Delete any existing VLAN associations - only one VLAN may be
@@ -77,6 +94,16 @@ class Juniper(netmiko_devices.NetmikoSwitch):
     )
 
     def __init__(self, device_cfg, *args, **kwargs):
+        """Initialize Juniper Junos with EVPN configuration support.
+
+        Extracts EVPN-related configuration before parent __init__ removes
+        all ngs_* options.
+        """
+        # Extract EVPN configuration before parent removes ngs_* options
+        evpn_config = device_cfg.get('ngs_evpn_vni_config', 'false')
+        self.evpn_vni_config = evpn_config.lower() in ('true', 'yes', '1')
+        self.bgp_asn = device_cfg.get('ngs_bgp_asn')
+
         # Do not expose Juniper internal options to device config.
         juniper_cfg = {}
         for opt in JUNIPER_INTERNAL_OPTS:
@@ -199,3 +226,216 @@ class Juniper(netmiko_devices.NetmikoSwitch):
                         'error': e}
             LOG.error(msg)
             raise exc.GenericSwitchNetmikoConfigError()
+
+    def _get_vlan_name_by_id(self, segmentation_id: int) -> str:
+        """Get VLAN name from segmentation ID by querying the switch.
+
+        :param segmentation_id: VLAN identifier
+        :returns: VLAN name
+        :raises: GenericSwitchNetmikoConfigError if VLAN not found
+        """
+        with self._get_connection() as net_connect:
+            output = net_connect.send_command(self.SHOW_VLANS[0])
+            vlan_name = self._parse_vlan_name(output, segmentation_id)
+            if not vlan_name:
+                msg = _("VLAN %(vlan)s not found on device %(device)s") % {
+                    'vlan': segmentation_id,
+                    'device': device_utils.sanitise_config(self.config)}
+                LOG.error(msg)
+                raise exc.GenericSwitchNetmikoConfigError()
+            return vlan_name
+
+    def _parse_vlan_name(self, output: str, segmentation_id: int):
+        """Parse 'show vlans' output to find VLAN name by vlan-id.
+
+        :param output: Command output from switch
+        :param segmentation_id: VLAN identifier to find
+        :returns: VLAN name if found, None otherwise
+        """
+        # Junos output format:
+        # Routing instance        VLAN name           Tag     Interfaces
+        # default-switch          default             1
+        # default-switch          vlan100             100     xe-0/0/1.0*
+        # default-switch          vlan200             200
+        lines = output.strip().split('\n')
+        for line in lines:
+            # Skip header lines and empty lines
+            if not line.strip() or 'Routing instance' in line or \
+               'VLAN name' in line:
+                continue
+            parts = line.split()
+            # Need at least routing-instance, vlan-name, and tag
+            if len(parts) >= 3:
+                # Format: routing-instance, vlan-name, tag, [interfaces...]
+                vlan_name = parts[1]
+                try:
+                    vlan_id = int(parts[2])
+                    if vlan_id == segmentation_id:
+                        return vlan_name
+                except (ValueError, IndexError):
+                    continue
+        return None
+
+    def _parse_vlan_ports(self, output: str, segmentation_id: int) -> bool:
+        """Parse 'show vlans' output for ports.
+
+        :param output: Command output from switch
+        :param segmentation_id: VLAN identifier being checked
+        :returns: True if VLAN has ports, False otherwise
+        """
+        # Junos output format:
+        # Routing instance        VLAN name           Tag     Interfaces
+        # default-switch          vlan100             100     xe-0/0/1.0*
+        lines = output.strip().split('\n')
+        for line in lines:
+            if not line.strip() or 'Routing instance' in line or \
+               'VLAN name' in line:
+                continue
+            parts = line.split()
+            if len(parts) >= 3:
+                try:
+                    vlan_id = int(parts[2])
+                    if vlan_id == segmentation_id:
+                        # If there are 4+ parts, interfaces are listed
+                        return len(parts) >= 4
+                except (ValueError, IndexError):
+                    continue
+        return False
+
+    def _parse_vlan_vni(self, output: str, segmentation_id: int,
+                        vni: int) -> bool:
+        """Parse 'show vlans' output to check for VNI.
+
+        :param output: Command output from switch
+        :param segmentation_id: VLAN identifier being checked
+        :param vni: VNI to check for
+        :returns: True if VLAN has this VNI, False otherwise
+        """
+        # Junos extended output format for VXLAN-enabled VLANs:
+        # Routing instance        VLAN name           Tag     Interfaces
+        # default-switch          vlan100             100
+        #   VNI: 5000
+        lines = output.strip().split('\n')
+        found_vlan = False
+        for line in lines:
+            # Look for the VLAN line
+            if not found_vlan:
+                if not line.strip() or 'Routing instance' in line or \
+                   'VLAN name' in line:
+                    continue
+                parts = line.split()
+                if len(parts) >= 3:
+                    try:
+                        vlan_id = int(parts[2])
+                        if vlan_id == segmentation_id:
+                            found_vlan = True
+                    except (ValueError, IndexError):
+                        continue
+            else:
+                # Found the VLAN, now look for VNI on following lines
+                if 'VNI:' in line:
+                    try:
+                        vni_value = int(line.split('VNI:')[1].strip())
+                        return vni_value == vni
+                    except (ValueError, IndexError):
+                        return False
+                # If we hit another VLAN or non-indented line, stop looking
+                if line and not line.startswith(' '):
+                    return False
+        return False
+
+    @netmiko_devices.check_output('plug vni')
+    def plug_switch_to_network(self, vni: int, segmentation_id: int,
+                               physnet: str = None):
+        """Configure L2VNI mapping with EVPN on the Juniper switch.
+
+        Dynamically generates commands based on configuration:
+        1. Map VLAN to VNI
+        2. Configure EVPN VRF target (if ngs_evpn_vni_config enabled)
+
+        :param vni: VXLAN Network Identifier
+        :param segmentation_id: VLAN identifier
+        :param physnet: Physical network name (unused but kept for signature)
+        :returns: Command output
+        """
+        # Get the VLAN name from segmentation_id
+        vlan_name = self._get_vlan_name_by_id(segmentation_id)
+
+        # Step 1: Map VLAN to VNI
+        cmds = self._format_commands(
+            self.PLUG_SWITCH_TO_NETWORK,
+            vni=vni,
+            segmentation_id=segmentation_id,
+            vlan_name=vlan_name)
+
+        # Step 2: Configure EVPN VRF target if enabled
+        if self.evpn_vni_config:
+            if not self.bgp_asn:
+                raise exc.GenericSwitchNetmikoConfigError(
+                    switch=self.device_name,
+                    error='ngs_bgp_asn configuration parameter is '
+                          'required when ngs_evpn_vni_config is enabled')
+            # Configure VRF target for EVPN Type-2 routes
+            evpn_cmd = (f'set vlans {vlan_name} vrf-target '
+                        f'target:{self.bgp_asn}:{vni}')
+            cmds.append(evpn_cmd)
+
+        return self.send_commands_to_device(cmds)
+
+    @netmiko_devices.check_output('unplug vni')
+    def unplug_switch_from_network(self, vni: int, segmentation_id: int,
+                                   physnet: str = None):
+        """Remove L2VNI mapping and EVPN configuration from Juniper switch.
+
+        Removes configuration in reverse order of creation:
+        1. Remove VXLAN VNI map
+        2. Remove EVPN VRF target (if enabled)
+
+        :param vni: VXLAN Network Identifier
+        :param segmentation_id: VLAN identifier
+        :param physnet: Physical network name (unused but kept for signature)
+        :returns: Command output
+        """
+        # Get the VLAN name from segmentation_id
+        vlan_name = self._get_vlan_name_by_id(segmentation_id)
+
+        # Step 1: Remove VXLAN VNI map
+        cmds = self._format_commands(
+            self.UNPLUG_SWITCH_FROM_NETWORK,
+            vni=vni,
+            segmentation_id=segmentation_id,
+            vlan_name=vlan_name)
+
+        # Step 2: Remove EVPN VRF target if it was configured
+        if self.evpn_vni_config:
+            if not self.bgp_asn:
+                raise exc.GenericSwitchNetmikoConfigError(
+                    switch=self.device_name,
+                    error='ngs_bgp_asn configuration parameter is '
+                          'required when ngs_evpn_vni_config is enabled')
+            # Remove VRF target
+            evpn_cmd = f'delete vlans {vlan_name} vrf-target'
+            cmds.append(evpn_cmd)
+
+        return self.send_commands_to_device(cmds)
+
+    def vlan_has_ports(self, segmentation_id: int) -> bool:
+        """Check if a VLAN has any switch ports currently assigned.
+
+        :param segmentation_id: VLAN identifier
+        :returns: True if VLAN has ports, False otherwise
+        """
+        with self._get_connection() as net_connect:
+            output = net_connect.send_command(self.SHOW_VLANS[0])
+            return self._parse_vlan_ports(output, segmentation_id)
+
+    def vlan_has_vni(self, segmentation_id: int, vni: int) -> bool:
+        """Check if a VLAN already has a specific VNI mapping configured.
+
+        :param segmentation_id: VLAN identifier
+        :param vni: VNI to check for
+        :returns: True if VLAN has this VNI, False otherwise
+        """
+        with self._get_connection() as net_connect:
+            output = net_connect.send_command(self.SHOW_VLANS[0])
+            return self._parse_vlan_vni(output, segmentation_id, vni)

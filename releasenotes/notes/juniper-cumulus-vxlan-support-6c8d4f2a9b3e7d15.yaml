@@ -1,0 +1,53 @@
+---
+features:
+  - |
+    Adds VXLAN L2VNI support for Juniper Junos and Cumulus NVUE platforms,
+    completing VXLAN capabilities across major network operating systems.
+
+    **Prerequisites**: This feature requires the ``networking-baremetal``
+    plugin with the ``baremetal-l2vni`` mechanism driver, which handles
+    hierarchical port binding and allocates local VLAN segments that are
+    mapped to VXLAN VNIs on the switch fabric.
+
+    **Juniper Junos**:
+
+    Supports VXLAN L2VNI configuration on QFX and EX series switches. The
+    implementation maps VLANs (referenced by name) to VNIs using the
+    ``vxlan vni`` command. Optional EVPN control plane support is available
+    via VRF target configuration.
+
+    Configuration options:
+
+    * ``ngs_evpn_vni_config`` - Enable EVPN VRF target configuration
+      (default: false)
+    * ``ngs_bgp_asn`` - BGP AS number (required when EVPN is enabled)
+
+    When EVPN is enabled, the driver configures per-VLAN VRF targets for
+    EVPN Type-2 route import/export using the format
+    ``target:<asn>:<vni>``.
+
+    **Cumulus NVUE**:
+
+    Supports VXLAN L2VNI configuration on the default bridge domain
+    ``br_default`` for Cumulus Linux 5.x switches. Provides flexible BUM
+    traffic handling with support for:
+
+    * EVPN-only deployments (no configuration needed)
+    * Head-End Replication (HER) with static flood lists
+    * Hybrid deployments combining EVPN and HER
+
+    Configuration options:
+
+    * ``ngs_her_flood_list`` - Global HER flood list (comma-separated
+      VTEP IPs, optional)
+    * ``ngs_physnet_her_flood`` - Per-physical-network HER flood lists
+      (format: ``physnet1:ip1,ip2;physnet2:ip3,ip4``, optional)
+    * ``ngs_evpn_vni_config`` - Enable EVPN VNI control plane
+      configuration in FRR (default: false)
+    * ``ngs_bgp_asn`` - BGP AS number (required when EVPN is enabled)
+
+    HER flood list resolution follows a three-tier hierarchy:
+    per-physnet mapping, global configuration, or EVPN-only (default).
+
+    See the VXLAN L2VNI Support section in the configuration documentation
+    for complete setup instructions and examples for each platform.

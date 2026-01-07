@@ -772,11 +772,204 @@ The driver handles both configuration and cleanup automatically based on
 port binding operations. VNI mappings are only removed when the last port
 is unplugged from a VLAN.
 
+**Cumulus NVUE** - Full L2VNI support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Cumulus NVUE implementation supports L2VNI configuration on the default
+bridge domain ``br_default``. It includes support for Head-End Replication
+(HER) flood lists for BUM traffic handling and EVPN control plane
+configuration.
+
+Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``device_type``: ``netmiko_cumulus_nvue``
+- ``ngs_her_flood_list``: Global HER flood list (comma-separated VTEP IPs)
+- ``ngs_physnet_her_flood``: Per-physnet HER flood lists (format:
+  ``physnet1:ip1,ip2;physnet2:ip3,ip4``)
+- ``ngs_evpn_vni_config``: Enable EVPN VNI control plane configuration
+  (default: false)
+- ``ngs_bgp_asn``: BGP AS number (required when ``ngs_evpn_vni_config`` is
+  enabled)
+
+HER Flood List Resolution
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When configuring HER flood lists, the driver uses a three-tier resolution:
+
+1. Check ``ngs_physnet_her_flood`` for a per-physnet mapping
+2. Fall back to ``ngs_her_flood_list`` for a global configuration
+3. Default to EVPN-only (no static flood list)
+
+EVPN VNI Control Plane Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When ``ngs_evpn_vni_config=true`` and ``ngs_bgp_asn`` is set, the driver
+configures per-VNI EVPN in FRRouting (FRR) using vtysh commands:
+
+.. code-block:: bash
+
+   vtysh -c "configure terminal" \
+         -c "router bgp <asn>" \
+         -c "address-family l2vpn evpn" \
+         -c "vni <vni>" \
+         -c "rd auto" \
+         -c "route-target import auto" \
+         -c "route-target export auto"
+
+Configuration Examples
+^^^^^^^^^^^^^^^^^^^^^^
+
+**Scenario 1: Basic L2VNI (EVPN-only, no static flood list)**
+
+.. code-block:: ini
+
+   [genericswitch:cumulus-switch]
+   device_type = netmiko_cumulus_nvue
+
+Generated commands:
+
+.. code-block:: bash
+
+   nv set bridge domain br_default vlan 100 vni 10100
+
+**Scenario 2: L2VNI with Global HER Flood List**
+
+.. code-block:: ini
+
+   [genericswitch:cumulus-switch]
+   device_type = netmiko_cumulus_nvue
+   ngs_her_flood_list = 10.0.1.1,10.0.1.2
+
+Generated commands:
+
+.. code-block:: bash
+
+   nv set bridge domain br_default vlan 100 vni 10100
+   nv set nve vxlan flooding head-end-replication 10.0.1.1
+   nv set nve vxlan flooding head-end-replication 10.0.1.2
+
+**Scenario 3: L2VNI with Per-Physnet HER Flood Lists**
+
+.. code-block:: ini
+
+   [genericswitch:cumulus-switch]
+   device_type = netmiko_cumulus_nvue
+   ngs_physnet_her_flood = physnet1:10.0.1.1,10.0.1.2;physnet2:10.0.2.1
+
+For physnet1, generated commands:
+
+.. code-block:: bash
+
+   nv set bridge domain br_default vlan 100 vni 10100
+   nv set nve vxlan flooding head-end-replication 10.0.1.1
+   nv set nve vxlan flooding head-end-replication 10.0.1.2
+
+**Scenario 4: L2VNI with EVPN VNI Configuration**
+
+.. code-block:: ini
+
+   [genericswitch:cumulus-switch]
+   device_type = netmiko_cumulus_nvue
+   ngs_evpn_vni_config = true
+   ngs_bgp_asn = 65000
+
+Generated commands:
+
+.. code-block:: bash
+
+   vtysh -c "configure terminal" \
+         -c "router bgp 65000" \
+         -c "address-family l2vpn evpn" \
+         -c "vni 10100" \
+         -c "rd auto" \
+         -c "route-target import auto" \
+         -c "route-target export auto"
+   nv set bridge domain br_default vlan 100 vni 10100
+
+Without ``ngs_evpn_vni_config``, the EVPN block is omitted and only the
+VXLAN map configuration is applied.
+
+**Juniper Junos** - Full L2VNI support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Juniper Junos implementation supports L2VNI configuration on QFX and EX
+series switches with EVPN control plane support. VLANs are referenced by name
+(automatically created during network setup), and VNI mappings use the
+``vxlan vni`` command.
+
+Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``device_type``: ``netmiko_juniper``
+- ``ngs_evpn_vni_config``: Enable EVPN VRF target configuration (default:
+  false)
+- ``ngs_bgp_asn``: BGP AS number (required when ``ngs_evpn_vni_config`` is
+  enabled)
+
+The driver automatically queries the switch to map VLAN IDs to VLAN names for
+VNI configuration.
+
+EVPN VRF Target Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When ``ngs_evpn_vni_config=true`` and ``ngs_bgp_asn`` is set, the driver
+configures per-VLAN VRF targets for EVPN Type-2 route import/export:
+
+.. code-block:: bash
+
+   set vlans <vlan-name> vrf-target target:<asn>:<vni>
+
+Configuration Examples
+^^^^^^^^^^^^^^^^^^^^^^
+
+**Scenario 1: Basic L2VNI (no EVPN VRF target)**
+
+.. code-block:: ini
+
+   [genericswitch:juniper-switch]
+   device_type = netmiko_juniper
+
+Generated commands:
+
+.. code-block:: bash
+
+   set vlans vlan100 vxlan vni 10100
+
+**Scenario 2: L2VNI with EVPN VRF Target**
+
+.. code-block:: ini
+
+   [genericswitch:juniper-switch]
+   device_type = netmiko_juniper
+   ngs_evpn_vni_config = true
+   ngs_bgp_asn = 65000
+
+Generated commands:
+
+.. code-block:: bash
+
+   set vlans vlan100 vxlan vni 10100
+   set vlans vlan100 vrf-target target:65000:10100
+
+Without ``ngs_evpn_vni_config``, the VRF target configuration is omitted and
+only the VXLAN map is applied.
+
 **Cisco IOS** - Not supported
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Classic Cisco IOS does not support VXLAN. VXLAN is only available in NX-OS
 and IOS-XE (Catalyst 9000 series and newer).
+
+**Dell OS10** - Not supported
+
+Dell OS10 uses a different VXLAN configuration model that requires a separate
+virtual-network ID (vn-id) as an intermediate abstraction between VLANs and
+VNIs. This virtual-network model requires independent numbering (vn-id 1-65535)
+that cannot be automatically derived from the VLAN segmentation ID. The
+configuration workflow (create virtual-network → assign vxlan-vni → associate
+member interfaces) is incompatible with the direct VLAN-to-VNI mapping model
+used by this driver.
 
 How It Works
 ------------
