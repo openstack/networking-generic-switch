@@ -78,7 +78,8 @@ quiet-level = 4
 # Words to ignore:
 # cna: Intel CNA card
 # assertIn: Python's unittest method
-ignore-words-list = "cna,assertin"
+# Te: shorthand for TenGigabitEthernet
+ignore-words-list = "cna,assertin,Te"
 
 [tool.doc8]
 ignore = ["D001"]

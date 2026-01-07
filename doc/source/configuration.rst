@@ -536,6 +536,7 @@ Supported Switches
 ------------------
 
 **Cisco Nexus (NX-OS)** - Full L2VNI support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Cisco Nexus implementation is production-ready and fully tested.
 
@@ -559,7 +560,7 @@ Example Cisco NX-OS switch configuration:
      host-reachability protocol bgp
 
 NVE Configuration Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The Cisco NX-OS driver uses BGP EVPN with ingress-replication for all VXLAN
 deployments. This approach aligns with Cisco best practices and avoids
@@ -636,17 +637,143 @@ The driver handles both configuration and cleanup automatically based on
 port binding operations. VNI mappings are only removed when the last port
 is unplugged from a VLAN.
 
-**Arista EOS** - Planned support (not yet implemented)
+**SONiC** - Full L2VNI support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Arista requires a dedicated VXLAN interface model. Implementation requires
-a new configuration parameter to specify the VXLAN interface name.
+The SONiC implementation uses BGP EVPN with ingress-replication for BUM
+(Broadcast, Unknown unicast, Multicast) traffic handling. This approach
+relies on EVPN Type-3 IMET routes for dynamic VTEP discovery and avoids
+the scaling issues associated with static flood lists.
 
-**SONiC** - Planned support (not yet implemented)
+SONiC Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-SONiC requires configuration of a VTEP name. Implementation requires a new
-configuration parameter to specify the VTEP instance.
+Configuration parameters:
+
+* ``vtep_name`` - VXLAN tunnel endpoint interface name (required)
+* ``ngs_bgp_asn`` - BGP AS number (required)
+
+Configuration Example:
+
+.. code-block:: ini
+
+   [genericswitch:sonic-switch]
+   device_type = netmiko_sonic
+   ip = 192.0.2.20
+   username = admin
+   password = password
+   ngs_physical_networks = datacenter1,datacenter2
+
+   # VTEP interface name (required)
+   vtep_name = vtep
+
+   # BGP AS number (required)
+   ngs_bgp_asn = 65000
+
+Generated Configuration
+^^^^^^^^^^^^^^^^^^^^^^^
+
+For each VXLAN network, the driver automatically configures:
+
+.. code-block:: text
+
+   # BGP EVPN control plane (via FRR vtysh)
+   vtysh -c "configure terminal" \
+         -c "router bgp 65000" \
+         -c "address-family l2vpn evpn" \
+         -c "vni 10100" \
+         -c "rd auto" \
+         -c "route-target import auto" \
+         -c "route-target export auto"
+
+   # VXLAN map
+   config vxlan map add vtep 100 10100
+
+Prerequisites
+^^^^^^^^^^^^^
+
+Your SONiC switches must have BGP EVPN pre-configured with
+``advertise-all-vni`` enabled in FRR.
+
+**Arista EOS** - Full L2VNI support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Arista EOS implementation uses BGP EVPN with ingress-replication for all
+VXLAN deployments. This approach aligns with Arista best practices and avoids
+multicast group scaling issues that occur with Neutron's dynamic VNI
+assignment model.
+
+Arista EOS Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Configuration parameters:
+
+* ``vxlan_interface`` - VXLAN interface name (default: ``Vxlan1``)
+* ``ngs_bgp_asn`` - BGP AS number (required)
+
+Configuration Example:
+
+.. code-block:: ini
+
+   [genericswitch:arista-switch]
+   device_type = netmiko_arista_eos
+   ip = 192.0.2.30
+   username = admin
+   password = password
+   ngs_physical_networks = datacenter1,datacenter2
+
+   # VXLAN interface name (optional, default: Vxlan1)
+   vxlan_interface = Vxlan1
+
+   # BGP AS number (required)
+   ngs_bgp_asn = 65000
+
+Prerequisites
+^^^^^^^^^^^^^
+
+Your Arista EOS switches must have BGP EVPN configured. This is required
+for the ingress-replication data plane to function correctly.
+
+Example switch configuration:
+
+.. code-block:: text
+
+   ! Configure BGP EVPN
+   router bgp 65000
+     router-id 10.0.0.1
+     neighbor 10.0.0.2 remote-as 65000
+     neighbor 10.0.0.2 update-source Loopback0
+     address-family evpn
+       neighbor 10.0.0.2 activate
+
+   ! Configure VXLAN interface
+   interface Vxlan1
+     vxlan source-interface Loopback0
+     vxlan udp-port 4789
+
+Generated Configuration
+^^^^^^^^^^^^^^^^^^^^^^^
+
+For each VXLAN network, the driver automatically configures:
+
+.. code-block:: text
+
+   ! BGP EVPN control plane
+   router bgp 65000
+     vlan 100
+       rd auto
+       route-target both auto
+
+   ! Data plane with ingress-replication
+   interface Vxlan1
+     vxlan vlan 100 vni 10100
+
+The driver handles both configuration and cleanup automatically based on
+port binding operations. VNI mappings are only removed when the last port
+is unplugged from a VLAN.
 
 **Cisco IOS** - Not supported
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Classic Cisco IOS does not support VXLAN. VXLAN is only available in NX-OS
 and IOS-XE (Catalyst 9000 series and newer).

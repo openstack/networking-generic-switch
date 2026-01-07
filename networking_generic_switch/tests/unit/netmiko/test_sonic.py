@@ -503,6 +503,424 @@ class TestNetmikoSonic(test_netmiko_base.NetmikoSwitchTestBase):
              'acl-loader update full --table_name NGS_OUT_1234ABCD '
              '/etc/sonic/acl-ngs-1234abcd.json'])
 
+    def test_plug_switch_to_network_no_vtep_name(self):
+        self.assertRaises(
+            exc.GenericSwitchNetmikoConfigError,
+            self.switch.plug_switch_to_network,
+            5000,
+            100
+        )
+
+    def test_unplug_switch_from_network_no_vtep_name(self):
+        self.assertRaises(
+            exc.GenericSwitchNetmikoConfigError,
+            self.switch.unplug_switch_from_network,
+            5000,
+            100
+        )
+
+    def test__parse_vlan_ports_with_ports(self):
+        output = '''+-----------+--------------+-----------+--------+
+| VLAN ID   | IP Address   | Ports     | Port Tagging   |
++===========+==============+===========+================+
+| 100       |              | Ethernet0 | untagged       |
++-----------+--------------+-----------+----------------+'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertTrue(result)
+
+    def test__parse_vlan_ports_without_ports(self):
+        output = '''+-----------+--------------+-----------+--------+
+| VLAN ID   | IP Address   | Ports     | Port Tagging   |
++===========+==============+===========+================+
+| 100       |              |           | untagged       |
++-----------+--------------+-----------+----------------+'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertFalse(result)
+
+    def test__parse_vlan_ports_vlan_not_found(self):
+        output = '''+-----------+--------------+-----------+--------+
+| VLAN ID   | IP Address   | Ports     | Port Tagging   |
++===========+==============+===========+================+
+| 200       |              | Ethernet0 | untagged       |
++-----------+--------------+-----------+----------------+'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertFalse(result)
+
+    def test__parse_vlan_ports_dash_format_with_ports(self):
+        """Test parsing dash-separated format with ports."""
+        output = '''---------------------------------------------------------
+Name Id Members Mode
+---------------------------------------------------------
+Vlan100 100 Ethernet0 tagged
+---------------------------------------------------------'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertTrue(result)
+
+    def test__parse_vlan_ports_dash_format_without_ports(self):
+        """Test parsing dash-separated format without ports."""
+        output = '''---------------------------------------------------------
+Name Id Members Mode
+---------------------------------------------------------
+Vlan100 100
+---------------------------------------------------------'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertFalse(result)
+
+    def test__parse_vlan_vni_match(self):
+        output = '''+---------+-------+
+| VLAN    | VNI   |
++=========+=======+
+| Vlan100 | 5000  |
++---------+-------+
+| Vlan200 | 6000  |
++---------+-------+
+Total count : 2'''
+        result = self.switch._parse_vlan_vni(output, 100, 5000)
+        self.assertTrue(result)
+
+    def test__parse_vlan_vni_no_match(self):
+        output = '''+---------+-------+
+| VLAN    | VNI   |
++=========+=======+
+| Vlan100 | 5000  |
++---------+-------+
+| Vlan200 | 6000  |
++---------+-------+
+Total count : 2'''
+        result = self.switch._parse_vlan_vni(output, 100, 9999)
+        self.assertFalse(result)
+
+    def test__parse_vlan_vni_vlan_not_found(self):
+        output = '''+---------+-------+
+| VLAN    | VNI   |
++=========+=======+
+| Vlan100 | 5000  |
++---------+-------+
+| Vlan200 | 6000  |
++---------+-------+
+Total count : 2'''
+        result = self.switch._parse_vlan_vni(output, 300, 5000)
+        self.assertFalse(result)
+
+    # VTEP Configuration Tests
+
+    def test_init_default_config(self):
+        """Test __init__ with default configuration."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+        self.assertIsNone(switch.vtep_name)
+        self.assertIsNone(switch.bgp_asn)
+
+    def test_init_with_vtep_name(self):
+        """Test __init__ with vtep_name."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'vtep_name': 'vtep1'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertEqual(switch.vtep_name, 'vtep1')
+
+    def test_init_with_bgp_asn(self):
+        """Test __init__ with BGP ASN configuration."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'ngs_bgp_asn': '65000'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertEqual(switch.bgp_asn, '65000')
+
+    # EVPN Plug/Unplug Tests
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
+    def test_plug_switch_to_network(self, mock_exec):
+        """Test plug_switch_to_network with BGP EVPN."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'vtep_name': 'vtep',
+            'ngs_bgp_asn': '65000'
+        }
+        switch = sonic.Sonic(device_cfg)
+        switch.plug_switch_to_network(10100, 100)
+        expected_evpn_cmd = (
+            'vtysh -c "configure terminal" '
+            '-c "router bgp 65000" '
+            '-c "address-family l2vpn evpn" '
+            '-c "vni 10100" '
+            '-c "rd auto" '
+            '-c "route-target import auto" '
+            '-c "route-target export auto"')
+        mock_exec.assert_called_with(
+            switch,
+            [expected_evpn_cmd,
+             'config vxlan map add vtep 100 10100'])
+
+    def test_plug_switch_to_network_without_vtep_name(self):
+        """Test plug_switch_to_network fails without vtep_name."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'ngs_bgp_asn': '65000'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertRaises(exc.GenericSwitchNetmikoConfigError,
+                          switch.plug_switch_to_network, 10100, 100)
+
+    def test_plug_switch_to_network_without_bgp_asn(self):
+        """Test plug_switch_to_network fails without BGP ASN."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'vtep_name': 'vtep'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertRaises(exc.GenericSwitchNetmikoConfigError,
+                          switch.plug_switch_to_network, 10100, 100)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
+    def test_unplug_switch_from_network(self, mock_exec):
+        """Test unplug_switch_from_network with BGP EVPN."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'vtep_name': 'vtep',
+            'ngs_bgp_asn': '65000'
+        }
+        switch = sonic.Sonic(device_cfg)
+        switch.unplug_switch_from_network(10100, 100)
+        expected_evpn_cmd = (
+            'vtysh -c "configure terminal" '
+            '-c "router bgp 65000" '
+            '-c "address-family l2vpn evpn" '
+            '-c "no vni 10100"')
+        mock_exec.assert_called_with(
+            switch,
+            ['config vxlan map del vtep 100 10100',
+             expected_evpn_cmd])
+
+    def test_unplug_switch_from_network_without_vtep_name(self):
+        """Test unplug_switch_from_network fails without vtep_name."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'ngs_bgp_asn': '65000'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertRaises(exc.GenericSwitchNetmikoConfigError,
+                          switch.unplug_switch_from_network, 10100, 100)
+
+    def test_unplug_switch_from_network_without_bgp_asn(self):
+        """Test unplug_switch_from_network fails without BGP ASN."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'vtep_name': 'vtep'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertRaises(exc.GenericSwitchNetmikoConfigError,
+                          switch.unplug_switch_from_network, 10100, 100)
+
+    # vlan_has_ports() tests
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_ports_true(self, mock_get_conn):
+        """Test vlan_has_ports returns True when VLAN has ports."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        # Simulate output with ports
+        output = '''+-----------+--------------+-----------+--------+
+| VLAN ID   | IP Address   | Ports     | Port Tagging   |
++===========+==============+===========+================+
+| 100       |              | Ethernet0 | untagged       |
++-----------+--------------+-----------+----------------+'''
+        mock_net_connect.send_command.return_value = output
+
+        result = switch.vlan_has_ports(100)
+        self.assertTrue(result)
+        mock_net_connect.send_command.assert_called_once_with(
+            'show vlan 100')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_ports_false(self, mock_get_conn):
+        """Test vlan_has_ports returns False when VLAN has no ports."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        # Simulate output without ports
+        output = '''+-----------+--------------+-----------+--------+
+| VLAN ID   | IP Address   | Ports     | Port Tagging   |
++===========+==============+===========+================+
+| 100       |              |           | untagged       |
++-----------+--------------+-----------+----------------+'''
+        mock_net_connect.send_command.return_value = output
+
+        result = switch.vlan_has_ports(100)
+        self.assertFalse(result)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_ports_multiple_ports(self, mock_get_conn):
+        """Test vlan_has_ports with multiple ports assigned."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        # Simulate output with multiple ports
+        output = '''+-----------+--------------+--------------------+--------+
+| VLAN ID   | IP Address   | Ports              | Port Tagging   |
++===========+==============+====================+================+
+| 100       |              | Ethernet0,Eth1     | untagged       |
++-----------+--------------+--------------------+----------------+'''
+        mock_net_connect.send_command.return_value = output
+
+        result = switch.vlan_has_ports(100)
+        self.assertTrue(result)
+
+    # vlan_has_vni() tests
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_vni_true(self, mock_get_conn):
+        """Test vlan_has_vni returns True when VNI is configured."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        # Simulate output with matching VNI
+        output = '''+---------+-------+
+| VLAN    | VNI   |
++=========+=======+
+| Vlan100 | 5000  |
++---------+-------+
+| Vlan200 | 6000  |
++---------+-------+
+Total count : 2'''
+        mock_net_connect.send_command.return_value = output
+
+        result = switch.vlan_has_vni(100, 5000)
+        self.assertTrue(result)
+        mock_net_connect.send_command.assert_called_once_with(
+            'show vxlan vlanvnimap')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_vni_false_wrong_vni(self, mock_get_conn):
+        """Test vlan_has_vni returns False when VNI doesn't match."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        # Simulate output with wrong VNI for this VLAN
+        output = '''+---------+-------+
+| VLAN    | VNI   |
++=========+=======+
+| Vlan100 | 5000  |
++---------+-------+
+| Vlan200 | 6000  |
++---------+-------+
+Total count : 2'''
+        mock_net_connect.send_command.return_value = output
+
+        result = switch.vlan_has_vni(100, 9999)
+        self.assertFalse(result)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_vni_false_vlan_not_found(self, mock_get_conn):
+        """Test vlan_has_vni returns False when VLAN not in output."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        # Simulate output without the queried VLAN
+        output = '''+---------+-------+
+| VLAN    | VNI   |
++=========+=======+
+| Vlan200 | 6000  |
++---------+-------+
+| Vlan300 | 7000  |
++---------+-------+
+Total count : 2'''
+        mock_net_connect.send_command.return_value = output
+
+        result = switch.vlan_has_vni(100, 5000)
+        self.assertFalse(result)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_vni_empty_output(self, mock_get_conn):
+        """Test vlan_has_vni returns False with empty switch output."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        # Simulate empty output (no VNIs configured)
+        output = '''+---------+-------+
+| VLAN    | VNI   |
++=========+=======+
+Total count : 0'''
+        mock_net_connect.send_command.return_value = output
+
+        result = switch.vlan_has_vni(100, 5000)
+        self.assertFalse(result)
+
+    def test__parse_vlan_vni_format_with_vtep_column(self):
+        """Test parsing format with VTEP Name column (Format 3)."""
+        output = '''VTEP Name    VLAN ID    VNI
+-----------  ---------  -------
+vtep1        100        10000
+vtep1        200        20000
+vtep1        300        30000'''
+        result = self.switch._parse_vlan_vni(output, 100, 10000)
+        self.assertTrue(result)
+
+    def test__parse_vlan_vni_format_with_vtep_column_no_match(self):
+        """Test parsing format with VTEP Name column, wrong VNI."""
+        output = '''VTEP Name    VLAN ID    VNI
+-----------  ---------  -------
+vtep1        100        10000
+vtep1        200        20000'''
+        result = self.switch._parse_vlan_vni(output, 100, 9999)
+        self.assertFalse(result)
+
+    def test__parse_vlan_vni_format_with_equals_separator(self):
+        """Test parsing format with equals sign separator (Format 4)."""
+        output = '''VLAN VNI
+= = = = = =
+Vlan99 99
+Total count: 1'''
+        result = self.switch._parse_vlan_vni(output, 99, 99)
+        self.assertTrue(result)
+
+    def test__parse_vlan_vni_format_right_aligned(self):
+        """Test parsing with right-aligned VNI column."""
+        output = '''+---------+-------+
+| VLAN    |   VNI |
++=========+=======+
+| Vlan100 |   100 |
++---------+-------+
+| Vlan101 |   101 |
++---------+-------+'''
+        result = self.switch._parse_vlan_vni(output, 101, 101)
+        self.assertTrue(result)
+
 
 class TestNetmikoDellEnterpriseSonic(test_netmiko_base.NetmikoSwitchTestBase):
 
