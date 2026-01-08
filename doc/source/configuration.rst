@@ -955,6 +955,35 @@ Generated commands:
 Without ``ngs_evpn_vni_config``, the VRF target configuration is omitted and
 only the VXLAN map is applied.
 
+**OpenVSwitch (OVS)** - Not Supported - CI/Testing Only
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   **IMPORTANT**: The OVS implementation does NOT configure actual VXLAN
+   tunnels. It is designed exclusively for CI and testing purposes to exercise
+   the hierarchical port binding workflow and L2VNI cleanup logic without
+   requiring physical hardware switches.
+
+The OVS implementation uses bridge external_ids to store VNI-to-VLAN mappings
+as metadata, allowing the driver to track and clean up VNI associations using
+the same logic as physical switches.
+
+Configuration:
+
+.. code-block:: ini
+
+   [genericswitch:ovs-switch]
+   device_type = netmiko_ovs_linux
+   ngs_ovs_bridge = genericswitch
+
+The ``ngs_ovs_bridge`` parameter specifies the OVS bridge name to use for VNI
+mapping storage. Defaults to ``genericswitch``. Common values include ``brbm``
+(Ironic CI) or ``genericswitch`` (devstack plugin).
+
+For production VXLAN deployments, use physical switch implementations (Cisco
+NX-OS, Arista EOS, SONiC, Cumulus NVUE, or Juniper Junos).
+
 **Cisco IOS** - Not supported
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -962,6 +991,7 @@ Classic Cisco IOS does not support VXLAN. VXLAN is only available in NX-OS
 and IOS-XE (Catalyst 9000 series and newer).
 
 **Dell OS10** - Not supported
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dell OS10 uses a different VXLAN configuration model that requires a separate
 virtual-network ID (vn-id) as an intermediate abstraction between VLANs and

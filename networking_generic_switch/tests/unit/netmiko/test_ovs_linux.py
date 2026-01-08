@@ -227,3 +227,98 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
                    'ovs-vsctl clear port 3333 trunks',
                    'ovs-vsctl clear port 3333 vlan_mode']
         self.assertEqual(del_exp, cmd_set)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_plug_switch_to_network_default_bridge(self, mock_exec):
+        self.switch.plug_switch_to_network(5000, 100)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['ovs-vsctl set bridge genericswitch '
+             'external_ids:vni-5000=100'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_plug_switch_to_network_custom_bridge(self, mock_exec):
+        device_cfg = {'device_type': 'netmiko_ovs_linux',
+                      'ip': 'localhost',
+                      'ngs_ovs_bridge': 'brbm'}
+        switch = ovs.OvsLinux(device_cfg)
+        switch.plug_switch_to_network(5000, 100)
+        mock_exec.assert_called_with(
+            switch,
+            ['ovs-vsctl set bridge brbm external_ids:vni-5000=100'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_unplug_switch_from_network_default_bridge(self, mock_exec):
+        self.switch.unplug_switch_from_network(5000, 100)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['ovs-vsctl remove bridge genericswitch external_ids vni-5000'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_unplug_switch_from_network_custom_bridge(self, mock_exec):
+        device_cfg = {'device_type': 'netmiko_ovs_linux',
+                      'ip': 'localhost',
+                      'ngs_ovs_bridge': 'brbm'}
+        switch = ovs.OvsLinux(device_cfg)
+        switch.unplug_switch_from_network(5000, 100)
+        mock_exec.assert_called_with(
+            switch,
+            ['ovs-vsctl remove bridge brbm external_ids vni-5000'])
+
+    def test__parse_vlan_ports_with_ports(self):
+        output = '''_uuid               : 12345678-1234-1234-1234-123456789abc
+name                : "eth0"
+tag                 : 100
+trunks              : []
+vlan_mode           : access'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertTrue(result)
+
+    def test__parse_vlan_ports_without_ports(self):
+        output = '''_uuid               : 12345678-1234-1234-1234-123456789abc
+name                : "eth0"
+tag                 : 200
+trunks              : []'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertFalse(result)
+
+    def test__parse_vlan_ports_empty_tag(self):
+        output = '''_uuid               : 12345678-1234-1234-1234-123456789abc
+name                : "eth0"
+tag                 : []
+trunks              : []'''
+        result = self.switch._parse_vlan_ports(output, 100)
+        self.assertFalse(result)
+
+    def test__parse_vlan_vni_match_quoted(self):
+        output = '''{key1=value1, "vni-5000"="100", key2=value2}'''
+        result = self.switch._parse_vlan_vni(output, 100, 5000)
+        self.assertTrue(result)
+
+    def test__parse_vlan_vni_match_unquoted(self):
+        output = '''{key1=value1, vni-5000=100, key2=value2}'''
+        result = self.switch._parse_vlan_vni(output, 100, 5000)
+        self.assertTrue(result)
+
+    def test__parse_vlan_vni_no_match(self):
+        output = '''{key1=value1, "vni-5000"="100", key2=value2}'''
+        result = self.switch._parse_vlan_vni(output, 100, 9999)
+        self.assertFalse(result)
+
+    def test__parse_vlan_vni_wrong_vlan(self):
+        output = '''{key1=value1, "vni-5000"="200", key2=value2}'''
+        result = self.switch._parse_vlan_vni(output, 100, 5000)
+        self.assertFalse(result)
+
+    def test__parse_vlan_vni_not_found(self):
+        output = '''{key1=value1, key2=value2}'''
+        result = self.switch._parse_vlan_vni(output, 100, 5000)
+        self.assertFalse(result)
