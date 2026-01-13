@@ -55,8 +55,9 @@ function create_ovs_manager_user {
         echo "#includedir /etc/sudoers.d" | sudo tee -a /etc/sudoers
     ( umask 226 && echo "$GENERIC_SWITCH_USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/99_ngs_ovs_manager )
 
-    # Hush the login banner for ovs user
-    touch $GENERIC_SWITCH_USER_HOME/.hushlogin
+    # Hush the login banner for ovs user - Also ignore errors when touch fails
+    # because the file exists. :(
+    test -f $GENERIC_SWITCH_USER_HOME/.hushlogin || touch $GENERIC_SWITCH_USER_HOME/.hushlogin
 }
 
 function configure_for_dlm {
