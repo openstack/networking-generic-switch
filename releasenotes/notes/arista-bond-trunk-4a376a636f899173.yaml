@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Add Arista EOS bond trunk commands so LACP bond trunk ports
+    are supported.

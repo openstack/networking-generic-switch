@@ -46,8 +46,21 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         'switchport trunk allowed vlan add {segmentation_id}'
     )
 
+    SET_NATIVE_VLAN_BOND = (
+        'interface {bond}',
+        'switchport mode trunk',
+        'switchport trunk native vlan {segmentation_id}',
+        'switchport trunk allowed vlan add {segmentation_id}'
+    )
+
     DELETE_NATIVE_VLAN = (
         'interface {port}',
+        'no switchport trunk native vlan {segmentation_id}',
+        'switchport trunk allowed vlan remove {segmentation_id}',
+    )
+
+    DELETE_NATIVE_VLAN_BOND = (
+        'interface {bond}',
         'no switchport trunk native vlan {segmentation_id}',
         'switchport trunk allowed vlan remove {segmentation_id}',
     )
@@ -57,7 +70,17 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         'switchport trunk allowed vlan add {segmentation_id}'
     )
 
+    ADD_NETWORK_TO_BOND_TRUNK = (
+        'interface {bond}',
+        'switchport trunk allowed vlan add {segmentation_id}'
+    )
+
     REMOVE_NETWORK_FROM_TRUNK = (
         'interface {port}',
+        'switchport trunk allowed vlan remove {segmentation_id}'
+    )
+
+    DELETE_NETWORK_ON_BOND_TRUNK = (
+        'interface {bond}',
         'switchport trunk allowed vlan remove {segmentation_id}'
     )
