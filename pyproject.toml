@@ -1,3 +1,99 @@
 [build-system]
-requires = ["pbr>=6.0.0", "setuptools>=64.0.0"]
+requires = ["pbr>=6.1.1"]
 build-backend = "pbr.build"
+
+[project]
+name = "networking-generic-switch"
+description = "Generic Switch ML2 Neutron Driver"
+authors = [
+    {name = "OpenStack", email = "openstack-discuss@lists.openstack.org"},
+]
+readme = {file = "README.rst", content-type = "text/x-rst"}
+license = {text = "Apache-2.0"}
+dynamic = ["version", "dependencies"]
+requires-python = ">=3.10"
+classifiers = [
+    "Environment :: OpenStack",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+
+[project.urls]
+Homepage = "https://docs.openstack.org/networking-generic-switch/latest/"
+Repository = "https://opendev.org/openstack/networking-generic-switch"
+Bugs = "https://bugs.launchpad.net/networking-generic-switch"
+
+[project.entry-points."neutron.ml2.mechanism_drivers"]
+genericswitch = "networking_generic_switch.generic_switch_mech:GenericSwitchDriver"
+
+[project.entry-points."neutron.service_plugins"]
+genericswitch_security_group = "networking_generic_switch.generic_switch_sg:GenericSwitchSecurityGroupHandler"
+
+[project.entry-points."generic_switch.devices"]
+netmiko_ovs_linux = "networking_generic_switch.devices.netmiko_devices.ovs:OvsLinux"
+netmiko_cisco_ios = "networking_generic_switch.devices.netmiko_devices.cisco:CiscoIos"
+netmiko_cisco_nxos = "networking_generic_switch.devices.netmiko_devices.cisco:CiscoNxOS"
+netmiko_cisco_s300 = "networking_generic_switch.devices.netmiko_devices.cisco300:Cisco300"
+netmiko_huawei = "networking_generic_switch.devices.netmiko_devices.huawei:Huawei"
+netmiko_huawei_vrpv8 = "networking_generic_switch.devices.netmiko_devices.huawei_vrpv8:Huawei"
+netmiko_arista_eos = "networking_generic_switch.devices.netmiko_devices.arista:AristaEos"
+netmiko_dell_os10 = "networking_generic_switch.devices.netmiko_devices.dell:DellOS10"
+netmiko_dell_force10 = "networking_generic_switch.devices.netmiko_devices.dell:DellNos"
+netmiko_dell_powerconnect = "networking_generic_switch.devices.netmiko_devices.dell:DellPowerConnect"
+netmiko_brocade_fastiron = "networking_generic_switch.devices.netmiko_devices.brocade:BrocadeFastIron"
+netmiko_ruijie = "networking_generic_switch.devices.netmiko_devices.ruijie:Ruijie"
+netmiko_hpe_comware = "networking_generic_switch.devices.netmiko_devices.hpe:HpeComware"
+netmiko_hp_comware = "networking_generic_switch.devices.netmiko_devices.hpe:HpeComware"
+netmiko_juniper = "networking_generic_switch.devices.netmiko_devices.juniper:Juniper"
+netmiko_mellanox_mlnxos = "networking_generic_switch.devices.netmiko_devices.mellanox_mlnxos:MellanoxMlnxOS"
+netmiko_cumulus = "networking_generic_switch.devices.netmiko_devices.cumulus:Cumulus"
+netmiko_cumulus_nvue = "networking_generic_switch.devices.netmiko_devices.cumulus:CumulusNVUE"
+netmiko_sonic = "networking_generic_switch.devices.netmiko_devices.sonic:Sonic"
+netmiko_dell_enterprise_sonic = "networking_generic_switch.devices.netmiko_devices.sonic:DellEnterpriseSonic"
+netmiko_supermicro_smis = "networking_generic_switch.devices.netmiko_devices.smc:SupermicroSmis"
+netmiko_nokia_srl = "networking_generic_switch.devices.netmiko_devices.nokia:NokiaSRL"
+netmiko_pluribus = "networking_generic_switch.devices.netmiko_devices.pluribus:Pluribus"
+netmiko_aruba_aoscx = "networking_generic_switch.devices.netmiko_devices.aruba:ArubaOSCX"
+netmiko_fake = "networking_generic_switch.devices.netmiko_devices.fake:Fake"
+
+[project.entry-points."tempest.test_plugins"]
+ngs_tests = "tempest_plugin.plugin:NGSTempestPlugin"
+
+[tool.setuptools]
+packages = [
+    "networking_generic_switch"
+]
+
+[tool.codespell]
+quiet-level = 4
+# Words to ignore:
+# cna: Intel CNA card
+# assertIn: Python's unittest method
+ignore-words-list = "cna,assertin"
+
+[tool.doc8]
+ignore = ["D001"]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+select = [
+    "E",        # pycodestyle (error)
+    "F",        # pyflakes
+    "W",        # pycodestyle (warning)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"networking_generic_switch/tests/**/*.py" = [
+    "E402",     # module-import-not-at-top-of-file
+]
