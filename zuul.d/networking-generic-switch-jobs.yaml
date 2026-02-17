@@ -2,6 +2,9 @@
     name: networking-generic-switch-tempest-dlm
     parent: devstack-tempest
     irrelevant-files:
+      - ^\.gitignore$
+      - ^\.gitreview$
+      - ^\.pre-commit-config\.yaml$
       - ^.*\.rst$
       - ^doc/.*$
       - ^networking_generic_switch/tests/.*$
