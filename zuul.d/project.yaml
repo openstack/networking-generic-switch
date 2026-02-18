@@ -8,7 +8,10 @@
       jobs:
         - networking-generic-switch-tempest-dlm
         - ironic-tempest-ipa-wholedisk-direct-multinode:
-            irrelevant-files:
+            irrelevant-files: &irrelevant_files
+              - ^\.gitignore$
+              - ^\.gitreview$
+              - ^\.pre-commit-config\.yaml$
               - ^.*\.rst$
               - ^doc/.*$
               - ^networking_generic_switch/tests/.*$
@@ -23,12 +26,4 @@
       jobs:
         - networking-generic-switch-tempest-dlm
         - ironic-tempest-ipa-wholedisk-direct-multinode:
-            irrelevant-files:
-              - ^.*\.rst$
-              - ^doc/.*$
-              - ^networking_generic_switch/tests/.*$
-              - ^releasenotes/.*$
-              - ^(test-|)requirements.txt$
-              - ^tools/.*$
-              - ^tox.ini$
-              - ^setup.cfg$
+            irrelevant-files: *irrelevant_files
