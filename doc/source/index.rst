@@ -7,6 +7,7 @@ Welcome to networking-generic-switch's documentation!
    compatible-devices
    installation
    configuration
+   admin
    dev/dev-quickstart
    contributing
    netmiko-device-commands
