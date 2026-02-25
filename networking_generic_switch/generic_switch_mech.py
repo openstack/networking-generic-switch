@@ -703,26 +703,48 @@ class GenericSwitchDriver(api.MechanismDriver):
             vni = vxlan_segment.get(api.SEGMENTATION_ID)
             if vni and segmentation_id:
                 # Check if VLAN still has ports before removing VNI
-                try:
-                    if not switch.vlan_has_ports(segmentation_id):
-                        physnet = segment.get(api.PHYSICAL_NETWORK)
-                        LOG.debug("Removing VNI %(vni)s from VLAN "
-                                  "%(segmentation_id)s on "
-                                  "%(switch_info)s as no ports remain "
-                                  "(physnet: %(physnet)s)",
-                                  {'vni': vni,
-                                   'segmentation_id': segmentation_id,
-                                   'switch_info': switch_info,
-                                   'physnet': physnet})
+                # vlan_has_ports() handles its own errors gracefully
+                if not switch.vlan_has_ports(segmentation_id):
+                    physnet = segment.get(api.PHYSICAL_NETWORK)
+                    LOG.debug("Removing VNI %(vni)s from VLAN "
+                              "%(segmentation_id)s on "
+                              "%(switch_info)s as no ports remain "
+                              "(physnet: %(physnet)s)",
+                              {'vni': vni,
+                               'segmentation_id': segmentation_id,
+                               'switch_info': switch_info,
+                               'physnet': physnet})
+                    try:
                         switch.unplug_switch_from_network(
                             vni, segmentation_id, physnet=physnet)
-                except Exception as e:
-                    LOG.error("Failed to unplug VNI %(vni)s from "
-                              "VLAN %(vlan)s on device %(switch)s: "
-                              "%(exc)s",
-                              {'vni': vni, 'vlan': segmentation_id,
-                               'switch': switch_info, 'exc': e})
-                    # Don't re-raise - port unplug succeeded
+                    except ngs_exc.GenericSwitchNetmikoConnectError:
+                        LOG.error("Failed to remove VNI %(vni)s from VLAN "
+                                  "%(vlan)s on %(switch)s due to "
+                                  "connectivity issue. Verify switch is "
+                                  "reachable and credentials are correct. "
+                                  "VNI-to-VLAN mapping may remain on "
+                                  "switch.",
+                                  {'vni': vni, 'vlan': segmentation_id,
+                                   'switch': switch_info})
+                        # Don't re-raise - port unplug succeeded
+                    except ngs_exc.GenericSwitchNetmikoConfigError:
+                        LOG.error("Failed to remove VNI %(vni)s from VLAN "
+                                  "%(vlan)s on %(switch)s due to "
+                                  "configuration error. Verify VLAN "
+                                  "%(vlan)s and VNI %(vni)s exist on "
+                                  "switch. VNI-to-VLAN mapping may remain "
+                                  "on switch.",
+                                  {'vni': vni, 'vlan': segmentation_id,
+                                   'switch': switch_info})
+                        # Don't re-raise - port unplug succeeded
+                    except ngs_exc.GenericSwitchException as e:
+                        LOG.error("Failed to remove VNI %(vni)s from VLAN "
+                                  "%(vlan)s on %(switch)s: %(exc)s. "
+                                  "VNI-to-VLAN mapping may remain on "
+                                  "switch.",
+                                  {'vni': vni, 'vlan': segmentation_id,
+                                   'switch': switch_info, 'exc': e})
+                        # Don't re-raise - port unplug succeeded
 
     def _unplug_port_from_segment(self, port, segment,
                                   vxlan_segment=None):

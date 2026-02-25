@@ -265,17 +265,6 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         For switches that don't support VXLAN, this can be left as None
         (will log a warning but not fail).
 
-        Example (Cisco NX-OS):
-            evpn
-              vni 5000 l2
-                rd auto
-                route-target both auto
-            vlan 100
-              vn-segment 5000
-            interface nve1
-              member vni 5000
-                ingress-replication protocol bgp
-
         :param vni: The VXLAN Network Identifier
         :param segmentation_id: VLAN ID to map to the VNI
         :param physnet: Physical network name for per-physnet configuration
