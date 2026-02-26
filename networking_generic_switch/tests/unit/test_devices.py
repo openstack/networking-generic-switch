@@ -148,6 +148,7 @@ class TestDeviceManager(unittest.TestCase):
                       "ngs_mac_address": 'aa:bb:cc:dd:ee:ff',
                       "ngs_ssh_connect_timeout": "120",
                       "ngs_ssh_connect_interval": "20",
+                      "ngs_ssh_reuse_connection": "true",
                       "ngs_trunk_ports": "port1,port2",
                       "ngs_physical_networks": "physnet1,physnet2",
                       "ngs_port_default_vlan": "20",
@@ -160,6 +161,7 @@ class TestDeviceManager(unittest.TestCase):
         self.assertNotIn('ngs_mac_address', device.config)
         self.assertNotIn('ngs_ssh_connect_timeout', device.config)
         self.assertNotIn('ngs_ssh_connect_interval', device.config)
+        self.assertNotIn('ngs_ssh_reuse_connection', device.config)
         self.assertNotIn('ngs_trunk_ports', device.config)
         self.assertNotIn('ngs_physical_networks', device.config)
         self.assertNotIn('ngs_port_default_vlan', device.config)
@@ -169,6 +171,7 @@ class TestDeviceManager(unittest.TestCase):
                          device.ngs_config['ngs_mac_address'])
         self.assertEqual('120', device.ngs_config['ngs_ssh_connect_timeout'])
         self.assertEqual('20', device.ngs_config['ngs_ssh_connect_interval'])
+        self.assertEqual('true', device.ngs_config['ngs_ssh_reuse_connection'])
         self.assertEqual('port1,port2', device.ngs_config['ngs_trunk_ports'])
         self.assertEqual('physnet1,physnet2',
                          device.ngs_config['ngs_physical_networks'])
@@ -228,6 +231,7 @@ class TestDeviceManager(unittest.TestCase):
         self.assertNotIn('ngs_mac_address', device.ngs_config)
         self.assertEqual(60, device.ngs_config['ngs_ssh_connect_timeout'])
         self.assertEqual(10, device.ngs_config['ngs_ssh_connect_interval'])
+        self.assertFalse(device.ngs_config['ngs_ssh_reuse_connection'])
         self.assertNotIn('ngs_trunk_ports', device.ngs_config)
         self.assertNotIn('ngs_physical_networks', device.ngs_config)
         self.assertNotIn('ngs_port_default_vlan', device.ngs_config)

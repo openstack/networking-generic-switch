@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds support for reusing ssh connections, instead of creating a new one for
+    each command. This is useful with switches that take a long time to initiate
+    new connections, particularly Dell OS10.
+
+    It's configured per-switch with the `ngs_ssh_reuse_connection` option, and
+    defaults to False. It can be used with batching, and will cache multiple
+    connections up to the value of ngs_max_connections.

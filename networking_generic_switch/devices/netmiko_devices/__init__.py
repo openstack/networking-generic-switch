@@ -16,6 +16,7 @@ import atexit
 import contextlib
 import functools
 import hashlib
+import queue
 import uuid
 
 import netmiko
@@ -63,7 +64,12 @@ def check_output(operation):
                 an error has occurred.
             """
             output = func(self, *args, **kwargs)
-            self.check_output(output, operation)
+            try:
+                self.check_output(output, operation)
+            except exc.GenericSwitchNetmikoConfigError:
+                # Raised if ERROR_MSG_PATTERNS catches an output error
+                self._drain_cached_connections()
+                raise
             return output
 
         return wrapper
@@ -221,6 +227,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
         self.locker = None
         self.batch_cmds = None
+        self._connection_pool = None
         if self._batch_requests():
             if not CONF.ngs_coordination.backend_url:
                 error = ("ngs_batch_requests is true but [ngs_coordination] "
@@ -247,6 +254,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 "configured. The ngs_max_connections is ignored.",
                 self.lock_kwargs['locks_prefix'])
 
+        if self._reuse_connection():
+            max_connections = int(self.ngs_config['ngs_max_connections'])
+            self._connection_pool = queue.LifoQueue(maxsize=max_connections)
+            # Connections are returned to pool rather than closed;
+            # register cleanup on exit
+            atexit.register(self._drain_cached_connections)
+
     @property
     def support_trunk_on_ports(self):
         return bool(self.ADD_NETWORK_TO_TRUNK)
@@ -268,6 +282,20 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                                       args=kwargs)
         return cmd_set
 
+    def _get_pooled_connection(self):
+        """Pop a live connection from the pool, or return None."""
+        while not self._connection_pool.empty():
+            try:
+                conn = self._connection_pool.get_nowait()
+            except queue.Empty:
+                return None
+
+            if conn.is_alive():
+                return conn
+            conn.disconnect()
+
+        return None
+
     @contextlib.contextmanager
     def _get_connection(self):
         """Context manager providing a netmiko SSH connection object.
@@ -275,6 +303,34 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         This function hides the complexities of gracefully handling retrying
         failed connection attempts.
         """
+        if not self._reuse_connection():
+            net_connect = self._connect_with_retry()
+            with net_connect:
+                yield net_connect
+            return
+
+        net_connect = (
+            self._get_pooled_connection()
+            or self._connect_with_retry()
+        )
+
+        try:
+            yield net_connect
+        except Exception:
+            # If the caller raises an exception assume the connection
+            # is no longer alive and clean it up.
+            net_connect.disconnect()
+            raise
+        else:
+            # If the caller completes without an exception assume the
+            # connection is still alive and put it back in the pool.
+            try:
+                self._connection_pool.put_nowait(net_connect)
+            except queue.Full:
+                net_connect.disconnect()
+
+    def _connect_with_retry(self):
+        """Create a new netmiko connection with retries."""
         retry_exc_types = (paramiko.SSHException, EOFError)
 
         # Use tenacity to handle retrying.
@@ -297,7 +353,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
         # First, create a connection.
         try:
-            net_connect = _create_connection()
+            return _create_connection()
         except tenacity.RetryError as e:
             LOG.error(
                 _("Reached maximum SSH connection attempts, not retrying "
@@ -313,9 +369,21 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                       'error': e})
             raise exc.GenericSwitchNetmikoConnectError()
 
-        # Now yield the connection to the caller.
-        with net_connect:
-            yield net_connect
+    def _drain_cached_connections(self):
+        if not self._connection_pool:
+            return
+
+        while not self._connection_pool.empty():
+            try:
+                net_connect = self._connection_pool.get_nowait()
+                net_connect.disconnect()
+            except queue.Empty:
+                break
+            except Exception:
+                LOG.debug(
+                    "Failed to close cached SSH connection during drain",
+                    exc_info=True,
+                )
 
     def send_commands_to_device(self, cmd_set):
         if not cmd_set:
@@ -325,7 +393,19 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         # If configured, batch up requests to the switch
         if self.batch_cmds is not None:
             return self.batch_cmds.do_batch(self, cmd_set)
-        return self._send_commands_to_device(cmd_set)
+
+        try:
+            return self._send_commands_to_device(cmd_set)
+        except Exception as error:
+            if self._reuse_connection():
+                LOG.warning(
+                    "Retrying switch command execution with "
+                    "a clean SSH connection for device: "
+                    "%(device)s, error: %(error)s", {
+                        'device': device_utils.sanitise_config(self.config),
+                        'error': error})
+                return self._send_commands_to_device(cmd_set)
+            raise
 
     def _send_commands_to_device(self, cmd_set):
         try:

@@ -39,6 +39,7 @@ NGS_INTERNAL_OPTS = [
     {'name': 'ngs_ssh_disabled_algorithms'},
     {'name': 'ngs_ssh_connect_timeout', 'default': 60},
     {'name': 'ngs_ssh_connect_interval', 'default': 10},
+    {'name': 'ngs_ssh_reuse_connection', 'default': False},
     {'name': 'ngs_max_connections', 'default': 1},
     {'name': 'ngs_switchport_mode', 'default': 'access'},
     # If True, disable switch ports that are not in use.
@@ -208,6 +209,11 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         """Return whether to batch up requests to the switch."""
         return strutils.bool_from_string(
             self.ngs_config['ngs_batch_requests'])
+
+    def _reuse_connection(self):
+        """Return whether to reuse ssh connections."""
+        return strutils.bool_from_string(
+            self.ngs_config['ngs_ssh_reuse_connection'])
 
     def _get_allowed_vlans(self):
         allowed_vlans = self.ngs_config.get('ngs_allowed_vlans')
