@@ -24,6 +24,14 @@ from sphinx.util.nodes import nested_parse_with_titles
 command_descriptions = {
     'ADD_NETWORK': 'A tuple of command strings used to add a VLAN',
     'DELETE_NETWORK': 'A tuple of command strings used to delete a VLAN',
+    'PLUG_SWITCH_TO_NETWORK': 'A tuple of command strings used to configure \
+        VLAN to VNI mapping for VXLAN overlay networks',
+    'UNPLUG_SWITCH_FROM_NETWORK': 'A tuple of command strings used to remove \
+        VLAN to VNI mapping for VXLAN overlay networks',
+    'SHOW_VLAN_PORTS': 'A tuple of command strings used to query which ports \
+        are assigned to a VLAN',
+    'SHOW_VLAN_VNI': 'A tuple of command strings used to check if a VLAN has \
+        a VNI configured',
     'PLUG_PORT_TO_NETWORK': 'A tuple of command strings used to configure a \
          port to connect to a specific VLAN',
     'DELETE_PORT': 'A tuple of command strings used to remove a port from the\

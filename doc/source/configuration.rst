@@ -512,3 +512,224 @@ Here is an example configuration with a float, a boolean and a string::
 
 A list and description of available parameters can be consulted in the `Netmiko documentation
 <https://ktbyers.github.io/netmiko/docs/netmiko/index.html#netmiko.BaseConnection>`__.
+
+VXLAN L2VNI Support
+===================
+
+Networking Generic Switch supports VXLAN Layer 2 VNI (L2VNI) configurations
+for hierarchical port binding scenarios. This enables VXLAN overlay networks
+with local VLAN mappings on each switch.
+
+Overview
+--------
+
+In VXLAN L2VNI scenarios:
+
+* Neutron creates a VXLAN network (top segment) with a VNI (VXLAN Network Identifier)
+* Each switch gets a dynamically allocated local VLAN (bottom segment)
+* The driver maps the local VLAN to the global VNI on the switch fabric
+
+This allows multiple switches to participate in the same VXLAN network using
+their own local VLAN IDs, which are mapped to a common VNI for overlay traffic.
+
+Supported Switches
+------------------
+
+**Cisco Nexus (NX-OS)** - Full L2VNI support
+
+The Cisco Nexus implementation is production-ready and fully tested.
+
+Switch prerequisites:
+
+* VXLAN and NV overlay features must be enabled
+* Switch must be configured as a VTEP (VXLAN Tunnel Endpoint)
+
+Example Cisco NX-OS switch configuration:
+
+.. code-block:: text
+
+   ! Enable VXLAN features (Cisco NX-OS specific)
+   feature vxlan
+   feature nv overlay
+
+   ! Configure NVE interface (pre-configured by admin)
+   interface nve1
+     no shutdown
+     source-interface loopback0
+     host-reachability protocol bgp
+
+NVE Configuration Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Cisco NX-OS driver uses BGP EVPN with ingress-replication for all VXLAN
+deployments. This approach aligns with Cisco best practices and avoids
+multicast group scaling issues that occur with Neutron's dynamic VNI
+assignment model.
+
+Configuration parameters:
+
+* ``ngs_nve_interface`` - NVE interface name (default: ``nve1``)
+
+Configuration Example:
+
+.. code-block:: ini
+
+   [genericswitch:leaf01]
+   device_type = netmiko_cisco_nxos
+   ip = 192.0.2.10
+   username = admin
+   password = password
+   ngs_physical_networks = datacenter1,datacenter2
+
+   # NVE interface (optional, default: nve1)
+   ngs_nve_interface = nve1
+
+Prerequisites
+^^^^^^^^^^^^^
+
+Your Cisco NX-OS switches must have BGP EVPN configured. This is required
+for the ingress-replication data plane to function correctly.
+
+Example switch configuration:
+
+.. code-block:: text
+
+   ! Enable required features
+   feature bgp
+   feature vxlan
+   feature nv overlay
+
+   ! Configure BGP EVPN
+   router bgp 65000
+     neighbor 192.0.2.1 remote-as 65000
+     address-family l2vpn evpn
+       neighbor 192.0.2.1 activate
+       advertise-pip
+
+   ! Configure NVE interface
+   interface nve1
+     no shutdown
+     source-interface loopback0
+     host-reachability protocol bgp
+
+Generated Configuration
+^^^^^^^^^^^^^^^^^^^^^^^
+
+For each VXLAN network, the driver automatically configures:
+
+.. code-block:: text
+
+   ! BGP EVPN control plane
+   evpn
+     vni 10100 l2
+     rd auto
+     route-target both auto
+
+   ! Data plane with ingress-replication
+   vlan 100
+     vn-segment 10100
+   interface nve1
+     member vni 10100
+       ingress-replication protocol bgp
+
+The driver handles both configuration and cleanup automatically based on
+port binding operations. VNI mappings are only removed when the last port
+is unplugged from a VLAN.
+
+**Arista EOS** - Planned support (not yet implemented)
+
+Arista requires a dedicated VXLAN interface model. Implementation requires
+a new configuration parameter to specify the VXLAN interface name.
+
+**SONiC** - Planned support (not yet implemented)
+
+SONiC requires configuration of a VTEP name. Implementation requires a new
+configuration parameter to specify the VTEP instance.
+
+**Cisco IOS** - Not supported
+
+Classic Cisco IOS does not support VXLAN. VXLAN is only available in NX-OS
+and IOS-XE (Catalyst 9000 series and newer).
+
+How It Works
+------------
+
+When a baremetal port binds to a VXLAN network:
+
+1. Neutron allocates a local VLAN for the switch
+2. The driver configures the VNI-to-VLAN mapping on the switch
+3. The port is added to the local VLAN
+4. VXLAN encapsulation/decapsulation happens at the switch VTEP
+
+When the last port is removed from a VLAN:
+
+1. The port is removed from the VLAN
+2. The driver checks if other ports remain on the VLAN
+3. If empty, the VNI-to-VLAN mapping is automatically removed
+4. The VLAN itself is removed by normal cleanup
+
+Idempotency and Safety
+----------------------
+
+The L2VNI implementation includes several safety mechanisms:
+
+* **Idempotency**: VNI mappings are only configured once, even when multiple
+  ports bind to the same network
+* **Reference checking**: VNI mappings are only removed when the last port
+  is unplugged, verified by querying the switch
+* **Graceful degradation**: Switches without L2VNI support log warnings but
+  don't fail port binding
+* **No locks on queries**: Read-only operations don't acquire locks for better
+  performance
+
+Cisco Nexus Example
+-------------------
+
+For a VXLAN network with VNI 5000 mapped to local VLAN 100, the driver
+automatically generates:
+
+.. code-block:: text
+
+   ! BGP EVPN control plane
+   evpn
+     vni 5000 l2
+     rd auto
+     route-target both auto
+
+   ! Data plane with ingress-replication
+   vlan 100
+     vn-segment 5000
+   interface nve1
+     member vni 5000
+       ingress-replication protocol bgp
+
+The driver automatically creates this mapping during port binding and removes
+it during cleanup when the last port is unplugged from the VLAN.
+
+Neutron Configuration
+---------------------
+
+**Prerequisites**: This feature requires the ``networking-baremetal`` plugin
+with the ``baremetal-l2vni`` mechanism driver. The ``baremetal-l2vni`` driver
+handles hierarchical port binding (top segment = VXLAN, bottom segment = VLAN)
+and allocates local VLAN segments that are mapped to VXLAN VNIs on the switch
+fabric.
+
+Install networking-baremetal and configure it in your ML2 configuration:
+
+.. code-block:: ini
+
+   [ml2]
+   type_drivers = vlan,vxlan
+   tenant_network_types = vxlan
+   mechanism_drivers = baremetal_l2vni,genericswitch
+
+   [ml2_type_vxlan]
+   vni_ranges = 4001:8000
+
+   [ml2_type_vlan]
+   network_vlan_ranges = physnet1:100:200
+
+The ``baremetal-l2vni`` mechanism driver must be listed before
+``genericswitch`` in the ``mechanism_drivers`` list to ensure proper
+hierarchical port binding.

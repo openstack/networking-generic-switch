@@ -176,6 +176,9 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         if provider_type == 'vlan' and segmentation_id:
             # Delete vlan on all switches from this driver
+            # NOTE(TheJulia): For L2VNI cases, VNI-to-VLAN mappings should
+            # have been cleaned up during port deletion via
+            # _unplug_port_from_segment(). This deletes the VLAN itself.
             exc_info = None
             for switch_name, switch in self._get_devices_by_physnet(physnet):
                 try:
@@ -346,6 +349,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         state changes that it does not know or care about.
         """
         port = context.current
+
         segment = context.bottom_bound_segment
         if ngs_utils.is_port_bound(port):
             binding_profile = port['binding:profile']
@@ -376,6 +380,11 @@ class GenericSwitchDriver(api.MechanismDriver):
 
                 # If segmentation ID is None, set vlan 1
                 segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
+
+                # L2VNI support
+                self._configure_l2vni_if_needed(
+                    context, switch, switch_info, segment, segmentation_id)
+
                 LOG.debug("Putting switch port %(switch_port)s on "
                           "%(switch_info)s in vlan %(segmentation_id)s",
                           {'switch_port': port_id, 'switch_info': switch_info,
@@ -421,7 +430,8 @@ class GenericSwitchDriver(api.MechanismDriver):
             # information to be lost, so remove the port from the segment on
             # the switch now while we have the required information.
             self._unplug_port_from_segment(
-                context.original, context.original_bottom_bound_segment)
+                context.original, context.original_bottom_bound_segment,
+                vxlan_segment=context.original_top_bound_segment)
 
     def delete_port_precommit(self, context):
         """Delete resources of a port.
@@ -450,7 +460,9 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         port = context.current
         if ngs_utils.is_port_bound(port):
-            self._unplug_port_from_segment(port, context.bottom_bound_segment)
+            self._unplug_port_from_segment(
+                port, context.bottom_bound_segment,
+                vxlan_segment=context.top_bound_segment)
 
     def bind_port(self, context):
         """Attempt to bind a port.
@@ -589,15 +601,157 @@ class GenericSwitchDriver(api.MechanismDriver):
                 return False
         return True
 
-    def _unplug_port_from_segment(self, port, segment):
-        """Unplug a port from a segment.
+    def _configure_l2vni_if_needed(self, context, switch, switch_info,
+                                   segment, segmentation_id):
+        """Configure L2VNI mapping if this is a VXLAN over VLAN scenario.
+
+        In hierarchical port binding with VXLAN, Neutron creates:
+        - Top segment: VXLAN network with VNI
+        - Bottom segment: Dynamically allocated local VLAN per switch
+
+        This method maps the local VLAN to the global VNI, enabling VXLAN
+        overlay traffic. The mapping is only created once (idempotent) even
+        when multiple ports bind to the same network.
+
+        Workflow:
+        1. Check if top=VXLAN and bottom=VLAN (L2VNI scenario)
+        2. Validate VNI and VLAN IDs are present
+        3. Check switch capability (PLUG_SWITCH_TO_NETWORK defined)
+        4. Query if VNI already configured (idempotency)
+        5. Configure VNI-to-VLAN mapping if needed
+
+        :param context: PortContext with top/bottom bound segments
+        :param switch: Switch device object
+        :param switch_info: Switch identifier for logging
+        :param segment: Bottom bound segment (VLAN)
+        :param segmentation_id: VLAN ID
+        :raises: GenericSwitchConfigException if VNI or VLAN ID missing
+        """
+        vxlan_seg = context.top_bound_segment
+        vxlan_type = vxlan_seg.get(api.NETWORK_TYPE)
+        vlan_type = segment.get(api.NETWORK_TYPE)
+
+        # TODO(TheJulia): A possibility exists that we might be able
+        # to check for geneve on the top bound segment and support it.
+        if (vxlan_type == const.TYPE_VXLAN
+                and vlan_type == const.TYPE_VLAN):
+            # NOTE(TheJulia): In this case, we have a VXLAN network on
+            # the top bound segment, and for the actual attachment we
+            # will wire the segment to an intermediary vlan as well.
+            vni = vxlan_seg.get(api.SEGMENTATION_ID)
+            if not vni:
+                msg = ("Unable to bind L2VNI without vni set on "
+                       "the vxlan segment")
+                raise ngs_exc.GenericSwitchConfigException(msg)
+            if not segment.get(api.SEGMENTATION_ID):
+                msg = ("Unable to bind L2VNI without vlan set on "
+                       "the vlan segment")
+                raise ngs_exc.GenericSwitchConfigException(msg)
+
+            # Check if switch supports L2VNI configuration
+            if not switch.PLUG_SWITCH_TO_NETWORK:
+                LOG.warning("Switch %(switch)s does not support L2VNI "
+                            "(PLUG_SWITCH_TO_NETWORK not defined). "
+                            "VNI %(vni)s will not be configured on "
+                            "VLAN %(vlan)s.",
+                            {'switch': switch_info, 'vni': vni,
+                             'vlan': segmentation_id})
+            else:
+                # Check if VNI is already configured on this VLAN
+                # (idempotency check)
+                if not switch.vlan_has_vni(segmentation_id, vni):
+                    # Extract physnet for per-physnet mcast-group resolution
+                    physnet = segment.get(api.PHYSICAL_NETWORK)
+                    LOG.debug("Putting fabric vni %(vni)s on vlan "
+                              "%(segmentation_id)s on "
+                              "%(switch_info)s (physnet: %(physnet)s)",
+                              {'vni': vni,
+                               'segmentation_id': segmentation_id,
+                               'switch_info': switch_info,
+                               'physnet': physnet})
+                    switch.plug_switch_to_network(vni, segmentation_id,
+                                                  physnet=physnet)
+                else:
+                    LOG.debug("VNI %(vni)s already configured on vlan "
+                              "%(segmentation_id)s on "
+                              "%(switch_info)s, skipping",
+                              {'vni': vni,
+                               'segmentation_id': segmentation_id,
+                               'switch_info': switch_info})
+
+    def _cleanup_l2vni_if_needed(self, vxlan_segment, segment, switch,
+                                 segmentation_id, switch_info):
+        """Clean up L2VNI mapping if VLAN is empty.
+
+        For VXLAN over VLAN (L2VNI) scenarios, checks if the VLAN still has
+        ports after unplugging. If the VLAN is empty, removes the VNI-to-VLAN
+        mapping from the switch.
+
+        :param vxlan_segment: Top-level VXLAN segment (or None)
+        :param segment: Bottom-level VLAN segment
+        :param switch: Switch device object
+        :param segmentation_id: VLAN ID
+        :param switch_info: Switch identifier for logging
+        """
+        if not vxlan_segment:
+            return
+
+        vxlan_type = vxlan_segment.get(api.NETWORK_TYPE)
+        vlan_type = segment.get(api.NETWORK_TYPE)
+        if (vxlan_type == const.TYPE_VXLAN
+                and vlan_type == const.TYPE_VLAN):
+            vni = vxlan_segment.get(api.SEGMENTATION_ID)
+            if vni and segmentation_id:
+                # Check if VLAN still has ports before removing VNI
+                try:
+                    if not switch.vlan_has_ports(segmentation_id):
+                        physnet = segment.get(api.PHYSICAL_NETWORK)
+                        LOG.debug("Removing VNI %(vni)s from VLAN "
+                                  "%(segmentation_id)s on "
+                                  "%(switch_info)s as no ports remain "
+                                  "(physnet: %(physnet)s)",
+                                  {'vni': vni,
+                                   'segmentation_id': segmentation_id,
+                                   'switch_info': switch_info,
+                                   'physnet': physnet})
+                        switch.unplug_switch_from_network(
+                            vni, segmentation_id, physnet=physnet)
+                except Exception as e:
+                    LOG.error("Failed to unplug VNI %(vni)s from "
+                              "VLAN %(vlan)s on device %(switch)s: "
+                              "%(exc)s",
+                              {'vni': vni, 'vlan': segmentation_id,
+                               'switch': switch_info, 'exc': e})
+                    # Don't re-raise - port unplug succeeded
+
+    def _unplug_port_from_segment(self, port, segment,
+                                  vxlan_segment=None):
+        """Unplug a port from a segment with L2VNI cleanup if applicable.
+
+        Removes the port from the VLAN on the switch. For L2VNI scenarios
+        (VXLAN over VLAN), also checks if this is the last port on the VLAN
+        and removes the VNI-to-VLAN mapping if so.
+
+        L2VNI Cleanup Logic:
+        1. Port is unplugged from VLAN
+        2. If vxlan_segment provided and is VXLAN type:
+           a. Query switch to check if VLAN still has ports
+           b. If VLAN is empty, remove VNI-to-VLAN mapping
+           c. If VLAN has ports, keep VNI mapping (other ports still using it)
+
+        This ensures VNI mappings are cleaned up when no longer needed, while
+        preventing premature removal that would break connectivity for
+        remaining ports.
 
         If the configuration required to unplug the port is not present
         (e.g. local link information), the port will not be unplugged and no
         exception will be raised.
 
         :param port: The port to unplug
-        :param segment: The segment from which to unplug the port
+        :param segment: The segment from which to unplug the port (VLAN)
+        :param vxlan_segment: Optional top-level VXLAN segment for L2VNI
+                              cleanup. If provided and is VXLAN type, cleanup
+                              logic will remove VNI mapping when safe.
         """
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
@@ -637,6 +791,10 @@ class GenericSwitchDriver(api.MechanismDriver):
                      '%(net_id)s on device %(device)s',
                      {'port_id': port['id'], 'net_id': segment['network_id'],
                       'device': switch_info})
+
+            # Check if we need to unplug VNI for L2VNI case
+            self._cleanup_l2vni_if_needed(vxlan_segment, segment, switch,
+                                          segmentation_id, switch_info)
 
     def _get_devices_by_physnet(self, physnet):
         """Generator yielding switches on a particular physical network.

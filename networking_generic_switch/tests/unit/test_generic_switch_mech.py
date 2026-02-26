@@ -1464,3 +1464,324 @@ class TestGenericSwitchDriver(unittest.TestCase):
         driver.create_port_postcommit(mock_context)
         driver.update_port_precommit(mock_context)
         driver.delete_port_precommit(mock_context)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_l2vni_plug(self, m_pc, m_list):
+        """Test L2VNI configuration on port plug with VXLAN+VLAN segments."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        # Mock switch supports L2VNI
+        self.switch_mock.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        self.switch_mock.vlan_has_vni.return_value = False
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'
+        }
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'
+        }
+        # Bottom segment is VLAN
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        # Top segment is VXLAN
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'vxlan',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.update_port_postcommit(mock_context)
+
+        # Verify VNI was checked and configured with physnet
+        self.switch_mock.vlan_has_vni.assert_called_once_with(100, 5000)
+        self.switch_mock.plug_switch_to_network.assert_called_once_with(
+            5000, 100, physnet='physnet1')
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 100)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_l2vni_unsupported_switch(self,
+                                                             m_pc, m_list):
+        """Test L2VNI with unsupported switch logs warning."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        # Mock switch does NOT support L2VNI
+        self.switch_mock.PLUG_SWITCH_TO_NETWORK = None
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'
+        }
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'
+        }
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'vxlan',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.update_port_postcommit(mock_context)
+
+        # Verify VNI was NOT configured
+        self.switch_mock.plug_switch_to_network.assert_not_called()
+        # But port was still plugged
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 100)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_l2vni_already_configured(self,
+                                                             m_pc, m_list):
+        """Test L2VNI idempotency when VNI already configured."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        # VNI already configured
+        self.switch_mock.vlan_has_vni.return_value = True
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'
+        }
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'
+        }
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'vxlan',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.update_port_postcommit(mock_context)
+
+        # Verify VNI configuration was skipped (idempotent)
+        self.switch_mock.vlan_has_vni.assert_called_once_with(100, 5000)
+        self.switch_mock.plug_switch_to_network.assert_not_called()
+
+    def test_delete_port_postcommit_l2vni_with_remaining_ports(self, m_list):
+        """Test L2VNI cleanup when VLAN still has ports."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        # VLAN still has other ports
+        self.switch_mock.vlan_has_ports.return_value = True
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other'
+        }
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'vxlan',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.delete_port_postcommit(mock_context)
+
+        # Verify port was unplugged
+        self.switch_mock.delete_port.assert_called_once_with(2222, 100)
+        # Verify VNI was NOT removed (ports remain)
+        self.switch_mock.vlan_has_ports.assert_called_once_with(100)
+        self.switch_mock.unplug_switch_from_network.assert_not_called()
+
+    def test_delete_port_postcommit_l2vni_no_ports_remaining(self, m_list):
+        """Test L2VNI cleanup when VLAN has no ports."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        # No ports remaining on VLAN
+        self.switch_mock.vlan_has_ports.return_value = False
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other'
+        }
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'vxlan',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.delete_port_postcommit(mock_context)
+
+        # Verify port was unplugged
+        self.switch_mock.delete_port.assert_called_once_with(2222, 100)
+        # Verify VNI was removed with physnet (no ports remain)
+        self.switch_mock.vlan_has_ports.assert_called_once_with(100)
+        self.switch_mock.unplug_switch_from_network.assert_called_once_with(
+            5000, 100, physnet='physnet1')
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_l2vni_with_different_physnets(self,
+                                                                  m_pc,
+                                                                  m_list):
+        """Test L2VNI passes correct physnet for different networks."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        self.switch_mock.vlan_has_vni.return_value = False
+
+        # Test with physnet2
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 3333}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '456',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'
+        }
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '456',
+            'binding:vif_type': 'unbound'
+        }
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 200,
+            'network_type': 'vlan',
+            'physical_network': 'physnet2',
+            'network_id': 'dddd-eeee-fff'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 6000,
+            'network_type': 'vxlan',
+            'network_id': 'dddd-eeee-fff'
+        }
+
+        driver.update_port_postcommit(mock_context)
+
+        # Verify physnet2 was passed
+        self.switch_mock.plug_switch_to_network.assert_called_once_with(
+            6000, 200, physnet='physnet2')
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_l2vni_no_physnet(self, m_pc, m_list):
+        """Test L2VNI handles missing physical_network gracefully."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        self.switch_mock.vlan_has_vni.return_value = False
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 4444}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '789',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'
+        }
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '789',
+            'binding:vif_type': 'unbound'
+        }
+        # Bottom segment without physical_network
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 300,
+            'network_type': 'vlan',
+            'network_id': 'gggg-hhhh-iii'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 7000,
+            'network_type': 'vxlan',
+            'network_id': 'gggg-hhhh-iii'
+        }
+
+        driver.update_port_postcommit(mock_context)
+
+        # Verify physnet=None was passed
+        self.switch_mock.plug_switch_to_network.assert_called_once_with(
+            7000, 300, physnet=None)

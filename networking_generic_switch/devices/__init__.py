@@ -249,6 +249,112 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
+    def plug_switch_to_network(self, vni: int, segmentation_id: int,
+                               physnet: str = None):
+        """Configure L2VNI mapping on the switch.
+
+        In VXLAN L2VNI scenarios with hierarchical port binding, Neutron
+        creates a VXLAN network (top segment) and dynamically allocates a
+        local VLAN (bottom segment) on each switch. This method maps the
+        VLAN to the VNI on the switch fabric.
+
+        Called during port binding when both conditions are met:
+        - Top bound segment is VXLAN
+        - Bottom bound segment is VLAN
+
+        For switches that don't support VXLAN, this can be left as None
+        (will log a warning but not fail).
+
+        Example (Cisco NX-OS):
+            evpn
+              vni 5000 l2
+                rd auto
+                route-target both auto
+            vlan 100
+              vn-segment 5000
+            interface nve1
+              member vni 5000
+                ingress-replication protocol bgp
+
+        :param vni: The VXLAN Network Identifier
+        :param segmentation_id: VLAN ID to map to the VNI
+        :param physnet: Physical network name for per-physnet configuration
+                        (optional, for future use).
+        :raises: GenericSwitchConfigException on configuration failure
+        """
+        pass
+
+    @abc.abstractmethod
+    def unplug_switch_from_network(self, vni: int, segmentation_id: int,
+                                   physnet: str = None):
+        """Remove L2VNI mapping from the switch.
+
+        Removes the VNI-to-VLAN mapping when the last port on a VLAN is
+        unplugged. Called automatically by the cleanup logic in
+        _unplug_port_from_segment() after verifying no ports remain via
+        vlan_has_ports().
+
+        Should be idempotent - safely handle cases where the VNI is
+        already removed.
+
+        Example (Cisco NX-OS):
+            interface nve1
+              no member vni 5000
+            vlan 100
+              no vn-segment
+
+        :param vni: The VXLAN Network Identifier to remove
+        :param segmentation_id: VLAN ID from which to remove the VNI mapping
+        :param physnet: Physical network name (optional, for signature
+                        consistency)
+        :raises: GenericSwitchConfigException on configuration failure
+        """
+        pass
+
+    @abc.abstractmethod
+    def vlan_has_ports(self, segmentation_id: int) -> bool:
+        """Check if a VLAN has any switch ports currently assigned.
+
+        Used by L2VNI cleanup logic to determine if it's safe to remove
+        the VNI mapping. The VNI should only be removed when no ports
+        remain on the VLAN.
+
+        This is a read-only operation and should not acquire locks.
+
+        Implementations should:
+        - Query the switch directly (not rely on cached state)
+        - Return True if the VLAN has any ports (access or trunk)
+        - Return True on error (conservative - prevents accidental removal)
+        - Return True if query command is not implemented
+
+        :param segmentation_id: VLAN ID to check
+        :returns: True if VLAN has ports assigned, False if empty
+        """
+        pass
+
+    @abc.abstractmethod
+    def vlan_has_vni(self, segmentation_id: int, vni: int) -> bool:
+        """Check if a VLAN already has a specific VNI mapping configured.
+
+        Used for idempotency during port binding to avoid reconfiguring
+        the same VNI mapping multiple times when multiple ports bind to
+        the same VXLAN network.
+
+        This is a read-only operation and should not acquire locks.
+
+        Implementations should:
+        - Query the switch directly (not rely on cached state)
+        - Return True only if this exact VNI is configured on this VLAN
+        - Return False on error (will attempt to configure)
+        - Return False if query command is not implemented
+
+        :param segmentation_id: VLAN ID to check
+        :param vni: VNI to check for
+        :returns: True if VLAN has this VNI configured, False otherwise
+        """
+        pass
+
+    @abc.abstractmethod
     def plug_port_to_network(self, port_id, segmentation_id,
                              trunk_details=None, default_vlan=None):
         """Plug port into network.

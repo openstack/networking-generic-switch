@@ -417,3 +417,160 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
             'exit'])
         m_check.assert_called_once_with(self.switch, 'fake output',
                                         'unbind security group')
+
+    # NVE Interface / L2VNI Tests
+
+    def test_init_default_nve_config(self):
+        """Test __init__ with default NVE configuration."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        self.assertEqual(switch.nve_interface, 'nve1')
+
+    def test_init_custom_nve_interface(self):
+        """Test __init__ with custom NVE interface."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_nve_interface': 'nve2'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        self.assertEqual(switch.nve_interface, 'nve2')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_switch_to_network_with_ingress_replication(self, mock_exec):
+        """Test plug_switch_to_network uses ingress-replication with EVPN."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.plug_switch_to_network(10100, 100, physnet='physnet1')
+        mock_exec.assert_called_with(
+            switch,
+            ['evpn', 'vni 10100 l2', 'rd auto', 'route-target both auto',
+             'exit', 'vlan 100', 'vn-segment 10100', 'exit',
+             'interface nve1', 'member vni 10100',
+             'ingress-replication protocol bgp', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_switch_to_network_custom_nve_interface(self, mock_exec):
+        """Test plug_switch_to_network uses custom NVE interface."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_nve_interface': 'nve2'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.plug_switch_to_network(10100, 100)
+        mock_exec.assert_called_with(
+            switch,
+            ['evpn', 'vni 10100 l2', 'rd auto', 'route-target both auto',
+             'exit', 'vlan 100', 'vn-segment 10100', 'exit',
+             'interface nve2', 'member vni 10100',
+             'ingress-replication protocol bgp', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_unplug_switch_from_network(self, mock_exec):
+        """Test unplug_switch_from_network removes NVE and EVPN config."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.unplug_switch_from_network(10100, 100)
+        mock_exec.assert_called_with(
+            switch,
+            ['interface nve1', 'no member vni 10100', 'exit',
+             'vlan 100', 'no vn-segment', 'exit',
+             'evpn', 'no vni 10100', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_unplug_switch_from_network_custom_nve(self, mock_exec):
+        """Test unplug_switch_from_network uses custom NVE interface."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_nve_interface': 'nve2'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.unplug_switch_from_network(10100, 100)
+        mock_exec.assert_called_with(
+            switch,
+            ['interface nve2', 'no member vni 10100', 'exit',
+             'vlan 100', 'no vn-segment', 'exit',
+             'evpn', 'no vni 10100', 'exit'])
+
+    def test_parse_vlan_vni_with_ingress_replication(self):
+        """Test _parse_vlan_vni detects VNI with ingress-replication."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        output = """
+  member vni 10100
+    ingress-replication protocol bgp
+"""
+        self.assertTrue(switch._parse_vlan_vni(output, 100, 10100))
+
+    def test_parse_vlan_vni_not_found(self):
+        """Test _parse_vlan_vni returns False when VNI not found."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        output = """
+  member vni 10200
+    ingress-replication protocol bgp
+"""
+        self.assertFalse(switch._parse_vlan_vni(output, 100, 10100))
+
+    def test_parse_vlan_vni_empty_output(self):
+        """Test _parse_vlan_vni handles empty output."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        self.assertFalse(switch._parse_vlan_vni('', 100, 10100))
+        self.assertFalse(switch._parse_vlan_vni('   ', 100, 10100))
+
+    def test_parse_vlan_ports_with_ports(self):
+        """Test _parse_vlan_ports detects VLAN with ports."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        output = """
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+100  VLAN0100                         active    Eth1/1, Eth1/2, Eth1/3
+"""
+        self.assertTrue(switch._parse_vlan_ports(output, 100))
+
+    def test_parse_vlan_ports_without_ports(self):
+        """Test _parse_vlan_ports detects empty VLAN."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        output = """
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+100  VLAN0100                         active
+"""
+        self.assertFalse(switch._parse_vlan_ports(output, 100))
+
+    def test_parse_vlan_ports_with_custom_name_containing_vlan(self):
+        """Test _parse_vlan_ports with custom VLAN name containing 'VLAN'."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        output = """
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+200  MyVLAN-Network                   active    Eth1/5, Eth1/6
+"""
+        self.assertTrue(switch._parse_vlan_ports(output, 200))
+
+    def test_parse_vlan_ports_not_found(self):
+        """Test _parse_vlan_ports returns True when VLAN not found."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        output = """
+VLAN Name                             Status    Ports
+---- -------------------------------- --------- -------------------------------
+200  VLAN0200                         active    Eth1/1
+"""
+        # Conservatively assumes ports exist when VLAN not found
+        self.assertTrue(switch._parse_vlan_ports(output, 100))
+
+    def test_parse_vlan_ports_empty_output(self):
+        """Test _parse_vlan_ports handles empty output."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        # Conservatively assumes ports exist on empty output
+        self.assertTrue(switch._parse_vlan_ports('', 100))
+        self.assertTrue(switch._parse_vlan_ports('   ', 100))
