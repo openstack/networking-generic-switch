@@ -1,0 +1,56 @@
+---
+features:
+  - |
+    Extends VXLAN support to Arista EOS and SONiC switches, enabling VXLAN
+    overlay networks for bare metal deployments across multiple switch
+    platforms.
+
+    **Prerequisites**: This feature requires the ``networking-baremetal``
+    plugin with the ``baremetal-l2vni`` mechanism driver, which handles
+    hierarchical port binding and allocates local VLAN segments that are
+    mapped to VXLAN VNIs on the switch fabric.
+
+    **Arista EOS**:
+
+    Arista EOS uses BGP EVPN control plane with ingress-replication for
+    BUM (Broadcast, Unknown unicast, and Multicast) traffic handling,
+    following the same architecture as Cisco NX-OS. This approach aligns
+    with vendor best practices and scales properly with Neutron's dynamic
+    VNI assignment model.
+
+    For each VXLAN network, the driver automatically configures:
+
+    * BGP EVPN control plane (VLAN configuration with route distinguisher
+      and route targets)
+    * VLAN to VNI mapping
+    * Ingress-replication for BUM traffic (default behavior)
+
+    Configuration requires:
+
+    * ``ngs_bgp_asn`` - BGP AS number (required)
+    * ``vxlan_interface`` - VXLAN interface name (defaults to ``Vxlan1``)
+
+    Switch prerequisites include BGP EVPN configuration.
+
+    **SONiC**:
+
+    SONiC uses BGP EVPN control plane with ingress-replication for BUM
+    (Broadcast, Unknown unicast, and Multicast) traffic handling. The
+    implementation uses FRR for EVPN configuration and relies on EVPN
+    Type-3 IMET routes for dynamic VTEP discovery, avoiding the scaling
+    issues associated with static flood lists.
+
+    For each VXLAN network, the driver automatically configures:
+
+    * BGP EVPN control plane (per-VNI configuration in FRR with route
+      distinguisher and route targets)
+    * VLAN to VNI mapping on the VTEP interface
+    * Ingress-replication for BUM traffic (via EVPN)
+
+    Configuration requires:
+
+    * ``vtep_name`` - VXLAN tunnel endpoint interface name (required)
+    * ``ngs_bgp_asn`` - BGP AS number (required)
+
+    See the VXLAN L2VNI Support section in the configuration documentation
+    for complete setup instructions and examples for each platform.
