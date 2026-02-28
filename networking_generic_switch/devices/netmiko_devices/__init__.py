@@ -241,6 +241,11 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 ('ngs-' + device_utils.get_hostname()).encode('ascii'))
             self.locker.start()
             atexit.register(self.locker.stop)
+        else:
+            LOG.warning(
+                "Switch %s: [ngs_coordination] backend_url is not "
+                "configured. The ngs_max_connections is ignored.",
+                self.lock_kwargs['locks_prefix'])
 
     @property
     def support_trunk_on_ports(self):
