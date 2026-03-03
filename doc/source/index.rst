@@ -8,6 +8,7 @@ Welcome to networking-generic-switch's documentation!
    installation
    configuration
    admin
+   troubleshooting
    dev/dev-quickstart
    contributing
    netmiko-device-commands
