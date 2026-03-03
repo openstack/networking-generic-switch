@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
+
 from networking_generic_switch.devices import netmiko_devices
 
 
@@ -60,4 +62,9 @@ class ArubaOSCX(netmiko_devices.NetmikoSwitch):
     DISABLE_PORT = (
         "interface {port}",
         "shutdown",
+    )
+
+    ERROR_MSG_PATTERNS = (
+        re.compile(r'Invalid input'),
+        re.compile(r'\% Command incomplete'),
     )

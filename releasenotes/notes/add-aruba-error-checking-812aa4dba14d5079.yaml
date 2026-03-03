@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Add error checking for Aruba AOS-CX devices.
