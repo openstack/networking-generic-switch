@@ -114,6 +114,8 @@ For example::
 Some switches have issues assigning VLANs a name that starts with a number,
 and this configuration option can be used to avoid this.
 
+.. _manage-vlans:
+
 Manage VLANs
 ============
 
