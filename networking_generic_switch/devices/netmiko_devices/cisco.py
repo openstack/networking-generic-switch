@@ -96,11 +96,11 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
 
     # NOTE: PLUG_SWITCH_TO_NETWORK is dynamically generated based on
     # configuration. See plug_switch_to_network() method.
-    PLUG_SWITCH_TO_NETWORK = None
+    PLUG_SWITCH_TO_NETWORK = True
 
     # NOTE: UNPLUG_SWITCH_FROM_NETWORK is dynamically generated based on
     # configuration. See unplug_switch_from_network() method.
-    UNPLUG_SWITCH_FROM_NETWORK = None
+    UNPLUG_SWITCH_FROM_NETWORK = True
 
     SHOW_VLAN_PORTS = ('show vlan id {segmentation_id}',)
 
