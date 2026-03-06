@@ -14,9 +14,12 @@
 #    under the License.
 
 from neutron_lib import constants as const
+from oslo_log import log as logging
 
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch import exceptions as exc
+
+LOG = logging.getLogger(__name__)
 
 
 class CiscoIos(netmiko_devices.NetmikoSwitch):
@@ -176,34 +179,133 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
     def __init__(self, device_cfg, *args, **kwargs):
         """Initialize Cisco NX-OS device with NVE configuration support.
 
-        Extracts NVE-related configuration before parent __init__ removes
-        all ngs_* options.
+        Extracts NVE-related and BUM replication configuration before
+        parent __init__ removes all ngs_* options.
         """
         # Extract NVE config before parent removes ngs_* options
         self.nve_interface = device_cfg.get('ngs_nve_interface', 'nve1')
 
+        # Extract BUM replication configuration
+        self.bum_replication_mode = device_cfg.get(
+            'ngs_bum_replication_mode', 'ingress-replication')
+        self.mcast_group_base = device_cfg.get(
+            'ngs_mcast_group_base', None)
+        self.mcast_group_increment = device_cfg.get(
+            'ngs_mcast_group_increment', 'vni_last_octet')
+
+        # Parse and validate explicit VNI-to-multicast-group mappings
+        self.mcast_group_map = {}
+        mcast_map_str = device_cfg.get('ngs_mcast_group_map', '')
+        if mcast_map_str:
+            import ipaddress
+            for mapping in mcast_map_str.split(','):
+                mapping = mapping.strip()
+                if not mapping:
+                    continue
+                if ':' not in mapping:
+                    LOG.warning('Invalid mapping format in '
+                                'ngs_mcast_group_map (expected VNI:group): '
+                                '%s', mapping)
+                    continue
+
+                vni_str, group_str = mapping.split(':', 1)
+                vni_str = vni_str.strip()
+                group_str = group_str.strip()
+
+                # Validate VNI
+                try:
+                    vni = int(vni_str)
+                    if vni < 1 or vni > 16777215:
+                        LOG.warning('VNI %s out of valid range (1-16777215) '
+                                    'in ngs_mcast_group_map', vni)
+                        continue
+                except ValueError:
+                    LOG.warning('Invalid VNI "%s" in ngs_mcast_group_map: '
+                                'must be an integer', vni_str)
+                    continue
+
+                # Validate multicast group IP address
+                try:
+                    mcast_ip = ipaddress.IPv4Address(group_str)
+                    # Validate it's in multicast range (224.0.0.0/4)
+                    if not mcast_ip.is_multicast:
+                        LOG.warning('IP address %s is not a valid '
+                                    'multicast address in '
+                                    'ngs_mcast_group_map', group_str)
+                        continue
+                except (ipaddress.AddressValueError, ValueError):
+                    LOG.warning('Invalid IP address "%s" in '
+                                'ngs_mcast_group_map', group_str)
+                    continue
+
+                # Warn on duplicate VNI
+                if vni in self.mcast_group_map:
+                    LOG.warning('Duplicate VNI %s in ngs_mcast_group_map, '
+                                'using last entry: %s', vni, group_str)
+
+                self.mcast_group_map[vni] = group_str
+
         super(CiscoNxOS, self).__init__(device_cfg, *args, **kwargs)
+
+    def _get_multicast_group(self, vni: int) -> str:
+        """Calculate multicast group address for a given VNI.
+
+        Supports two methods for multicast group assignment:
+        1. Explicit mapping via ngs_mcast_group_map (checked first)
+        2. Automatic derivation from ngs_mcast_group_base (fallback)
+
+        :param vni: VXLAN Network Identifier
+        :returns: Multicast group IP address (e.g., '239.1.1.100')
+        :raises: GenericSwitchConfigError if no mapping or base configured
+        """
+        # Check explicit mapping first
+        if vni in self.mcast_group_map:
+            return self.mcast_group_map[vni]
+
+        # Fall back to automatic derivation from base
+        if not self.mcast_group_base:
+            LOG.error('VNI %s not found in ngs_mcast_group_map and '
+                      'ngs_mcast_group_base not configured for switch %s',
+                      vni, self.device_name)
+            raise exc.GenericSwitchNetmikoConfigError()
+
+        # Import here to avoid dependency if multicast not used
+        import ipaddress
+
+        base_ip = ipaddress.IPv4Address(self.mcast_group_base)
+
+        # Use last octet of VNI as offset from base
+        # Example: VNI 10100 with base 239.1.1.0 -> 239.1.1.100
+        offset = vni % 256
+        mcast_ip = ipaddress.IPv4Address(int(base_ip) + offset)
+
+        return str(mcast_ip)
 
     def plug_switch_to_network(self, vni: int, segmentation_id: int,
                                physnet: str = None):
         """Configure L2VNI mapping with NVE interface membership.
 
-        Uses ingress-replication for BUM traffic handling with BGP EVPN
-        control plane. This is the recommended approach for VXLAN
-        deployments and avoids multicast group scaling issues.
+        Supports two BUM traffic replication modes:
+        1. ingress-replication (default): Uses BGP EVPN for BUM
+           replication. Recommended for most deployments.
+        2. multicast: Uses ASM multicast groups for BUM replication.
+           Requires PIM Sparse Mode with Anycast RP configured on the
+           fabric infrastructure.
 
         Configures the following in order:
-        1. Configure EVPN VNI (BGP control plane)
+        1. Configure EVPN VNI (BGP control plane for MAC/IP learning)
         2. Map VLAN to VNI (vn-segment)
         3. Add VNI as member to NVE interface
-        4. Configure ingress-replication protocol bgp
+        4. Configure BUM replication (ingress-replication or mcast-group)
 
         :param vni: VXLAN Network Identifier
         :param segmentation_id: VLAN ID
-        :param physnet: Physical network name (unused, kept for compatibility)
+        :param physnet: Physical network name (unused, kept for
+                        compatibility)
         """
         cmds = [
             # Step 1: EVPN VNI configuration (BGP control plane)
+            # NOTE: EVPN used for MAC/IP learning in both modes
             'evpn',
             'vni {vni} l2',
             'rd auto',
@@ -213,18 +315,35 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
             'vlan {segmentation_id}',
             'vn-segment {vni}',
             'exit',
-            # Step 3: NVE interface membership with ingress-replication
+            # Step 3: NVE interface membership
             'interface {nve_interface}',
             'member vni {vni}',
-            'ingress-replication protocol bgp',
-            'exit',
         ]
 
-        formatted_cmds = self._format_commands(
-            tuple(cmds),
-            vni=vni,
-            segmentation_id=segmentation_id,
-            nve_interface=self.nve_interface)
+        # Step 4: BUM traffic replication configuration
+        format_params = {
+            'vni': vni,
+            'segmentation_id': segmentation_id,
+            'nve_interface': self.nve_interface,
+        }
+
+        if self.bum_replication_mode == 'multicast':
+            # Use multicast group for BUM traffic (ASM with PIM)
+            mcast_group = self._get_multicast_group(vni)
+            cmds.extend([
+                'mcast-group {mcast_group}',
+                'exit',
+            ])
+            format_params['mcast_group'] = mcast_group
+        else:
+            # Use ingress-replication with BGP (default)
+            cmds.extend([
+                'ingress-replication protocol bgp',
+                'exit',
+            ])
+
+        formatted_cmds = self._format_commands(tuple(cmds),
+                                               **format_params)
 
         return self.send_commands_to_device(formatted_cmds)
 
