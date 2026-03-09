@@ -10,7 +10,9 @@ Enabling Debug Logging
 ======================
 
 To get verbose output from the driver, set the log level for the
-``networking_generic_switch`` namespace in your Neutron configuration::
+``networking_generic_switch`` namespace in your Neutron configuration:
+
+.. code-block:: ini
 
     [DEFAULT]
     debug = True
@@ -77,12 +79,14 @@ Mitigate by waiting longer
 
 To wait longer instead of failing, consider the following configuration knobs:
 
-**acquire_timeout**::
+**acquire_timeout**:
+
+.. code-block:: ini
 
   [ngs_coordination]
   acquire_timeout = 120
 
-This just increases how long NGS waits to acquire the lock before giving up. If
+This increases how long NGS waits to acquire the lock before giving up. If
 your switch can process all outstanding commands before the timeout, this will
 allow all operations to succeed eventually, but may cause port binding to take
 an extremely long time under heavy load, or lead to other timeouts upstream.
@@ -93,7 +97,9 @@ an extremely long time under heavy load, or lead to other timeouts upstream.
   load balancers.
 
 The following is an example of how to adjust Ironic's neutron-client to be more
-tolerant of NGS delays::
+tolerant of NGS delays:
+
+.. code-block:: ini
 
     # ironic.conf
     [neutron]
@@ -112,7 +118,9 @@ Ways to improve performance
 **Increase ngs_max_connections**
 
 If your switch supports concurrent configuration sessions, you can allow more
-than one::
+than one:
+
+.. code-block:: ini
 
     [genericswitch:device-hostname]
     ngs_max_connections = 3
@@ -126,7 +134,9 @@ This can increase load on the switch's control plane, and individual commands
 may take longer to execute. This may cause Netmiko to time out waiting for a
 response: ``NetmikoTimeoutException: Timed out reading from the device``.
 
-You can adjust this timeout by setting ``read_timeout_override`` per switch::
+You can adjust this timeout by setting ``read_timeout_override`` per switch:
+
+.. code-block:: ini
 
     [genericswitch:device-hostname]
     read_timeout_override = 30.0
@@ -135,7 +145,9 @@ You can adjust this timeout by setting ``read_timeout_override`` per switch::
 
 Batching coalesces multiple configuration requests into a single operation, and
 requires the etcd (``etcd3gw`` driver) configured as the coordination backend.
-To Enable per device::
+To Enable per device:
+
+.. code-block:: ini
 
     [genericswitch:device-hostname]
     ngs_batch_requests = True
@@ -149,20 +161,24 @@ Ways to disable (optional) work
 With ``ngs_manage_vlans = True`` (the default), the driver creates and deletes
 VLANs on every switch whenever a Neutron network is created or deleted. In
 deployments where VLANs are pre-provisioned and stable, this work can be
-eliminated entirely::
+eliminated entirely:
+
+.. code-block:: ini
 
     [genericswitch:device-hostname]
     ngs_manage_vlans = False
 
 Note that this affects network create/delete operations, not individual port
-bindings. If VLAN churn is low in your deployment this may not help.
+bindings. If VLAN churn is low in your deployment, this may not help.
 
 **Disable inactive port management**
 
 When ``ngs_disable_inactive_ports = True``, the driver sends an extra
 shutdown command to the switch interface each time a port is unbound, and
 a no-shutdown command on bind. Disabling this removes those extra commands
-per operation::
+per operation:
+
+.. code-block:: ini
 
     [genericswitch:device-hostname]
     ngs_disable_inactive_ports = False
@@ -172,7 +188,9 @@ Only relevant if you had previously enabled this feature.
 **Disable configuration saves (risky)**
 
 By default, the driver saves the switch running configuration to persistent
-storage after every change. This is safe but slow on many platforms::
+storage after every change. This is safe but slow on many platforms:
+
+.. code-block:: ini
 
     [genericswitch:device-hostname]
     ngs_save_configuration = False
