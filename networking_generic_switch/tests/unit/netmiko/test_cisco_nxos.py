@@ -576,3 +576,59 @@ VLAN Name                             Status    Ports
         # Conservatively assumes ports exist on empty output
         self.assertTrue(switch._parse_vlan_ports('', 100))
         self.assertTrue(switch._parse_vlan_ports('   ', 100))
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_vni_default_nve(self, mock_conn):
+        """Test vlan_has_vni uses default nve1 interface."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_conn.return_value.__enter__.return_value = mock_net_connect
+        mock_net_connect.send_command.return_value = (
+            '  member vni 10100\n    ingress-replication protocol bgp')
+
+        result = switch.vlan_has_vni(100, 10100)
+
+        mock_net_connect.send_command.assert_called_once_with(
+            'show interface nve1 | include "member vni 10100"')
+        self.assertTrue(result)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_vni_custom_nve(self, mock_conn):
+        """Test vlan_has_vni uses custom NVE interface."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_nve_interface': 'nve2'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_conn.return_value.__enter__.return_value = mock_net_connect
+        mock_net_connect.send_command.return_value = ''
+
+        result = switch.vlan_has_vni(100, 10100)
+
+        mock_net_connect.send_command.assert_called_once_with(
+            'show interface nve2 | include "member vni 10100"')
+        self.assertFalse(result)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_vni_vni_not_found(self, mock_conn):
+        """Test vlan_has_vni returns False when VNI not found."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        mock_conn.return_value.__enter__.return_value = mock_net_connect
+        mock_net_connect.send_command.return_value = (
+            '  member vni 10200\n    ingress-replication protocol bgp')
+
+        result = switch.vlan_has_vni(100, 10100)
+
+        mock_net_connect.send_command.assert_called_once_with(
+            'show interface nve1 | include "member vni 10100"')
+        self.assertFalse(result)

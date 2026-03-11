@@ -567,7 +567,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
         cmd = self._format_commands(
             self.SHOW_VLAN_VNI,
-            segmentation_id=segmentation_id)
+            segmentation_id=segmentation_id,
+            vni=vni,
+            nve_interface=getattr(self, 'nve_interface', 'nve1'),
+            vxlan_interface=getattr(self, 'vxlan_interface', 'Vxlan1'))
 
         try:
             with self._get_connection() as net_connect:
