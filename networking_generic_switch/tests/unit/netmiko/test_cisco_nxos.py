@@ -27,6 +27,8 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
 
     def test_constants(self):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
+        self.assertTrue(self.switch.PLUG_SWITCH_TO_NETWORK)
+        self.assertTrue(self.switch.UNPLUG_SWITCH_FROM_NETWORK)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
