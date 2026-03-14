@@ -83,15 +83,19 @@ class GenericSwitchTrunkHandler(object):
         LOG.debug("GenericSwitch: subports added %s to trunk %s",
                   subports, trunk)
         context = n_context.get_admin_context()
+
+        # Get parent port within read transaction
         with db_api.CONTEXT_READER.using(context):
             parent_port = Port.get_object(context, id=trunk.port_id)
 
             parent_port_obj = self.core_plugin._make_port_dict(parent_port)
 
-            self.plugin_driver.subports_added(
-                context,
-                parent_port_obj,
-                subports)
+        # Call mechanism driver outside transaction to allow status updates.
+        # See bug #2103760
+        self.plugin_driver.subports_added(
+            context,
+            parent_port_obj,
+            subports)
 
     def subports_deleted(self, resource, event, trunk_plugin, payload):
         trunk = payload.states[0]
@@ -99,11 +103,16 @@ class GenericSwitchTrunkHandler(object):
         LOG.debug("GenericSwitch: subports deleted %s from trunk %s",
                   subports, trunk)
         context = n_context.get_admin_context()
+
+        # Get parent port within read transaction
         with db_api.CONTEXT_READER.using(context):
             parent_port = Port.get_object(context, id=trunk.port_id)
 
             parent_port_obj = self.core_plugin._make_port_dict(parent_port)
-            self.plugin_driver.subports_deleted(
-                context,
-                parent_port_obj,
-                subports)
+
+        # Call mechanism driver outside transaction to allow status updates.
+        # See bug #2103760
+        self.plugin_driver.subports_deleted(
+            context,
+            parent_port_obj,
+            subports)
