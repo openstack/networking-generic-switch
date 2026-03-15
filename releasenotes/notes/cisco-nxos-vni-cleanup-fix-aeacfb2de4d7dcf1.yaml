@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed Cisco NX-OS VNI cleanup check to use correct command.
+    Previously, the VNI cleanup check used ``show interface nve1`` which
+    displays operational status instead of configuration. This caused the
+    check to return empty output and skip cleanup of existing VNI-to-VLAN
+    mappings. When VNIs needed to be reassigned between VLANs, the switch
+    would reject the configuration with "Add segment id node failed as the
+    same id is used by vlan X" errors, leaving orphaned VNI configurations
+    on the switch. The check now uses ``show running-config interface nve1``
+    to properly detect configured VNI memberships and trigger cleanup when
+    needed. See
+    `LP#2144457 <https://bugs.launchpad.net/networking-generic-switch/+bug/2144457>`__
+    for details.

@@ -105,7 +105,8 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
     SHOW_VLAN_PORTS = ('show vlan id {segmentation_id}',)
 
     SHOW_VLAN_VNI = (
-        'show interface {nve_interface} | include "member vni {vni}"',)
+        'show running-config interface {nve_interface} | '
+        'include "member vni {vni}"',)
 
     PLUG_PORT_TO_NETWORK = (
         'interface {port}',
@@ -338,14 +339,18 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
 
     def _parse_vlan_vni(self, output: str, segmentation_id: int,
                         vni: int) -> bool:
-        """Parse Cisco NX-OS 'show interface nveX' output for VNI membership.
+        """Parse Cisco NX-OS output for VNI membership.
+
+        Parses output from 'show running-config interface' command.
 
         :param output: Command output from switch
         :param segmentation_id: VLAN identifier being checked (unused)
         :param vni: VNI to check for
         :returns: True if NVE interface has this VNI member, False otherwise
         """
-        # NX-OS output format for 'show interface nve1 | include "member vni"':
+        # NX-OS output format for:
+        #   show running-config interface nve1 | include "member vni"
+        #
         #   member vni 5000
         #     mcast-group 239.1.1.100
         #   member vni 6000
