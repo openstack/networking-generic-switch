@@ -679,6 +679,214 @@ class GenericSwitchDriver(api.MechanismDriver):
                                'segmentation_id': segmentation_id,
                                'switch_info': switch_info})
 
+    def _get_subport_l2vni_info(self, subport_obj, segmentation_id):
+        """Extract and validate VNI from subport.
+
+        :param subport_obj: Full subport object (from core_plugin.get_port)
+        :param segmentation_id: VLAN ID from trunk subport relationship
+        :returns: Tuple of (vni, segmentation_id, physnet) or (None, None,
+                  None) if validation fails
+        """
+        binding_profile = subport_obj.get('binding:profile', {})
+        vni = binding_profile.get('vni')
+
+        if not vni:
+            return None, None, None
+
+        if not segmentation_id:
+            LOG.warning("Subport %(port_id)s has VNI %(vni)s but no "
+                        "segmentation_id, skipping L2VNI processing",
+                        {'port_id': subport_obj.get('id'), 'vni': vni})
+            return None, None, None
+
+        physnet = binding_profile.get('physical_network')
+        return vni, segmentation_id, physnet
+
+    def _configure_l2vni_for_subport(self, subport_obj, segmentation_id,
+                                     switch, switch_info):
+        """Configure L2VNI mapping for a subport if VNI is present.
+
+        For subports with VNI in their binding_profile, configures the
+        VNI-to-VLAN mapping on the switch.
+
+        :param subport_obj: Full subport object (from core_plugin.get_port)
+        :param segmentation_id: VLAN ID from trunk subport relationship
+        :param switch: Switch device object
+        :param switch_info: Switch identifier for logging
+        """
+        (vni,
+         segmentation_id,
+         physnet) = self._get_subport_l2vni_info(subport_obj, segmentation_id)
+
+        if not vni:
+            return
+
+        # Check if switch supports L2VNI configuration
+        if not switch.PLUG_SWITCH_TO_NETWORK:
+            LOG.warning("Switch %(switch)s does not support L2VNI "
+                        "(PLUG_SWITCH_TO_NETWORK not defined). VNI %(vni)s "
+                        "will not be configured on VLAN %(vlan)s for subport "
+                        "%(port_id)s.",
+                        {'switch': switch_info, 'vni': vni,
+                         'vlan': segmentation_id,
+                         'port_id': subport_obj.get('id')})
+            return
+
+        # Check if VNI is already configured on this VLAN (idempotency check)
+        if switch.vlan_has_vni(segmentation_id, vni):
+            LOG.debug("VNI %(vni)s already configured on VLAN %(vlan)s on "
+                      "%(switch_info)s for subport %(port_id)s, skipping",
+                      {'vni': vni, 'vlan': segmentation_id,
+                       'switch_info': switch_info,
+                       'port_id': subport_obj.get('id')})
+            return
+
+        LOG.debug("Configuring VNI %(vni)s on VLAN %(vlan)s on "
+                  "%(switch_info)s for subport %(port_id)s "
+                  "(physnet: %(physnet)s)",
+                  {'vni': vni, 'vlan': segmentation_id,
+                   'switch_info': switch_info,
+                   'port_id': subport_obj.get('id'),
+                   'physnet': physnet})
+        switch.plug_switch_to_network(vni, segmentation_id,
+                                      physnet=physnet)
+
+    def _cleanup_l2vni_for_subport(self, subport_obj, segmentation_id,
+                                   switch, switch_info):
+        """Clean up L2VNI mapping for a subport if VNI is present.
+
+        For subports with VNI in their binding_profile, checks if the VLAN
+        still has ports and removes the VNI-to-VLAN mapping if empty.
+
+        :param subport_obj: Full subport object (from core_plugin.get_port)
+        :param segmentation_id: VLAN ID from trunk subport relationship
+        :param switch: Switch device object
+        :param switch_info: Switch identifier for logging
+        """
+        (vni,
+         segmentation_id,
+         physnet) = self._get_subport_l2vni_info(subport_obj, segmentation_id)
+
+        if not vni:
+            return
+
+        self._remove_l2vni_mapping_if_vlan_empty(
+            switch, switch_info, segmentation_id, vni, physnet)
+
+    def _remove_l2vni_mapping_if_vlan_empty(self, switch, switch_info,
+                                            segmentation_id, vni, physnet):
+        """Remove VNI-to-VLAN mapping if VLAN has no ports.
+
+        Checks if the VLAN still has ports after subport removal. If the VLAN
+        is empty, removes the VNI-to-VLAN mapping from the switch.
+
+        :param switch: Switch device object
+        :param switch_info: Switch identifier for logging
+        :param segmentation_id: VLAN ID
+        :param vni: VNI to remove
+        :param physnet: Physical network (optional)
+        """
+        if not switch.PLUG_SWITCH_TO_NETWORK:
+            return
+
+        if switch.vlan_has_ports(segmentation_id):
+            return
+
+        LOG.debug("Removing VNI %(vni)s from VLAN %(vlan)s on %(switch_info)s "
+                  "as no ports remain (physnet: %(physnet)s)",
+                  {'vni': vni, 'vlan': segmentation_id,
+                   'switch_info': switch_info, 'physnet': physnet})
+        try:
+            switch.unplug_switch_from_network(vni, segmentation_id,
+                                              physnet=physnet)
+        except ngs_exc.GenericSwitchNetmikoConnectError:
+            LOG.error("Failed to remove VNI %(vni)s from VLAN %(vlan)s on "
+                      "%(switch)s due to connectivity issue. Verify switch is "
+                      "reachable and credentials are correct. VNI-to-VLAN "
+                      "mapping may remain on switch.",
+                      {'vni': vni, 'vlan': segmentation_id,
+                       'switch': switch_info})
+        except ngs_exc.GenericSwitchNetmikoConfigError:
+            LOG.error("Failed to remove VNI %(vni)s from VLAN %(vlan)s on "
+                      "%(switch)s due to configuration error. Verify VLAN "
+                      "%(vlan)s and VNI %(vni)s exist on switch. VNI-to-VLAN "
+                      "mapping may remain on switch.",
+                      {'vni': vni, 'vlan': segmentation_id,
+                       'switch': switch_info})
+        except ngs_exc.GenericSwitchException as e:
+            LOG.error("Failed to remove VNI %(vni)s from VLAN %(vlan)s on "
+                      "%(switch)s: %(exc)s. VNI-to-VLAN mapping may remain on "
+                      "switch.",
+                      {'vni': vni, 'vlan': segmentation_id,
+                       'switch': switch_info, 'exc': e})
+
+    def configure_l2vni_for_subport(self, context, port, subport):
+        """Configure L2VNI mapping for a trunk subport.
+
+        Extracts VNI from subport's binding profile and configures VLAN-to-VNI
+        mapping on switches if VNI is present.
+
+        :param context: Request context
+        :param port: Parent port dictionary with local_link_information
+        :param subport: Subport dictionary with port_id and segmentation_id
+        """
+        core_plugin = directory.get_plugin()
+        subport_obj = core_plugin.get_port(context, subport['port_id'])
+        segmentation_id = subport['segmentation_id']
+
+        binding_profile = port['binding:profile']
+        local_link_information = binding_profile.get('local_link_information')
+
+        if not local_link_information:
+            return
+
+        for link in local_link_information:
+            switch_info = link.get('switch_info')
+            switch_id = link.get('switch_id')
+            switch = device_utils.get_switch_device(
+                self.switches, switch_info=switch_info,
+                ngs_mac_address=switch_id)
+
+            self._configure_l2vni_for_subport(
+                subport_obj, segmentation_id, switch, switch_info)
+
+    def cleanup_l2vni_for_subport(self, context, port, subport):
+        """Clean up L2VNI mapping for a trunk subport.
+
+        Extracts VNI from subport's binding profile and removes VLAN-to-VNI
+        mapping if the VLAN no longer has any ports.
+
+        :param context: Request context
+        :param port: Parent port dictionary with local_link_information
+        :param subport: Subport dictionary with port_id and segmentation_id
+        """
+        core_plugin = directory.get_plugin()
+        subport_obj = core_plugin.get_port(context, subport['port_id'])
+        segmentation_id = subport['segmentation_id']
+
+        binding_profile = port['binding:profile']
+        local_link_information = binding_profile.get('local_link_information')
+
+        if not local_link_information:
+            return
+
+        for link in local_link_information:
+            switch_info = link.get('switch_info')
+            switch_id = link.get('switch_id')
+            switch = device_utils.get_switch_device(
+                self.switches, switch_info=switch_info,
+                ngs_mac_address=switch_id)
+
+            try:
+                self._cleanup_l2vni_for_subport(
+                    subport_obj, segmentation_id, switch, switch_info)
+            except Exception as e:
+                LOG.error("Failed to cleanup L2VNI for subport "
+                          "%(port_id)s on switch %(switch)s: %(error)s",
+                          {'port_id': subport_obj.get('id'),
+                           'switch': switch_info,
+                           'error': e})
+
     def _cleanup_l2vni_if_needed(self, vxlan_segment, segment, switch,
                                  segmentation_id, switch_info):
         """Clean up L2VNI mapping if VLAN is empty.
@@ -871,6 +1079,8 @@ class GenericSwitchDriver(api.MechanismDriver):
         core_plugin = directory.get_plugin()
 
         for subport in subports:
+            self.configure_l2vni_for_subport(context, port, subport)
+
             subport_obj = core_plugin.get_port(context,
                                                subport['port_id'])
             if subport_obj['status'] != const.PORT_STATUS_ACTIVE:
@@ -910,3 +1120,6 @@ class GenericSwitchDriver(api.MechanismDriver):
 
             switch.del_subports_on_trunk(
                 binding_profile, port_id, subports)
+
+        for subport in subports:
+            self.cleanup_l2vni_for_subport(context, port, subport)
