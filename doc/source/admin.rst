@@ -268,12 +268,17 @@ Supported Switches
 **Cisco Nexus (NX-OS)** - Full L2VNI support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Cisco Nexus implementation is production-ready and fully tested.
+The Cisco Nexus implementation is production-ready and fully tested. It supports
+two modes for BUM (Broadcast, Unknown unicast, Multicast) traffic replication:
+
+1. **Ingress-replication** (default) - Uses BGP EVPN for BUM traffic replication
+2. **Multicast** - Uses ASM multicast groups with PIM Sparse Mode
 
 Switch prerequisites:
 
 * VXLAN and NV overlay features must be enabled
 * Switch must be configured as a VTEP (VXLAN Tunnel Endpoint)
+* For multicast mode: PIM Sparse Mode and Anycast RP must be configured
 
 Example Cisco NX-OS switch configuration:
 
@@ -292,16 +297,22 @@ Example Cisco NX-OS switch configuration:
 NVE Configuration Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The Cisco NX-OS driver uses BGP EVPN with ingress-replication for all VXLAN
-deployments. This approach aligns with Cisco best practices and avoids
-multicast group scaling issues that occur with Neutron's dynamic VNI
-assignment model.
-
 Configuration parameters:
 
 * ``ngs_nve_interface`` - NVE interface name (default: ``nve1``)
+* ``ngs_bum_replication_mode`` - BUM traffic replication mode (default:
+  ``ingress-replication``). Options: ``ingress-replication``, ``multicast``
+* ``ngs_mcast_group_map`` - Explicit VNI-to-multicast-group mappings as
+  comma-separated ``VNI:group`` pairs. Used for pre-existing multicast group
+  assignments. Example: ``10100:239.1.1.100, 10200:239.1.1.200``
+* ``ngs_mcast_group_base`` - Base ASM multicast group address for automatic
+  derivation of unmapped VNIs (optional when ``ngs_mcast_group_map`` is used,
+  required otherwise when ``ngs_bum_replication_mode=multicast``).
+  Example: ``239.1.1.0``
+* ``ngs_mcast_group_increment`` - Multicast group derivation method (default:
+  ``vni_last_octet``)
 
-Configuration Example:
+Configuration Example (Ingress-Replication Mode):
 
 .. code-block:: ini
 
@@ -315,8 +326,54 @@ Configuration Example:
    # NVE interface (optional, default: nve1)
    ngs_nve_interface = nve1
 
-Prerequisites
-^^^^^^^^^^^^^
+   # BUM replication mode (optional, default: ingress-replication)
+   ngs_bum_replication_mode = ingress-replication
+
+Configuration Example (Multicast Mode):
+
+.. code-block:: ini
+
+   [genericswitch:leaf02]
+   device_type = netmiko_cisco_nxos
+   ip = 192.0.2.11
+   username = admin
+   password = password
+   ngs_physical_networks = datacenter1,datacenter2
+
+   # BUM replication mode set to multicast
+   ngs_bum_replication_mode = multicast
+
+   # Base multicast group (required for multicast mode)
+   ngs_mcast_group_base = 239.1.1.0
+
+   # NVE interface (optional, default: nve1)
+   ngs_nve_interface = nve1
+
+Configuration Example (Multicast Mode with Explicit VNI Mapping):
+
+.. code-block:: ini
+
+   [genericswitch:leaf03]
+   device_type = netmiko_cisco_nxos
+   ip = 192.0.2.12
+   username = admin
+   password = password
+   ngs_physical_networks = datacenter1,datacenter2
+
+   # BUM replication mode set to multicast
+   ngs_bum_replication_mode = multicast
+
+   # Explicit VNI-to-multicast-group mappings for pre-existing assignments
+   ngs_mcast_group_map = 10100:239.1.1.100, 10200:239.1.1.200, 5000:239.2.2.50
+
+   # Optional: Base for automatic derivation of unmapped VNIs
+   ngs_mcast_group_base = 239.1.1.0
+
+   # NVE interface (optional, default: nve1)
+   ngs_nve_interface = nve1
+
+Prerequisites for Ingress-Replication Mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Your Cisco NX-OS switches must have BGP EVPN configured. This is required
 for the ingress-replication data plane to function correctly.
@@ -343,8 +400,55 @@ Example switch configuration:
      source-interface loopback0
      host-reachability protocol bgp
 
+Prerequisites for Multicast Mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For multicast mode, in addition to BGP EVPN (used for MAC/IP learning), your
+fabric must have PIM Sparse Mode with Anycast RP configured across all switches.
+
+Example switch configuration for multicast mode:
+
+.. code-block:: text
+
+   ! Enable required features
+   feature bgp
+   feature pim
+   feature vxlan
+   feature nv overlay
+
+   ! Configure PIM on underlay interfaces
+   interface Ethernet1/1-48
+     ip pim sparse-mode
+
+   ! Loopback for VTEP
+   interface loopback0
+     ip address 10.0.0.1/32
+     ip pim sparse-mode
+
+   ! Anycast RP configuration (same on all RP switches)
+   ip pim rp-address 10.255.255.254 group-list 239.0.0.0/8
+
+   ! Configure Anycast RP set (repeat for each RP)
+   ip pim anycast-rp 10.255.255.254 10.0.0.1
+   ip pim anycast-rp 10.255.255.254 10.0.0.2
+
+   ! Configure BGP EVPN (still used for MAC/IP learning)
+   router bgp 65000
+     neighbor 192.0.2.1 remote-as 65000
+     address-family l2vpn evpn
+       neighbor 192.0.2.1 activate
+       advertise-pip
+
+   ! Configure NVE interface
+   interface nve1
+     no shutdown
+     source-interface loopback0
+     host-reachability protocol bgp
+
 Generated Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^
+
+**Ingress-Replication Mode** (default)
 
 For each VXLAN network, the driver automatically configures:
 
@@ -363,9 +467,68 @@ For each VXLAN network, the driver automatically configures:
      member vni 10100
        ingress-replication protocol bgp
 
+**Multicast Mode**
+
+For each VXLAN network with multicast mode enabled, the driver automatically
+configures:
+
+.. code-block:: text
+
+   ! BGP EVPN control plane (used for MAC/IP learning)
+   evpn
+     vni 10100 l2
+     rd auto
+     route-target both auto
+
+   ! Data plane with multicast group
+   vlan 100
+     vn-segment 10100
+   interface nve1
+     member vni 10100
+       mcast-group 239.1.1.116
+
+**Multicast Group Assignment**
+
+The driver supports two methods for assigning multicast groups to VNIs:
+
+1. **Explicit mapping** (via ``ngs_mcast_group_map``): Pre-existing VNI-to-group
+   assignments are specified as comma-separated pairs. This is checked first.
+
+2. **Automatic derivation** (via ``ngs_mcast_group_base``): For unmapped VNIs,
+   the group is calculated as ``ngs_mcast_group_base + (VNI % 256)``.
+
+For example, with ``ngs_mcast_group_base = 239.1.1.0`` and VNI 10100:
+``239.1.1.0 + (10100 % 256) = 239.1.0 + 116 = 239.1.1.116``
+
+If a VNI is in the explicit map (e.g., ``ngs_mcast_group_map = 10100:239.5.5.5``),
+that mapping takes precedence over automatic derivation.
+
 The driver handles both configuration and cleanup automatically based on
 port binding operations. VNI mappings are only removed when the last port
 is unplugged from a VLAN.
+
+Choosing Between Ingress-Replication and Multicast
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Use Ingress-Replication (default) when:**
+
+* Simplicity is preferred - no PIM configuration required
+* You have a small to medium-sized fabric
+* Your switches have sufficient CPU for head-end replication
+* You want to minimize infrastructure dependencies
+
+**Use Multicast when:**
+
+* You have an existing BGP EVPN VXLAN fabric with PIM already deployed
+* You have a large-scale fabric with many endpoints
+* Network-based replication (PIM) is preferred over head-end replication
+* Your organization's standard is to use multicast for BUM traffic
+
+Both modes use BGP EVPN for MAC/IP learning (control plane). The difference
+is only in how BUM traffic is replicated (data plane):
+
+* **Ingress-replication**: Head-end switch replicates to each remote VTEP
+* **Multicast**: Network (PIM) replicates using multicast groups
 
 **SONiC** - Full L2VNI support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

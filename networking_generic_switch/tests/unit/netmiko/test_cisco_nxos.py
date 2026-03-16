@@ -497,6 +497,251 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
              'vlan 100', 'no vn-segment', 'exit',
              'evpn', 'no vni 10100', 'exit'])
 
+    # Multicast BUM replication tests
+
+    def test_init_multicast_config(self):
+        """Test __init__ with multicast BUM replication configuration."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_base': '239.1.1.0',
+            'ngs_mcast_group_increment': 'vni_last_octet'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        self.assertEqual(switch.bum_replication_mode, 'multicast')
+        self.assertEqual(switch.mcast_group_base, '239.1.1.0')
+        self.assertEqual(switch.mcast_group_increment, 'vni_last_octet')
+
+    def test_init_default_bum_replication_mode(self):
+        """Test __init__ defaults to ingress-replication mode."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        self.assertEqual(switch.bum_replication_mode,
+                         'ingress-replication')
+        self.assertIsNone(switch.mcast_group_base)
+
+    def test_get_multicast_group(self):
+        """Test _get_multicast_group calculates correct addresses."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_base': '239.1.1.0'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+
+        # VNI 10100 % 256 = 116 -> 239.1.1.116
+        self.assertEqual(switch._get_multicast_group(10100), '239.1.1.116')
+
+        # VNI 10200 % 256 = 216 -> 239.1.1.216
+        self.assertEqual(switch._get_multicast_group(10200), '239.1.1.216')
+
+        # VNI 10001 % 256 = 17 -> 239.1.1.17
+        self.assertEqual(switch._get_multicast_group(10001), '239.1.1.17')
+
+        # VNI 5000 % 256 = 136 -> 239.1.1.136
+        self.assertEqual(switch._get_multicast_group(5000), '239.1.1.136')
+
+        # VNI 100 % 256 = 100 -> 239.1.1.100 (clean example)
+        self.assertEqual(switch._get_multicast_group(100), '239.1.1.100')
+
+    def test_get_multicast_group_without_base_raises_error(self):
+        """Test _get_multicast_group raises error without base config."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+
+        self.assertRaises(
+            exc.GenericSwitchNetmikoConfigError,
+            switch._get_multicast_group,
+            10100
+        )
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_switch_to_network_with_multicast(self, mock_exec):
+        """Test plug_switch_to_network uses multicast groups."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_base': '239.1.1.0'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.plug_switch_to_network(10100, 100, physnet='physnet1')
+        # VNI 10100 % 256 = 116, so mcast group is 239.1.1.116
+        mock_exec.assert_called_with(
+            switch,
+            ['evpn', 'vni 10100 l2', 'rd auto', 'route-target both auto',
+             'exit', 'vlan 100', 'vn-segment 10100', 'exit',
+             'interface nve1', 'member vni 10100',
+             'mcast-group 239.1.1.116', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_switch_to_network_multicast_custom_nve(self, mock_exec):
+        """Test multicast mode with custom NVE interface."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_base': '239.2.2.0',
+            'ngs_nve_interface': 'nve2'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.plug_switch_to_network(5000, 50)
+        # VNI 5000 % 256 = 136, so mcast group is 239.2.2.136
+        mock_exec.assert_called_with(
+            switch,
+            ['evpn', 'vni 5000 l2', 'rd auto', 'route-target both auto',
+             'exit', 'vlan 50', 'vn-segment 5000', 'exit',
+             'interface nve2', 'member vni 5000',
+             'mcast-group 239.2.2.136', 'exit'])
+
+    def test_init_with_mcast_group_map(self):
+        """Test __init__ parses ngs_mcast_group_map correctly."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_map': '10100:239.1.1.100, 10200:239.1.1.200'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        self.assertEqual(switch.mcast_group_map[10100], '239.1.1.100')
+        self.assertEqual(switch.mcast_group_map[10200], '239.1.1.200')
+        self.assertEqual(len(switch.mcast_group_map), 2)
+
+    def test_get_multicast_group_from_explicit_map(self):
+        """Test _get_multicast_group uses explicit mapping first."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_map': '10100:239.5.5.100, 5000:239.10.10.50',
+            'ngs_mcast_group_base': '239.1.1.0'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+
+        # Explicit mapping should take precedence
+        self.assertEqual(switch._get_multicast_group(10100),
+                         '239.5.5.100')
+        self.assertEqual(switch._get_multicast_group(5000),
+                         '239.10.10.50')
+
+        # Unmapped VNI should fall back to base calculation
+        # VNI 10200 % 256 = 216 -> 239.1.1.216
+        self.assertEqual(switch._get_multicast_group(10200),
+                         '239.1.1.216')
+
+    def test_get_multicast_group_map_without_base_fallback(self):
+        """Test explicit map works without base for mapped VNIs."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_map': '10100:239.1.1.100'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+
+        # Mapped VNI should work
+        self.assertEqual(switch._get_multicast_group(10100),
+                         '239.1.1.100')
+
+        # Unmapped VNI should raise error (no base configured)
+        self.assertRaises(
+            exc.GenericSwitchNetmikoConfigError,
+            switch._get_multicast_group,
+            10200
+        )
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_switch_to_network_with_explicit_mcast_map(self, mock_exec):
+        """Test plug_switch_to_network uses explicit mapping."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_map': '10100:239.99.99.99'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.plug_switch_to_network(10100, 100)
+
+        # Should use explicit mapping instead of calculation
+        mock_exec.assert_called_with(
+            switch,
+            ['evpn', 'vni 10100 l2', 'rd auto', 'route-target both auto',
+             'exit', 'vlan 100', 'vn-segment 10100', 'exit',
+             'interface nve1', 'member vni 10100',
+             'mcast-group 239.99.99.99', 'exit'])
+
+    def test_mcast_group_map_validation_invalid_ip(self):
+        """Test ngs_mcast_group_map rejects invalid IP addresses."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_mcast_group_map': '10100:not.an.ip, 10200:239.1.1.200'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        # Invalid entry should be skipped
+        self.assertNotIn(10100, switch.mcast_group_map)
+        # Valid entry should be parsed
+        self.assertIn(10200, switch.mcast_group_map)
+
+    def test_mcast_group_map_validation_non_multicast_ip(self):
+        """Test ngs_mcast_group_map rejects non-multicast addresses."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_mcast_group_map': '10100:192.168.1.1, 10200:239.1.1.200'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        # Unicast IP should be rejected
+        self.assertNotIn(10100, switch.mcast_group_map)
+        # Multicast IP should be accepted
+        self.assertIn(10200, switch.mcast_group_map)
+
+    def test_mcast_group_map_validation_invalid_vni(self):
+        """Test ngs_mcast_group_map rejects invalid VNI values."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_mcast_group_map': 'abc:239.1.1.100, 10200:239.1.1.200'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        # Non-integer VNI should be rejected
+        self.assertNotIn('abc', switch.mcast_group_map)
+        # Valid entry should be parsed
+        self.assertIn(10200, switch.mcast_group_map)
+
+    def test_mcast_group_map_validation_vni_out_of_range(self):
+        """Test ngs_mcast_group_map rejects VNI out of valid range."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_mcast_group_map': '0:239.1.1.1, 16777216:239.1.1.2, '
+                                   '10100:239.1.1.100'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        # VNI 0 (below minimum) should be rejected
+        self.assertNotIn(0, switch.mcast_group_map)
+        # VNI 16777216 (above maximum) should be rejected
+        self.assertNotIn(16777216, switch.mcast_group_map)
+        # Valid VNI should be accepted
+        self.assertIn(10100, switch.mcast_group_map)
+
+    def test_mcast_group_map_duplicate_vni_uses_last(self):
+        """Test ngs_mcast_group_map uses last entry for duplicate VNIs."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_mcast_group_map': '10100:239.1.1.1, 10100:239.1.1.2'
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        # Should use last entry for duplicate VNI
+        self.assertEqual(switch.mcast_group_map[10100], '239.1.1.2')
+
+    def test_mcast_group_map_handles_whitespace(self):
+        """Test ngs_mcast_group_map handles extra whitespace."""
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_mcast_group_map': '  10100 : 239.1.1.100 , '
+                                   '10200:239.1.1.200  '
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        self.assertEqual(switch.mcast_group_map[10100], '239.1.1.100')
+        self.assertEqual(switch.mcast_group_map[10200], '239.1.1.200')
+
     def test_parse_vlan_vni_with_ingress_replication(self):
         """Test _parse_vlan_vni detects VNI with ingress-replication."""
         device_cfg = {'device_type': 'netmiko_cisco_nxos'}
@@ -504,6 +749,16 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
         output = """
   member vni 10100
     ingress-replication protocol bgp
+"""
+        self.assertTrue(switch._parse_vlan_vni(output, 100, 10100))
+
+    def test_parse_vlan_vni_with_multicast(self):
+        """Test _parse_vlan_vni detects VNI with multicast group."""
+        device_cfg = {'device_type': 'netmiko_cisco_nxos'}
+        switch = cisco.CiscoNxOS(device_cfg)
+        output = """
+  member vni 10100
+    mcast-group 239.1.1.100
 """
         self.assertTrue(switch._parse_vlan_vni(output, 100, 10100))
 
