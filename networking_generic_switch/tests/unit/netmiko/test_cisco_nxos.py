@@ -847,7 +847,7 @@ VLAN Name                             Status    Ports
         result = switch.vlan_has_vni(100, 10100)
 
         mock_net_connect.send_command.assert_called_once_with(
-            'show interface nve1 | include "member vni 10100"')
+            'show running-config interface nve1 | include "member vni 10100"')
         self.assertTrue(result)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -867,7 +867,7 @@ VLAN Name                             Status    Ports
         result = switch.vlan_has_vni(100, 10100)
 
         mock_net_connect.send_command.assert_called_once_with(
-            'show interface nve2 | include "member vni 10100"')
+            'show running-config interface nve2 | include "member vni 10100"')
         self.assertFalse(result)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -885,5 +885,5 @@ VLAN Name                             Status    Ports
         result = switch.vlan_has_vni(100, 10100)
 
         mock_net_connect.send_command.assert_called_once_with(
-            'show interface nve1 | include "member vni 10100"')
+            'show running-config interface nve1 | include "member vni 10100"')
         self.assertFalse(result)
