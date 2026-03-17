@@ -834,31 +834,63 @@ is only in how BUM traffic is replicated (data plane):
 **Cumulus NVUE** - Full L2VNI support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Cumulus NVUE implementation supports L2VNI configuration on the default
-bridge domain ``br_default``. It includes support for Head-End Replication
-(HER) flood lists for BUM traffic handling and EVPN control plane
-configuration.
+The Cumulus NVUE implementation is production-ready and fully tested. It
+supports L2VNI configuration on the default bridge domain ``br_default`` with
+three modes for BUM (Broadcast, Unknown unicast, Multicast) traffic
+replication:
+
+1. **Ingress-replication** (default) - Uses EVPN-learned VTEPs for dynamic
+   BUM replication
+2. **Head-end-replication** - Uses static VTEP flood lists for BUM
+   replication
+3. **Multicast** - Uses ASM multicast groups with PIM Sparse Mode
 
 Configuration Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- ``device_type``: ``netmiko_cumulus_nvue``
-- ``ngs_her_flood_list``: Global HER flood list (comma-separated VTEP IPs)
-- ``ngs_physnet_her_flood``: Per-physnet HER flood lists (format:
+BUM Replication Mode Configuration:
+
+* ``ngs_bum_replication_mode`` - BUM traffic replication mode. Options:
+  ``ingress-replication`` (default), ``head-end-replication``, ``multicast``
+
+Ingress-Replication Mode (EVPN-learned VTEPs):
+
+* No additional configuration required - VTEPs are learned via EVPN
+
+Head-End-Replication Mode (Static VTEP Lists):
+
+* ``ngs_her_flood_list`` - Global HER flood list (comma-separated VTEP IPs)
+* ``ngs_physnet_her_flood`` - Per-physnet HER flood lists (format:
   ``physnet1:ip1,ip2;physnet2:ip3,ip4``)
-- ``ngs_evpn_vni_config``: Enable EVPN VNI control plane configuration
+
+Multicast Mode:
+
+* ``ngs_mcast_group_map`` - Explicit VNI-to-multicast-group mappings (format:
+  ``vni1:group1,vni2:group2``)
+* ``ngs_mcast_group_base`` - Base multicast group address for automatic
+  derivation (e.g., ``239.1.1.0``)
+* ``ngs_mcast_group_increment`` - Derivation method (default:
+  ``vni_last_octet``)
+
+EVPN Control Plane Configuration:
+
+* ``ngs_evpn_vni_config`` - Enable EVPN VNI control plane configuration
   (default: false)
-- ``ngs_bgp_asn``: BGP AS number (required when ``ngs_evpn_vni_config`` is
+* ``ngs_bgp_asn`` - BGP AS number (required when ``ngs_evpn_vni_config`` is
   enabled)
 
-HER Flood List Resolution
-^^^^^^^^^^^^^^^^^^^^^^^^^
+BUM Replication Mode Auto-Detection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When configuring HER flood lists, the driver uses a three-tier resolution:
+The driver automatically selects the appropriate BUM replication mode:
 
-1. Check ``ngs_physnet_her_flood`` for a per-physnet mapping
-2. Fall back to ``ngs_her_flood_list`` for a global configuration
-3. Default to EVPN-only (no static flood list)
+1. If ``ngs_bum_replication_mode`` is explicitly set, use that mode
+2. Else if ``ngs_her_flood_list`` or ``ngs_physnet_her_flood`` is configured,
+   auto-detect ``head-end-replication`` mode (backward compatibility)
+3. Else default to ``ingress-replication`` mode
+
+This ensures backward compatibility with existing deployments using HER flood
+lists while defaulting new deployments to EVPN-learned VTEPs.
 
 EVPN VNI Control Plane Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -876,10 +908,30 @@ configures per-VNI EVPN in FRRouting (FRR) using vtysh commands:
          -c "route-target import auto" \
          -c "route-target export auto"
 
+Multicast Group Derivation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The driver supports two methods for assigning multicast groups to VNIs:
+
+1. **Explicit mapping** (``ngs_mcast_group_map``): Specify exact VNI-to-group
+   mappings
+2. **Automatic derivation** (``ngs_mcast_group_base``): Calculate group from
+   base address
+
+With ``ngs_mcast_group_increment = vni_last_octet`` (default), the group is
+calculated as ``ngs_mcast_group_base + (VNI % 256)``.
+
+For example, with ``ngs_mcast_group_base = 239.1.1.0`` and VNI 10100:
+``239.1.1.0 + (10100 % 256) = 239.1.1.0 + 116 = 239.1.1.116``
+
+If a VNI is in the explicit map (e.g.,
+``ngs_mcast_group_map = 10100:239.5.5.5``), that mapping takes precedence
+over automatic derivation.
+
 Configuration Examples
 ^^^^^^^^^^^^^^^^^^^^^^
 
-**Scenario 1: Basic L2VNI (EVPN-only, no static flood list)**
+**Scenario 1: Ingress-Replication (EVPN-learned VTEPs, Default)**
 
 .. code-block:: ini
 
@@ -891,8 +943,10 @@ Generated commands:
 .. code-block:: bash
 
    nv set bridge domain br_default vlan 100 vni 10100
+   nv set bridge domain br_default vlan 100 vni 10100 flooding \
+       head-end-replication evpn
 
-**Scenario 2: L2VNI with Global HER Flood List**
+**Scenario 2: Head-End-Replication with Global HER Flood List**
 
 .. code-block:: ini
 
@@ -908,7 +962,7 @@ Generated commands:
    nv set nve vxlan flooding head-end-replication 10.0.1.1
    nv set nve vxlan flooding head-end-replication 10.0.1.2
 
-**Scenario 3: L2VNI with Per-Physnet HER Flood Lists**
+**Scenario 3: Head-End-Replication with Per-Physnet HER Flood Lists**
 
 .. code-block:: ini
 
@@ -924,7 +978,41 @@ For physnet1, generated commands:
    nv set nve vxlan flooding head-end-replication 10.0.1.1
    nv set nve vxlan flooding head-end-replication 10.0.1.2
 
-**Scenario 4: L2VNI with EVPN VNI Configuration**
+**Scenario 4: Multicast Mode with Base Address**
+
+.. code-block:: ini
+
+   [genericswitch:cumulus-switch]
+   device_type = netmiko_cumulus_nvue
+   ngs_bum_replication_mode = multicast
+   ngs_mcast_group_base = 239.1.1.0
+
+For VNI 10100, generated commands:
+
+.. code-block:: bash
+
+   nv set bridge domain br_default vlan 100 vni 10100
+   nv set bridge domain br_default vlan 100 vni 10100 flooding \
+       multicast-group 239.1.1.116
+
+**Scenario 5: Multicast Mode with Explicit Mapping**
+
+.. code-block:: ini
+
+   [genericswitch:cumulus-switch]
+   device_type = netmiko_cumulus_nvue
+   ngs_bum_replication_mode = multicast
+   ngs_mcast_group_map = 10100:239.5.5.100,10200:239.5.5.200
+
+For VNI 10100, generated commands:
+
+.. code-block:: bash
+
+   nv set bridge domain br_default vlan 100 vni 10100
+   nv set bridge domain br_default vlan 100 vni 10100 flooding \
+       multicast-group 239.5.5.100
+
+**Scenario 6: EVPN VNI Configuration with Ingress-Replication**
 
 .. code-block:: ini
 
@@ -945,9 +1033,8 @@ Generated commands:
          -c "route-target import auto" \
          -c "route-target export auto"
    nv set bridge domain br_default vlan 100 vni 10100
-
-Without ``ngs_evpn_vni_config``, the EVPN block is omitted and only the
-VXLAN map configuration is applied.
+   nv set bridge domain br_default vlan 100 vni 10100 flooding \
+       head-end-replication evpn
 
 **Juniper Junos** - Full L2VNI support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
