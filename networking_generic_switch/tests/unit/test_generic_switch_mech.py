@@ -19,6 +19,7 @@ from unittest import mock
 from neutron.db import provisioning_blocks
 from neutron.plugins.ml2 import driver_context
 from neutron_lib.callbacks import resources
+from neutron_lib import constants as const
 from neutron_lib.plugins import directory
 
 from networking_generic_switch import devices
@@ -1355,6 +1356,10 @@ class TestGenericSwitchDriver(unittest.TestCase):
     @mock.patch.object(directory, "get_plugin", autospec=True)
     @mock.patch.object(device_utils, "get_switch_device", autospec=True)
     def test_subports_added(self, mock_get_switch, mock_plugin, m_list):
+        """Verify subports_added configures switch and updates status.
+
+        Regression test for bug #2103760.
+        """
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
 
@@ -1376,8 +1381,18 @@ class TestGenericSwitchDriver(unittest.TestCase):
         mock_plugin.return_value.get_port.return_value = {"status": "DOWN"}
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
+
+        # Verify switch configuration was called
         mock_get_switch.return_value.add_subports_on_trunk.assert_has_calls(
             [mock.call(parent_port['binding:profile'], 2222, subports)])
+
+        # Verify status was updated for each subport
+        self.assertEqual(
+            mock_plugin.return_value.update_port_status.call_count, 2)
+        mock_plugin.return_value.update_port_status.assert_any_call(
+            self.ctxt, "s1", const.PORT_STATUS_ACTIVE)
+        mock_plugin.return_value.update_port_status.assert_any_call(
+            self.ctxt, "s2", const.PORT_STATUS_ACTIVE)
 
     @mock.patch.object(device_utils, "get_switch_device", autospec=True)
     def test_subports_deleted_other_port(self, mock_get_switch, m_list):
