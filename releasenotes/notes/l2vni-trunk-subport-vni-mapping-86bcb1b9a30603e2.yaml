@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed L2VNI trunk subport handling to configure VLAN-to-VNI mappings on
+    switches when VNI information is present in the subport's
+    ``binding:profile['vni']`` field. Previously, only VLAN trunking was
+    configured, preventing proper EVPN/VXLAN operation on network node switches.
+    This fix requires corresponding changes in ``networking-baremetal`` to
+    include VNI information in trunk subport binding profiles. For more
+    information, see
+    `bug 2144396 <https://bugs.launchpad.net/networking-baremetal/+bug/2144396>`_.
