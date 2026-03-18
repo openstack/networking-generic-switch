@@ -17,6 +17,7 @@ from neutron_lib import constants as const
 from oslo_log import log as logging
 
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 
 LOG = logging.getLogger(__name__)
@@ -186,101 +187,28 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
         # Extract NVE config before parent removes ngs_* options
         self.nve_interface = device_cfg.get('ngs_nve_interface', 'nve1')
 
-        # Extract BUM replication configuration
-        self.bum_replication_mode = device_cfg.get(
-            'ngs_bum_replication_mode', 'ingress-replication')
-        self.mcast_group_base = device_cfg.get(
-            'ngs_mcast_group_base', None)
-        self.mcast_group_increment = device_cfg.get(
-            'ngs_mcast_group_increment', 'vni_last_octet')
-
-        # Parse and validate explicit VNI-to-multicast-group mappings
-        self.mcast_group_map = {}
-        mcast_map_str = device_cfg.get('ngs_mcast_group_map', '')
-        if mcast_map_str:
-            import ipaddress
-            for mapping in mcast_map_str.split(','):
-                mapping = mapping.strip()
-                if not mapping:
-                    continue
-                if ':' not in mapping:
-                    LOG.warning('Invalid mapping format in '
-                                'ngs_mcast_group_map (expected VNI:group): '
-                                '%s', mapping)
-                    continue
-
-                vni_str, group_str = mapping.split(':', 1)
-                vni_str = vni_str.strip()
-                group_str = group_str.strip()
-
-                # Validate VNI
-                try:
-                    vni = int(vni_str)
-                    if vni < 1 or vni > 16777215:
-                        LOG.warning('VNI %s out of valid range (1-16777215) '
-                                    'in ngs_mcast_group_map', vni)
-                        continue
-                except ValueError:
-                    LOG.warning('Invalid VNI "%s" in ngs_mcast_group_map: '
-                                'must be an integer', vni_str)
-                    continue
-
-                # Validate multicast group IP address
-                try:
-                    mcast_ip = ipaddress.IPv4Address(group_str)
-                    # Validate it's in multicast range (224.0.0.0/4)
-                    if not mcast_ip.is_multicast:
-                        LOG.warning('IP address %s is not a valid '
-                                    'multicast address in '
-                                    'ngs_mcast_group_map', group_str)
-                        continue
-                except (ipaddress.AddressValueError, ValueError):
-                    LOG.warning('Invalid IP address "%s" in '
-                                'ngs_mcast_group_map', group_str)
-                    continue
-
-                # Warn on duplicate VNI
-                if vni in self.mcast_group_map:
-                    LOG.warning('Duplicate VNI %s in ngs_mcast_group_map, '
-                                'using last entry: %s', vni, group_str)
-
-                self.mcast_group_map[vni] = group_str
+        # Use shared utility for multicast config parsing
+        mcast_config = device_utils.parse_vxlan_multicast_config(device_cfg)
+        self.bum_replication_mode = mcast_config.bum_replication_mode
+        self.mcast_group_base = mcast_config.mcast_group_base
+        self.mcast_group_increment = mcast_config.mcast_group_increment
+        self.mcast_group_map = mcast_config.mcast_group_map
 
         super(CiscoNxOS, self).__init__(device_cfg, *args, **kwargs)
 
     def _get_multicast_group(self, vni: int) -> str:
         """Calculate multicast group address for a given VNI.
 
-        Supports two methods for multicast group assignment:
-        1. Explicit mapping via ngs_mcast_group_map (checked first)
-        2. Automatic derivation from ngs_mcast_group_base (fallback)
+        Delegates to shared utility function for consistent multicast
+        group derivation logic across all vendors.
 
         :param vni: VXLAN Network Identifier
         :returns: Multicast group IP address (e.g., '239.1.1.100')
         :raises: GenericSwitchConfigError if no mapping or base configured
         """
-        # Check explicit mapping first
-        if vni in self.mcast_group_map:
-            return self.mcast_group_map[vni]
-
-        # Fall back to automatic derivation from base
-        if not self.mcast_group_base:
-            LOG.error('VNI %s not found in ngs_mcast_group_map and '
-                      'ngs_mcast_group_base not configured for switch %s',
-                      vni, self.device_name)
-            raise exc.GenericSwitchNetmikoConfigError()
-
-        # Import here to avoid dependency if multicast not used
-        import ipaddress
-
-        base_ip = ipaddress.IPv4Address(self.mcast_group_base)
-
-        # Use last octet of VNI as offset from base
-        # Example: VNI 10100 with base 239.1.1.0 -> 239.1.1.100
-        offset = vni % 256
-        mcast_ip = ipaddress.IPv4Address(int(base_ip) + offset)
-
-        return str(mcast_ip)
+        return device_utils.get_vxlan_multicast_group(
+            vni, self.mcast_group_map, self.mcast_group_base,
+            self.device_name)
 
     def plug_switch_to_network(self, vni: int, segmentation_id: int,
                                physnet: str = None):
