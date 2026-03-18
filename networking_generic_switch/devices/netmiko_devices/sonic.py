@@ -62,6 +62,24 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         ngs_vtep_name = vtep
         ngs_bgp_asn = 65000
 
+    BUM Traffic Replication
+    ~~~~~~~~~~~~~~~~~~~~~~~
+
+    **IMPORTANT**: SONiC only supports **ingress-replication** mode for
+    BUM (Broadcast, Unknown unicast, Multicast) traffic replication.
+    Underlay IP multicast for VXLAN is NOT supported by SONiC.
+
+    Configuration parameters:
+
+    * ``ngs_bum_replication_mode`` - BUM replication mode (optional).
+      Only ``ingress-replication`` is supported. Configuring
+      ``multicast`` will raise an error.
+      Default: ``ingress-replication``
+
+    If multicast mode is configured, the driver will raise an error
+    during initialization explaining SONiC's limitation and
+    suggesting ingress-replication.
+
     Security Group Implementation
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -96,6 +114,23 @@ class Sonic(netmiko_devices.NetmikoSwitch):
                     "'ngs_vtep_name' instead.")
 
         self.bgp_asn = device_cfg.get('ngs_bgp_asn')
+
+        # Validate BUM replication mode - SONiC only supports
+        # ingress-replication, not multicast.
+        mcast_config = device_utils.parse_vxlan_multicast_config(
+            device_cfg)
+        self.bum_replication_mode = mcast_config.bum_replication_mode
+        if self.bum_replication_mode == 'multicast':
+            LOG.error(
+                _('Multicast BUM replication mode is not supported '
+                  'by SONiC. SONiC only supports '
+                  'ingress-replication mode with BGP EVPN. '
+                  'Please set ngs_bum_replication_mode='
+                  'ingress-replication or remove this parameter '
+                  'to use the default. Device: %(device)s'),
+                {'device': device_utils.sanitise_config(
+                    device_cfg)})
+            raise exc.GenericSwitchNetmikoConfigError()
 
         super(Sonic, self).__init__(device_cfg, *args, **kwargs)
 
@@ -536,7 +571,7 @@ class Sonic(netmiko_devices.NetmikoSwitch):
     @netmiko_devices.check_output('plug vni')
     def plug_switch_to_network(self, vni: int, segmentation_id: int,
                                physnet: str = None):
-        """Configure L2VNI mapping with BGP EVPN on the SONiC switch.
+        """Configure L2VNI mapping on SONiC switch.
 
         Uses ingress-replication for BUM traffic handling with BGP EVPN
         control plane. This is the recommended approach for VXLAN
@@ -549,7 +584,7 @@ class Sonic(netmiko_devices.NetmikoSwitch):
 
         :param vni: VXLAN Network Identifier
         :param segmentation_id: VLAN identifier
-        :param physnet: Physical network name (unused, kept for compatibility)
+        :param physnet: Physical network name (unused)
         :returns: Command output
         """
         if not self.vtep_name:

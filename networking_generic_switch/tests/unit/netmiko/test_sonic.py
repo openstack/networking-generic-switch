@@ -956,6 +956,58 @@ Total count : 0'''
              'config vlan member add 100 Ethernet8',
              'config vlan member add 200 Ethernet8'])
 
+    # Multicast Configuration Tests
+
+    def test_init_default_bum_mode(self):
+        """Test __init__ defaults to ingress-replication mode."""
+        device_cfg = {'device_type': 'netmiko_sonic'}
+        switch = sonic.Sonic(device_cfg)
+        self.assertEqual(switch.bum_replication_mode,
+                         'ingress-replication')
+
+    def test_init_explicit_ingress_replication(self):
+        """Test __init__ with explicit ingress-replication mode."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'ngs_bum_replication_mode': 'ingress-replication'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertEqual(switch.bum_replication_mode,
+                         'ingress-replication')
+
+    def test_init_multicast_mode_raises_error(self):
+        """Test __init__ raises error for multicast mode."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'ngs_bum_replication_mode': 'multicast',
+            'ngs_mcast_group_base': '239.1.1.0'
+        }
+        self.assertRaises(exc.GenericSwitchNetmikoConfigError,
+                          sonic.Sonic, device_cfg)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
+    def test_plug_switch_ingress_replication_works(self, mock_exec):
+        """Test ingress-replication mode continues to work normally."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'vtep_name': 'vtep',
+            'ngs_bgp_asn': '65000',
+            'ngs_bum_replication_mode': 'ingress-replication'
+        }
+        switch = sonic.Sonic(device_cfg)
+        switch.plug_switch_to_network(10100, 100)
+
+        # Verify normal EVPN + VXLAN map commands are sent
+        self.assertTrue(mock_exec.called)
+        args = mock_exec.call_args[0]
+        cmds = args[1]
+        self.assertEqual(len(cmds), 3)  # VLAN + EVPN + VXLAN map
+        self.assertIn('config vlan add', cmds[0])
+        self.assertIn('vtysh', cmds[1])
+        self.assertIn('config vxlan map add', cmds[2])
+
 
 class TestNetmikoDellEnterpriseSonic(test_netmiko_base.NetmikoSwitchTestBase):
 
