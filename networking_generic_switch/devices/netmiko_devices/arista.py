@@ -15,6 +15,7 @@
 import re
 
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 
 
@@ -28,8 +29,13 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
     required. The ``vxlan_interface`` parameter can optionally be specified
     (defaults to ``Vxlan1``). The ``ngs_evpn_route_target`` parameter can
     optionally be specified to configure the route-target value (defaults
-    to ``auto``). Uses BGP EVPN with ingress-replication for BUM traffic
-    handling.
+    to ``auto``).
+
+    Supports two BUM (Broadcast, Unknown unicast, Multicast) traffic
+    replication modes:
+
+    1. **ingress-replication** (default) - Uses BGP EVPN for BUM traffic
+    2. **multicast** - Uses ASM multicast groups with PIM Sparse Mode
 
     .. code-block:: ini
 
@@ -38,6 +44,8 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         ngs_bgp_asn = 65000
         vxlan_interface = Vxlan1
         ngs_evpn_route_target = auto
+        ngs_bum_replication_mode = ingress-replication
+        ngs_mcast_group_base = 239.1.1.0
     """
 
     ADD_NETWORK = (
@@ -134,7 +142,28 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         self.evpn_route_target = device_cfg.get('ngs_evpn_route_target',
                                                 'auto')
 
+        # Use shared utility for multicast config parsing
+        mcast_config = device_utils.parse_vxlan_multicast_config(device_cfg)
+        self.bum_replication_mode = mcast_config.bum_replication_mode
+        self.mcast_group_base = mcast_config.mcast_group_base
+        self.mcast_group_increment = mcast_config.mcast_group_increment
+        self.mcast_group_map = mcast_config.mcast_group_map
+
         super(AristaEos, self).__init__(device_cfg, *args, **kwargs)
+
+    def _get_multicast_group(self, vni: int) -> str:
+        """Calculate multicast group address for a given VNI.
+
+        Delegates to shared utility function for consistent multicast
+        group derivation logic across all vendors.
+
+        :param vni: VXLAN Network Identifier
+        :returns: Multicast group IP address (e.g., '239.1.1.100')
+        :raises: GenericSwitchConfigError if no mapping or base configured
+        """
+        return device_utils.get_vxlan_multicast_group(
+            vni, self.mcast_group_map, self.mcast_group_base,
+            self.device_name)
 
     def _parse_vlan_ports(self, output: str, segmentation_id: int) -> bool:
         """Parse Arista EOS 'show vlan id X' output for ports.
@@ -168,6 +197,9 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
                         vni: int) -> bool:
         """Parse Arista EOS 'show interfaces VxlanX' output.
 
+        Detects VNI configuration in both ingress-replication and multicast
+        modes.
+
         :param output: Command output from switch
         :param segmentation_id: VLAN identifier being checked
         :param vni: VNI to check for
@@ -175,6 +207,7 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         """
         # Arista EOS output format:
         # Static VLAN to VNI mapping is [112, 112] [134, 134]
+        # VLAN 100 flood VTEP 239.1.1.116 (multicast mode)
         # Format: [VLAN, VNI] pairs in brackets
         lines = output.strip().split('\n')
         for line in lines:
@@ -192,17 +225,22 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
                                physnet: str = None):
         """Configure L2VNI mapping with BGP EVPN on Arista EOS.
 
-        Uses ingress-replication for BUM traffic handling with BGP EVPN
-        control plane. This is the recommended approach for VXLAN
-        deployments and avoids multicast group scaling issues.
+        Supports two BUM traffic replication modes:
+        1. ingress-replication (default): Uses BGP EVPN for BUM
+           replication. Recommended for most deployments.
+        2. multicast: Uses ASM multicast groups for BUM replication.
+           Requires PIM Sparse Mode with Anycast RP configured on the
+           fabric infrastructure.
 
         Configures the following in order:
-        1. Configure EVPN VLAN (BGP control plane)
+        1. Configure EVPN VLAN (BGP control plane for MAC/IP learning)
         2. Map VLAN to VNI on the VXLAN interface
+        3. Configure BUM replication (ingress-replication or flood vtep)
 
         :param vni: VXLAN Network Identifier
         :param segmentation_id: VLAN identifier
-        :param physnet: Physical network name (unused, kept for compatibility)
+        :param physnet: Physical network name (unused, kept for
+                        compatibility)
         :returns: Command output
         """
         if not self.bgp_asn:
@@ -214,6 +252,7 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         cmds = []
 
         # Step 1: EVPN VLAN configuration (BGP control plane)
+        # NOTE: EVPN used for MAC/IP learning in both modes
         evpn_cmds = [
             f'router bgp {self.bgp_asn}',
             f'vlan {segmentation_id}',
@@ -222,13 +261,24 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         ]
         cmds.extend(evpn_cmds)
 
-        # Step 2: Map VLAN to VNI (ingress-replication is default)
+        # Step 2: Map VLAN to VNI
         vxlan_cmds = self._format_commands(
             self.PLUG_SWITCH_TO_NETWORK,
             vni=vni,
             segmentation_id=segmentation_id,
             vxlan_interface=self.vxlan_interface)
         cmds.extend(vxlan_cmds)
+
+        # Step 3: BUM traffic replication configuration
+        if self.bum_replication_mode == 'multicast':
+            # Use multicast group for BUM traffic (ASM with PIM)
+            mcast_group = self._get_multicast_group(vni)
+            multicast_cmds = [
+                f'interface {self.vxlan_interface}',
+                f'vxlan vlan {segmentation_id} flood vtep {mcast_group}',
+            ]
+            cmds.extend(multicast_cmds)
+        # else: ingress-replication is the default, no explicit config needed
 
         return self.send_commands_to_device(cmds)
 
@@ -238,8 +288,9 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         """Remove L2VNI mapping and EVPN VLAN from Arista EOS.
 
         Removes configuration in reverse order of creation:
-        1. Remove VXLAN map
-        2. Remove EVPN VLAN configuration
+        1. Remove multicast flood vtep (if in multicast mode)
+        2. Remove VXLAN map
+        3. Remove EVPN VLAN configuration
 
         :param vni: VXLAN Network Identifier
         :param segmentation_id: VLAN identifier
@@ -252,14 +303,25 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
                 error='ngs_bgp_asn configuration parameter is required '
                       'for L2VNI support on Arista EOS switches')
 
-        # Step 1: Remove VXLAN map
-        cmds = self._format_commands(
+        cmds = []
+
+        # Step 1: Remove multicast flood vtep (if in multicast mode)
+        if self.bum_replication_mode == 'multicast':
+            multicast_cmds = [
+                f'interface {self.vxlan_interface}',
+                f'no vxlan vlan {segmentation_id} flood vtep',
+            ]
+            cmds.extend(multicast_cmds)
+
+        # Step 2: Remove VXLAN map
+        vxlan_cmds = self._format_commands(
             self.UNPLUG_SWITCH_FROM_NETWORK,
             vni=vni,
             segmentation_id=segmentation_id,
             vxlan_interface=self.vxlan_interface)
+        cmds.extend(vxlan_cmds)
 
-        # Step 2: Remove EVPN VLAN from BGP
+        # Step 3: Remove EVPN VLAN from BGP
         evpn_cmds = [
             f'router bgp {self.bgp_asn}',
             f'no vlan {segmentation_id}',

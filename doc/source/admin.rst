@@ -498,7 +498,7 @@ The driver supports two methods for assigning multicast groups to VNIs:
    the group is calculated as ``ngs_mcast_group_base + (VNI % 256)``.
 
 For example, with ``ngs_mcast_group_base = 239.1.1.0`` and VNI 10100:
-``239.1.1.0 + (10100 % 256) = 239.1.0 + 116 = 239.1.1.116``
+``239.1.1.0 + (10100 % 256) = 239.1.1.0 + 116 = 239.1.1.116``
 
 If a VNI is in the explicit map (e.g., ``ngs_mcast_group_map = 10100:239.5.5.5``),
 that mapping takes precedence over automatic derivation.
@@ -591,20 +591,39 @@ Your SONiC switches must have BGP EVPN pre-configured with
 **Arista EOS** - Full L2VNI support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Arista EOS implementation uses BGP EVPN with ingress-replication for all
-VXLAN deployments. This approach aligns with Arista best practices and avoids
-multicast group scaling issues that occur with Neutron's dynamic VNI
-assignment model.
+The Arista EOS implementation is production-ready and fully tested. It supports
+two modes for BUM (Broadcast, Unknown unicast, Multicast) traffic replication:
+
+1. **Ingress-replication** (default) - Uses BGP EVPN for BUM traffic replication
+2. **Multicast** - Uses ASM multicast groups with PIM Sparse Mode
+
+Switch prerequisites:
+
+* BGP EVPN must be configured
+* VXLAN interface must be configured as a VTEP
+* For multicast mode: PIM Sparse Mode and Anycast RP must be configured
 
 Arista EOS Configuration Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Configuration parameters:
 
 * ``vxlan_interface`` - VXLAN interface name (default: ``Vxlan1``)
 * ``ngs_bgp_asn`` - BGP AS number (required)
+* ``ngs_evpn_route_target`` - Route-target value (default: ``auto``)
+* ``ngs_bum_replication_mode`` - BUM traffic replication mode (default:
+  ``ingress-replication``). Options: ``ingress-replication``, ``multicast``
+* ``ngs_mcast_group_map`` - Explicit VNI-to-multicast-group mappings as
+  comma-separated ``VNI:group`` pairs. Used for pre-existing multicast group
+  assignments. Example: ``10100:239.1.1.100, 10200:239.1.1.200``
+* ``ngs_mcast_group_base`` - Base ASM multicast group address for automatic
+  derivation of unmapped VNIs (optional when ``ngs_mcast_group_map`` is used,
+  required otherwise when ``ngs_bum_replication_mode=multicast``).
+  Example: ``239.1.1.0``
+* ``ngs_mcast_group_increment`` - Multicast group derivation method (default:
+  ``vni_last_octet``)
 
-Configuration Example:
+Configuration Example (Ingress-Replication Mode):
 
 .. code-block:: ini
 
@@ -621,8 +640,57 @@ Configuration Example:
    # BGP AS number (required)
    ngs_bgp_asn = 65000
 
-Prerequisites
-^^^^^^^^^^^^^
+   # BUM replication mode (optional, default: ingress-replication)
+   ngs_bum_replication_mode = ingress-replication
+
+Configuration Example (Multicast Mode):
+
+.. code-block:: ini
+
+   [genericswitch:arista-leaf02]
+   device_type = netmiko_arista_eos
+   ip = 192.0.2.31
+   username = admin
+   password = password
+   ngs_physical_networks = datacenter1,datacenter2
+
+   # BUM replication mode set to multicast
+   ngs_bum_replication_mode = multicast
+
+   # Base multicast group (required for multicast mode)
+   ngs_mcast_group_base = 239.1.1.0
+
+   # VXLAN interface (optional, default: Vxlan1)
+   vxlan_interface = Vxlan1
+
+   # BGP AS number (required)
+   ngs_bgp_asn = 65000
+
+Configuration Example (Multicast Mode with Explicit VNI Mapping):
+
+.. code-block:: ini
+
+   [genericswitch:arista-leaf03]
+   device_type = netmiko_arista_eos
+   ip = 192.0.2.32
+   username = admin
+   password = password
+   ngs_physical_networks = datacenter1,datacenter2
+
+   # BUM replication mode set to multicast
+   ngs_bum_replication_mode = multicast
+
+   # Explicit VNI-to-multicast-group mappings for pre-existing assignments
+   ngs_mcast_group_map = 10100:239.1.1.100, 10200:239.1.1.200, 5000:239.2.2.50
+
+   # Optional: Base for automatic derivation of unmapped VNIs
+   ngs_mcast_group_base = 239.1.1.0
+
+   # BGP AS number (required)
+   ngs_bgp_asn = 65000
+
+Prerequisites for Ingress-Replication Mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Your Arista EOS switches must have BGP EVPN configured. This is required
 for the ingress-replication data plane to function correctly.
@@ -644,8 +712,49 @@ Example switch configuration:
      vxlan source-interface Loopback0
      vxlan udp-port 4789
 
+Prerequisites for Multicast Mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For multicast mode, in addition to BGP EVPN (used for MAC/IP learning), your
+fabric must have PIM Sparse Mode with Anycast RP configured across all switches.
+
+Example switch configuration for multicast mode:
+
+.. code-block:: text
+
+   ! Configure PIM on underlay interfaces
+   interface Ethernet1-48
+     ip pim sparse-mode
+
+   ! Loopback for VTEP
+   interface Loopback0
+     ip address 10.0.0.1/32
+     ip pim sparse-mode
+
+   ! Anycast RP configuration (same on all RP switches)
+   ip pim rp-address 10.255.255.254 239.0.0.0/8
+
+   ! Configure Anycast RP set (repeat for each RP)
+   ip pim anycast-rp 10.255.255.254 10.0.0.1
+   ip pim anycast-rp 10.255.255.254 10.0.0.2
+
+   ! Configure BGP EVPN (still used for MAC/IP learning)
+   router bgp 65000
+     router-id 10.0.0.1
+     neighbor 10.0.0.2 remote-as 65000
+     neighbor 10.0.0.2 update-source Loopback0
+     address-family evpn
+       neighbor 10.0.0.2 activate
+
+   ! Configure VXLAN interface
+   interface Vxlan1
+     vxlan source-interface Loopback0
+     vxlan udp-port 4789
+
 Generated Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^
+
+**Ingress-Replication Mode** (default)
 
 For each VXLAN network, the driver automatically configures:
 
@@ -661,9 +770,66 @@ For each VXLAN network, the driver automatically configures:
    interface Vxlan1
      vxlan vlan 100 vni 10100
 
+**Multicast Mode**
+
+For each VXLAN network with multicast mode enabled, the driver automatically
+configures:
+
+.. code-block:: text
+
+   ! BGP EVPN control plane (used for MAC/IP learning)
+   router bgp 65000
+     vlan 100
+       rd auto
+       route-target both auto
+
+   ! Data plane with multicast group
+   interface Vxlan1
+     vxlan vlan 100 vni 10100
+     vxlan vlan 100 flood vtep 239.1.1.116
+
+**Multicast Group Assignment**
+
+The driver supports two methods for assigning multicast groups to VNIs:
+
+1. **Explicit mapping** (via ``ngs_mcast_group_map``): Pre-existing VNI-to-group
+   assignments are specified as comma-separated pairs. This is checked first.
+
+2. **Automatic derivation** (via ``ngs_mcast_group_base``): For unmapped VNIs,
+   the group is calculated as ``ngs_mcast_group_base + (VNI % 256)``.
+
+For example, with ``ngs_mcast_group_base = 239.1.1.0`` and VNI 10100:
+``239.1.1.0 + (10100 % 256) = 239.1.1.0 + 116 = 239.1.1.116``
+
+If a VNI is in the explicit map (e.g., ``ngs_mcast_group_map = 10100:239.5.5.5``),
+that mapping takes precedence over automatic derivation.
+
 The driver handles both configuration and cleanup automatically based on
 port binding operations. VNI mappings are only removed when the last port
 is unplugged from a VLAN.
+
+Choosing Between Ingress-Replication and Multicast
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Use Ingress-Replication (default) when:**
+
+* Simplicity is preferred - no PIM configuration required
+* You have a small to medium-sized fabric
+* Your switches have sufficient CPU for head-end replication
+* You want to minimize infrastructure dependencies
+
+**Use Multicast when:**
+
+* You have an existing BGP EVPN VXLAN fabric with PIM already deployed
+* You have a large-scale fabric with many endpoints
+* Network-based replication (PIM) is preferred over head-end replication
+* Your organization's standard is to use multicast for BUM traffic
+
+Both modes use BGP EVPN for MAC/IP learning (control plane). The difference
+is only in how BUM traffic is replicated (data plane):
+
+* **Ingress-replication**: Head-end switch replicates to each remote VTEP
+* **Multicast**: Network (PIM) replicates using multicast groups
 
 **Cumulus NVUE** - Full L2VNI support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

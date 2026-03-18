@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds multicast BUM (Broadcast, Unknown unicast, and Multicast) traffic
+    replication support for Arista EOS VXLAN deployments. Operators can
+    configure ``ngs_bum_replication_mode=multicast`` with either
+    ``ngs_mcast_group_map`` (for explicit VNI-to-group mappings) or
+    ``ngs_mcast_group_base`` (for automatic derivation), or both combined.
+    This enables integration with existing multicast group assignments and
+    large-scale fabrics with PIM Sparse Mode infrastructure.
