@@ -268,6 +268,9 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
             # Use ingress-replication with BGP (default)
             cmds.extend([
                 'ingress-replication protocol bgp',
+                # Enable ARP suppression so VTEP responds to ARP using EVPN
+                # Type-2 routes instead of flooding ARP into the fabric
+                'suppress-arp',
                 'exit',
             ])
 
