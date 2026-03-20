@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed L2VNI VLAN-to-VNI mapping cleanup to use Neutron segment state as
+    the authoritative source for cleanup decisions. Previously, cleanup was
+    based solely on switch port state, which prevented cleanup when static
+    trunk configurations existed on switches. The new hybrid approach checks
+    if the VLAN segment exists in Neutron first - if deleted, L2VNI mappings
+    are removed unconditionally. If the segment still exists, per-switch port
+    checking determines cleanup. This enables static trunk configurations and
+    proper cleanup in multi-switch deployments. See
+    `LP#2144875 <https://bugs.launchpad.net/networking-baremetal/+bug/2144875>`__
+    for details.
