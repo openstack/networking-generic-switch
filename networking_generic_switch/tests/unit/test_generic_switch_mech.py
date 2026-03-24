@@ -1632,11 +1632,22 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.vlan_has_vni.assert_called_once_with(100, 5000)
         self.switch_mock.plug_switch_to_network.assert_not_called()
 
-    def test_delete_port_postcommit_l2vni_with_remaining_ports(self, m_list):
-        """Test L2VNI cleanup when VLAN still has ports."""
+    @mock.patch('networking_generic_switch.generic_switch_mech.segments_db',
+                autospec=True)
+    def test_delete_port_postcommit_l2vni_with_remaining_ports(
+            self, mock_segments_db, m_list):
+        """Test L2VNI cleanup when segment exists and VLAN has ports."""
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        # VLAN still has other ports
+
+        # Segment exists in Neutron
+        mock_segments_db.get_network_segments.return_value = [{
+            'network_type': 'vlan',
+            'segmentation_id': 100,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }]
+        # VLAN still has other ports on this switch
         self.switch_mock.vlan_has_ports.return_value = True
 
         mock_context = mock.create_autospec(driver_context.PortContext)
@@ -1666,15 +1677,29 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         # Verify port was unplugged
         self.switch_mock.delete_port.assert_called_once_with(2222, 100)
-        # Verify VNI was NOT removed (ports remain)
+        # Verify segment was queried
+        mock_segments_db.get_network_segments.assert_called_once_with(
+            mock_context.plugin_context, 'aaaa-bbbb-ccc', filter_dynamic=None)
+        # Verify VNI was NOT removed (segment exists and ports remain)
         self.switch_mock.vlan_has_ports.assert_called_once_with(100)
         self.switch_mock.unplug_switch_from_network.assert_not_called()
 
-    def test_delete_port_postcommit_l2vni_no_ports_remaining(self, m_list):
-        """Test L2VNI cleanup when VLAN has no ports."""
+    @mock.patch('networking_generic_switch.generic_switch_mech.segments_db',
+                autospec=True)
+    def test_delete_port_postcommit_l2vni_no_ports_remaining(
+            self, mock_segments_db, m_list):
+        """Test L2VNI cleanup when segment exists but no ports on switch."""
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
-        # No ports remaining on VLAN
+
+        # Segment exists in Neutron
+        mock_segments_db.get_network_segments.return_value = [{
+            'network_type': 'vlan',
+            'segmentation_id': 100,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }]
+        # No ports remaining on this switch's VLAN
         self.switch_mock.vlan_has_ports.return_value = False
 
         mock_context = mock.create_autospec(driver_context.PortContext)
@@ -1704,9 +1729,220 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         # Verify port was unplugged
         self.switch_mock.delete_port.assert_called_once_with(2222, 100)
-        # Verify VNI was removed with physnet (no ports remain)
+        # Verify segment was queried
+        mock_segments_db.get_network_segments.assert_called_once_with(
+            mock_context.plugin_context, 'aaaa-bbbb-ccc', filter_dynamic=None)
+        # Verify VNI was removed (segment exists but no ports on this switch)
         self.switch_mock.vlan_has_ports.assert_called_once_with(100)
         self.switch_mock.unplug_switch_from_network.assert_called_once_with(
+            5000, 100, physnet='physnet1')
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.segments_db',
+                autospec=True)
+    def test_delete_port_postcommit_l2vni_segment_deleted_with_ports(
+            self, mock_segments_db, m_list):
+        """Test L2VNI cleanup when segment deleted (unconditional cleanup)."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+
+        # Segment does NOT exist in Neutron (was deleted)
+        mock_segments_db.get_network_segments.return_value = []
+        # Even though VLAN has ports, cleanup should happen
+        self.switch_mock.vlan_has_ports.return_value = True
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other'
+        }
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'vxlan',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.delete_port_postcommit(mock_context)
+
+        # Verify port was unplugged
+        self.switch_mock.delete_port.assert_called_once_with(2222, 100)
+        # Verify segment was queried
+        mock_segments_db.get_network_segments.assert_called_once_with(
+            mock_context.plugin_context, 'aaaa-bbbb-ccc', filter_dynamic=None)
+        # Verify VNI was removed unconditionally (segment deleted)
+        # Port check should NOT have been called
+        self.switch_mock.vlan_has_ports.assert_not_called()
+        self.switch_mock.unplug_switch_from_network.assert_called_once_with(
+            5000, 100, physnet='physnet1')
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.segments_db',
+                autospec=True)
+    def test_delete_port_postcommit_l2vni_segment_deleted_no_ports(
+            self, mock_segments_db, m_list):
+        """Test L2VNI cleanup when segment deleted and no ports."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+
+        # Segment does NOT exist in Neutron (was deleted)
+        mock_segments_db.get_network_segments.return_value = []
+        # No ports on VLAN
+        self.switch_mock.vlan_has_ports.return_value = False
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other'
+        }
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'vxlan',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.delete_port_postcommit(mock_context)
+
+        # Verify port was unplugged
+        self.switch_mock.delete_port.assert_called_once_with(2222, 100)
+        # Verify segment was queried
+        mock_segments_db.get_network_segments.assert_called_once_with(
+            mock_context.plugin_context, 'aaaa-bbbb-ccc', filter_dynamic=None)
+        # Verify VNI was removed unconditionally (segment deleted)
+        # Port check should NOT have been called
+        self.switch_mock.vlan_has_ports.assert_not_called()
+        self.switch_mock.unplug_switch_from_network.assert_called_once_with(
+            5000, 100, physnet='physnet1')
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    @mock.patch.object(directory, "get_plugin", autospec=True)
+    @mock.patch.object(device_utils, "get_switch_device", autospec=True)
+    def test_subports_deleted_l2vni_segment_deleted_via_segment_id(
+            self, mock_get_switch, mock_plugin, mock_network_obj, m_list):
+        """Test L2VNI cleanup uses segment_id for direct lookup."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123'
+        }
+        subports = [{"segmentation_id": 100, "port_id": "s1"}]
+
+        mock_plugin.return_value = mock.MagicMock()
+        # Subport has VNI and segment_id in binding_profile
+        subport_s1 = {
+            'id': 's1',
+            'network_id': 'anchor-network-id',
+            'binding:profile': {
+                'vni': 5000,
+                'physical_network': 'physnet1',
+                'segment_id': 'segment-uuid-100'
+            }
+        }
+        mock_plugin.return_value.get_port.return_value = subport_s1
+
+        # Segment does NOT exist (deleted)
+        mock_network_obj.NetworkSegment.get_object.return_value = None
+
+        mock_switch = mock.MagicMock()
+        mock_switch.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        mock_get_switch.return_value = mock_switch
+
+        driver.subports_deleted(self.ctxt, parent_port, subports=subports)
+
+        # Verify segment was queried directly by ID
+        mock_network_obj.NetworkSegment.get_object.assert_called_once_with(
+            self.ctxt, id='segment-uuid-100')
+
+        # Verify VNI was removed unconditionally (segment deleted)
+        # Port check should NOT have been called
+        mock_switch.vlan_has_ports.assert_not_called()
+        mock_switch.unplug_switch_from_network.assert_called_once_with(
+            5000, 100, physnet='physnet1')
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    @mock.patch.object(directory, "get_plugin", autospec=True)
+    @mock.patch.object(device_utils, "get_switch_device", autospec=True)
+    def test_subports_deleted_l2vni_segment_exists_via_segment_id(
+            self, mock_get_switch, mock_plugin, mock_network_obj, m_list):
+        """Test L2VNI cleanup with segment_id when segment exists."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123'
+        }
+        subports = [{"segmentation_id": 100, "port_id": "s1"}]
+
+        mock_plugin.return_value = mock.MagicMock()
+        # Subport has VNI and segment_id in binding_profile
+        subport_s1 = {
+            'id': 's1',
+            'network_id': 'anchor-network-id',
+            'binding:profile': {
+                'vni': 5000,
+                'physical_network': 'physnet1',
+                'segment_id': 'segment-uuid-100'
+            }
+        }
+        mock_plugin.return_value.get_port.return_value = subport_s1
+
+        # Segment EXISTS
+        mock_segment = mock.MagicMock()
+        mock_network_obj.NetworkSegment.get_object.return_value = mock_segment
+
+        # No ports on this switch
+        mock_switch = mock.MagicMock()
+        mock_switch.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        mock_switch.vlan_has_ports.return_value = False
+        mock_get_switch.return_value = mock_switch
+
+        driver.subports_deleted(self.ctxt, parent_port, subports=subports)
+
+        # Verify segment was queried directly by ID
+        mock_network_obj.NetworkSegment.get_object.assert_called_once_with(
+            self.ctxt, id='segment-uuid-100')
+
+        # Verify port check WAS called (segment exists)
+        mock_switch.vlan_has_ports.assert_called_once_with(100)
+
+        # Verify VNI was removed (no ports on this switch)
+        mock_switch.unplug_switch_from_network.assert_called_once_with(
             5000, 100, physnet='physnet1')
 
     @mock.patch.object(provisioning_blocks, 'provisioning_complete',

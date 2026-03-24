@@ -15,6 +15,8 @@
 import sys
 
 from neutron.db import provisioning_blocks
+from neutron.db import segments_db
+from neutron.objects import network as network_obj
 from neutron_lib.api.definitions import portbindings
 from neutron_lib.callbacks import resources
 from neutron_lib import constants as const
@@ -430,7 +432,8 @@ class GenericSwitchDriver(api.MechanismDriver):
             # information to be lost, so remove the port from the segment on
             # the switch now while we have the required information.
             self._unplug_port_from_segment(
-                context.original, context.original_bottom_bound_segment,
+                context, context.original,
+                context.original_bottom_bound_segment,
                 vxlan_segment=context.original_top_bound_segment)
 
     def delete_port_precommit(self, context):
@@ -461,7 +464,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         port = context.current
         if ngs_utils.is_port_bound(port):
             self._unplug_port_from_segment(
-                port, context.bottom_bound_segment,
+                context, port, context.bottom_bound_segment,
                 vxlan_segment=context.top_bound_segment)
 
     def bind_port(self, context):
@@ -680,27 +683,28 @@ class GenericSwitchDriver(api.MechanismDriver):
                                'switch_info': switch_info})
 
     def _get_subport_l2vni_info(self, subport_obj, segmentation_id):
-        """Extract and validate VNI from subport.
+        """Extract and validate VNI and segment info from subport.
 
         :param subport_obj: Full subport object (from core_plugin.get_port)
         :param segmentation_id: VLAN ID from trunk subport relationship
-        :returns: Tuple of (vni, segmentation_id, physnet) or (None, None,
-                  None) if validation fails
+        :returns: Tuple of (vni, segmentation_id, physnet, segment_id) or
+                  (None, None, None, None) if validation fails
         """
         binding_profile = subport_obj.get('binding:profile', {})
         vni = binding_profile.get('vni')
 
         if not vni:
-            return None, None, None
+            return None, None, None, None
 
         if not segmentation_id:
             LOG.warning("Subport %(port_id)s has VNI %(vni)s but no "
                         "segmentation_id, skipping L2VNI processing",
                         {'port_id': subport_obj.get('id'), 'vni': vni})
-            return None, None, None
+            return None, None, None, None
 
         physnet = binding_profile.get('physical_network')
-        return vni, segmentation_id, physnet
+        segment_id = binding_profile.get('segment_id')
+        return vni, segmentation_id, physnet, segment_id
 
     def _configure_l2vni_for_subport(self, subport_obj, segmentation_id,
                                      switch, switch_info):
@@ -716,7 +720,8 @@ class GenericSwitchDriver(api.MechanismDriver):
         """
         (vni,
          segmentation_id,
-         physnet) = self._get_subport_l2vni_info(subport_obj, segmentation_id)
+         physnet,
+         _) = self._get_subport_l2vni_info(subport_obj, segmentation_id)
 
         if not vni:
             return
@@ -751,13 +756,19 @@ class GenericSwitchDriver(api.MechanismDriver):
         switch.plug_switch_to_network(vni, segmentation_id,
                                       physnet=physnet)
 
-    def _cleanup_l2vni_for_subport(self, subport_obj, segmentation_id,
+    def _cleanup_l2vni_for_subport(self, context, subport_obj, segmentation_id,
                                    switch, switch_info):
         """Clean up L2VNI mapping for a subport if VNI is present.
 
         For subports with VNI in their binding_profile, checks if the VLAN
-        still has ports and removes the VNI-to-VLAN mapping if empty.
+        segment still exists in Neutron and if the VLAN has ports, then
+        removes the VNI-to-VLAN mapping if appropriate.
 
+        If the subport's binding_profile contains a segment_id, it will be
+        used to query the segment directly. Otherwise, falls back to
+        port-based checking only.
+
+        :param context: Request context
         :param subport_obj: Full subport object (from core_plugin.get_port)
         :param segmentation_id: VLAN ID from trunk subport relationship
         :param switch: Switch device object
@@ -765,37 +776,151 @@ class GenericSwitchDriver(api.MechanismDriver):
         """
         (vni,
          segmentation_id,
-         physnet) = self._get_subport_l2vni_info(subport_obj, segmentation_id)
+         physnet,
+         segment_id) = self._get_subport_l2vni_info(
+            subport_obj, segmentation_id)
 
         if not vni:
             return
 
-        self._remove_l2vni_mapping_if_vlan_empty(
-            switch, switch_info, segmentation_id, vni, physnet)
+        self._remove_l2vni_mapping(
+            context, None, switch, switch_info, segmentation_id, vni,
+            physnet, segment_id=segment_id)
 
-    def _remove_l2vni_mapping_if_vlan_empty(self, switch, switch_info,
-                                            segmentation_id, vni, physnet):
-        """Remove VNI-to-VLAN mapping if VLAN has no ports.
+    def _check_segment_exists_by_id(self, context, segment_id):
+        """Check if a segment exists by direct UUID lookup.
 
-        Checks if the VLAN still has ports after subport removal. If the VLAN
-        is empty, removes the VNI-to-VLAN mapping from the switch.
+        :param context: Request context
+        :param segment_id: Neutron segment UUID
+        :returns: True if segment exists, False if deleted
+        """
+        segment = network_obj.NetworkSegment.get_object(
+            context, id=segment_id)
+        return segment is not None
 
+    def _check_segment_exists_by_network(self, context, network_id,
+                                         segmentation_id, physnet):
+        """Check if a VLAN segment exists by querying network segments.
+
+        :param context: Request context
+        :param network_id: Neutron network UUID
+        :param segmentation_id: VLAN ID to match
+        :param physnet: Physical network to match
+        :returns: True if segment exists, False if deleted
+        """
+        segments = segments_db.get_network_segments(
+            context, network_id, filter_dynamic=None)
+
+        # Check if VLAN segment with matching segmentation_id and
+        # physnet still exists
+        return any(
+            seg['network_type'] == const.TYPE_VLAN
+            and seg['segmentation_id'] == segmentation_id
+            and seg.get('physical_network') == physnet
+            for seg in segments
+        )
+
+    def _check_segment_exists(self, context, segment_id, network_id,
+                              segmentation_id, physnet):
+        """Check if a VLAN segment exists in Neutron.
+
+        Tries segment_id lookup first (most efficient), falls back to
+        network_id lookup if needed.
+
+        :param context: Request context
+        :param segment_id: Neutron segment UUID (preferred, optional)
+        :param network_id: Neutron network UUID (fallback, optional)
+        :param segmentation_id: VLAN ID
+        :param physnet: Physical network
+        :returns: True if segment exists, False if deleted, None if check
+                  skipped (no segment_id or network_id provided)
+        """
+        if segment_id:
+            return self._check_segment_exists_by_id(context, segment_id)
+        elif network_id:
+            return self._check_segment_exists_by_network(
+                context, network_id, segmentation_id, physnet)
+        return None
+
+    def _remove_l2vni_mapping(self, context, network_id, switch, switch_info,
+                              segmentation_id, vni, physnet, segment_id=None):
+        """Remove VNI-to-VLAN mapping using hybrid segment + port checking.
+
+        Uses a two-phase approach when network_id or segment_id is provided:
+        1. Check if VLAN segment exists in Neutron
+           - If segment_id provided: Query the specific segment directly
+           - If network_id provided: Query all segments for the network
+           - If deleted: Remove L2VNI mapping unconditionally (Neutron is
+             authoritative)
+        2. If segment exists (or no segment info provided): Check if this
+           switch has ports using the VLAN
+           - If no ports: Remove L2VNI mapping from this switch (per-switch
+             optimization)
+           - If ports exist: Keep mapping (other ports still using it)
+
+        This hybrid approach enables:
+        - Authoritative cleanup when networking-baremetal removes segments
+        - Static trunk support (segment deleted = cleanup regardless of ports)
+        - Multi-switch optimization (each switch cleans up VLANs it's not
+          using)
+
+        :param context: Request context
+        :param network_id: Neutron network UUID (None to skip network query)
         :param switch: Switch device object
         :param switch_info: Switch identifier for logging
         :param segmentation_id: VLAN ID
         :param vni: VNI to remove
         :param physnet: Physical network (optional)
+        :param segment_id: Specific segment UUID (preferred over network_id)
         """
         if not switch.PLUG_SWITCH_TO_NETWORK:
             return
 
-        if switch.vlan_has_ports(segmentation_id):
+        # Phase 1: Check if segment exists in Neutron (authoritative check)
+        segment_exists = self._check_segment_exists(
+            context, segment_id, network_id, segmentation_id, physnet)
+
+        if segment_exists is False:
+            # Segment deleted - remove L2VNI unconditionally
+            LOG.debug("Segment for VLAN %(vlan)s no longer exists in Neutron. "
+                      "Removing VNI %(vni)s from %(switch_info)s.",
+                      {'vlan': segmentation_id, 'vni': vni,
+                       'switch_info': switch_info})
+            self._unplug_switch_from_network(
+                switch, switch_info, vni, segmentation_id, physnet)
             return
 
+        # Phase 2: Segment exists (or check skipped) - check if this switch
+        # has ports using it
+        if switch.vlan_has_ports(segmentation_id):
+            LOG.debug("VLAN %(vlan)s still has ports on %(switch_info)s, "
+                      "keeping VNI %(vni)s mapping",
+                      {'vlan': segmentation_id, 'switch_info': switch_info,
+                       'vni': vni})
+            return
+
+        # Segment exists (or check skipped) but no ports on this switch -
+        # remove L2VNI
         LOG.debug("Removing VNI %(vni)s from VLAN %(vlan)s on %(switch_info)s "
-                  "as no ports remain (physnet: %(physnet)s)",
+                  "as no ports remain on this switch (physnet: %(physnet)s)",
                   {'vni': vni, 'vlan': segmentation_id,
                    'switch_info': switch_info, 'physnet': physnet})
+        self._unplug_switch_from_network(
+            switch, switch_info, vni, segmentation_id, physnet)
+
+    def _unplug_switch_from_network(self, switch, switch_info, vni,
+                                    segmentation_id, physnet):
+        """Execute switch command to remove VNI-to-VLAN mapping.
+
+        Extracted helper method to centralize error handling for
+        unplug_switch_from_network calls.
+
+        :param switch: Switch device object
+        :param switch_info: Switch identifier for logging
+        :param vni: VNI to remove
+        :param segmentation_id: VLAN ID
+        :param physnet: Physical network (optional)
+        """
         try:
             switch.unplug_switch_from_network(vni, segmentation_id,
                                               physnet=physnet)
@@ -879,7 +1004,7 @@ class GenericSwitchDriver(api.MechanismDriver):
 
             try:
                 self._cleanup_l2vni_for_subport(
-                    subport_obj, segmentation_id, switch, switch_info)
+                    context, subport_obj, segmentation_id, switch, switch_info)
             except Exception as e:
                 LOG.error("Failed to cleanup L2VNI for subport "
                           "%(port_id)s on switch %(switch)s: %(error)s",
@@ -887,14 +1012,15 @@ class GenericSwitchDriver(api.MechanismDriver):
                            'switch': switch_info,
                            'error': e})
 
-    def _cleanup_l2vni_if_needed(self, vxlan_segment, segment, switch,
+    def _cleanup_l2vni_if_needed(self, context, vxlan_segment, segment, switch,
                                  segmentation_id, switch_info):
-        """Clean up L2VNI mapping if VLAN is empty.
+        """Clean up L2VNI mapping using hybrid segment + port checking.
 
-        For VXLAN over VLAN (L2VNI) scenarios, checks if the VLAN still has
-        ports after unplugging. If the VLAN is empty, removes the VNI-to-VLAN
-        mapping from the switch.
+        For VXLAN over VLAN (L2VNI) scenarios, uses hybrid approach to
+        determine if VNI-to-VLAN mapping should be removed. See
+        _remove_l2vni_mapping for details on the hybrid logic.
 
+        :param context: Request context
         :param vxlan_segment: Top-level VXLAN segment (or None)
         :param segment: Bottom-level VLAN segment
         :param switch: Switch device object
@@ -910,78 +1036,42 @@ class GenericSwitchDriver(api.MechanismDriver):
                 and vlan_type == const.TYPE_VLAN):
             vni = vxlan_segment.get(api.SEGMENTATION_ID)
             if vni and segmentation_id:
-                # Check if VLAN still has ports before removing VNI
-                # vlan_has_ports() handles its own errors gracefully
-                if not switch.vlan_has_ports(segmentation_id):
-                    physnet = segment.get(api.PHYSICAL_NETWORK)
-                    LOG.debug("Removing VNI %(vni)s from VLAN "
-                              "%(segmentation_id)s on "
-                              "%(switch_info)s as no ports remain "
-                              "(physnet: %(physnet)s)",
-                              {'vni': vni,
-                               'segmentation_id': segmentation_id,
-                               'switch_info': switch_info,
-                               'physnet': physnet})
-                    try:
-                        switch.unplug_switch_from_network(
-                            vni, segmentation_id, physnet=physnet)
-                    except ngs_exc.GenericSwitchNetmikoConnectError:
-                        LOG.error("Failed to remove VNI %(vni)s from VLAN "
-                                  "%(vlan)s on %(switch)s due to "
-                                  "connectivity issue. Verify switch is "
-                                  "reachable and credentials are correct. "
-                                  "VNI-to-VLAN mapping may remain on "
-                                  "switch.",
-                                  {'vni': vni, 'vlan': segmentation_id,
-                                   'switch': switch_info})
-                        # Don't re-raise - port unplug succeeded
-                    except ngs_exc.GenericSwitchNetmikoConfigError:
-                        LOG.error("Failed to remove VNI %(vni)s from VLAN "
-                                  "%(vlan)s on %(switch)s due to "
-                                  "configuration error. Verify VLAN "
-                                  "%(vlan)s and VNI %(vni)s exist on "
-                                  "switch. VNI-to-VLAN mapping may remain "
-                                  "on switch.",
-                                  {'vni': vni, 'vlan': segmentation_id,
-                                   'switch': switch_info})
-                        # Don't re-raise - port unplug succeeded
-                    except ngs_exc.GenericSwitchException as e:
-                        LOG.error("Failed to remove VNI %(vni)s from VLAN "
-                                  "%(vlan)s on %(switch)s: %(exc)s. "
-                                  "VNI-to-VLAN mapping may remain on "
-                                  "switch.",
-                                  {'vni': vni, 'vlan': segmentation_id,
-                                   'switch': switch_info, 'exc': e})
-                        # Don't re-raise - port unplug succeeded
+                physnet = segment.get(api.PHYSICAL_NETWORK)
+                network_id = segment.get(api.NETWORK_ID)
+                self._remove_l2vni_mapping(
+                    context, network_id, switch, switch_info,
+                    segmentation_id, vni, physnet)
 
-    def _unplug_port_from_segment(self, port, segment,
+    def _unplug_port_from_segment(self, context, port, segment,
                                   vxlan_segment=None):
         """Unplug a port from a segment with L2VNI cleanup if applicable.
 
         Removes the port from the VLAN on the switch. For L2VNI scenarios
-        (VXLAN over VLAN), also checks if this is the last port on the VLAN
-        and removes the VNI-to-VLAN mapping if so.
+        (VXLAN over VLAN), uses hybrid segment + port checking to determine
+        if VNI-to-VLAN mapping should be removed.
 
-        L2VNI Cleanup Logic:
+        L2VNI Cleanup Logic (Hybrid Approach):
         1. Port is unplugged from VLAN
         2. If vxlan_segment provided and is VXLAN type:
-           a. Query switch to check if VLAN still has ports
-           b. If VLAN is empty, remove VNI-to-VLAN mapping
-           c. If VLAN has ports, keep VNI mapping (other ports still using it)
+           a. Check if VLAN segment exists in Neutron
+              - If deleted: Remove VNI mapping unconditionally
+           b. If segment exists: Check if this switch has ports using VLAN
+              - If no ports: Remove VNI mapping from this switch
+              - If ports exist: Keep VNI mapping
 
-        This ensures VNI mappings are cleaned up when no longer needed, while
-        preventing premature removal that would break connectivity for
-        remaining ports.
+        This hybrid approach enables authoritative cleanup when segments are
+        deleted, static trunk support, and per-switch resource optimization.
 
         If the configuration required to unplug the port is not present
         (e.g. local link information), the port will not be unplugged and no
         exception will be raised.
 
+        :param context: Request context
         :param port: The port to unplug
         :param segment: The segment from which to unplug the port (VLAN)
         :param vxlan_segment: Optional top-level VXLAN segment for L2VNI
                               cleanup. If provided and is VXLAN type, cleanup
-                              logic will remove VNI mapping when safe.
+                              logic will remove VNI mapping when appropriate.
         """
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
@@ -1023,8 +1113,9 @@ class GenericSwitchDriver(api.MechanismDriver):
                       'device': switch_info})
 
             # Check if we need to unplug VNI for L2VNI case
-            self._cleanup_l2vni_if_needed(vxlan_segment, segment, switch,
-                                          segmentation_id, switch_info)
+            self._cleanup_l2vni_if_needed(
+                context.plugin_context, vxlan_segment, segment, switch,
+                segmentation_id, switch_info)
 
     def _get_devices_by_physnet(self, physnet):
         """Generator yielding switches on a particular physical network.
