@@ -31,7 +31,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_add_network(self, m_exec):
         self.switch.add_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         m_exec.assert_called_with(
@@ -39,13 +40,15 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
             ['vlan 33', 'name 0ae071f55be943e480eae41fefe85b21'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_del_network(self, mock_exec):
         self.switch.del_network(33, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
         mock_exec.assert_called_with(self.switch, ['no vlan 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_plug_port_to_network(self, mock_exec):
         self.switch.plug_port_to_network(3333, 33)
         mock_exec.assert_called_with(
@@ -54,7 +57,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
              'switchport access vlan 33'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_delete_port(self, mock_exec):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
@@ -94,7 +98,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertEqual(del_exp, cmd_set)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_plug_port_to_network_subports(self, mock_exec):
         trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
                                        {"segmentation_id": "tag2"}]}
@@ -111,7 +116,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
              'switchport trunk allowed vlan add tag2'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_delete_port_subports(self, mock_exec):
         trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
                                        {"segmentation_id": "tag2"}]}
@@ -131,7 +137,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
              'switchport trunk allowed vlan remove tag2'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_plug_bond_to_network_subports(self, mock_exec):
         trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
                                        {"segmentation_id": "tag2"}]}
@@ -148,7 +155,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
              'switchport trunk allowed vlan add tag2'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_unplug_bond_from_network_subports(self, mock_exec):
         trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
                                        {"segmentation_id": "tag2"}]}
@@ -169,7 +177,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
              'switchport trunk allowed vlan remove tag2'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_add_subports_on_trunk_no_subports(self, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
@@ -188,7 +197,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(self.switch, [])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_add_subports_on_trunk_subports(self, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
@@ -213,7 +223,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
              'switchport trunk allowed vlan add tag2'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_del_subports_on_trunk_no_subports(self, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
@@ -232,7 +243,8 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(self.switch, [])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
-                'NetmikoSwitch.send_commands_to_device', autospec=True)
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
     def test_del_subports_on_trunk_subports(self, mock_exec):
         port_id = uuidutils.generate_uuid()
         parent_port = {
@@ -656,3 +668,36 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
   VLAN 100 flood VTEP 239.1.1.116
 """
         self.assertTrue(switch._parse_vlan_vni(output, 100, 10100))
+
+    def test_check_output_invalid_input_error(self):
+        """Test check_output detects '% Invalid input' error."""
+        output = """router bgp 65000
+vlan 100
+rd auto
+route-target both auto
+% Invalid input
+"""
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "switch configuration operation failed",
+                               self.switch.check_output, output, 'plug vni')
+
+    def test_check_output_incomplete_command_error(self):
+        """Test check_output detects '% Incomplete command' error."""
+        output = """router bgp 65000
+vlan 100
+route-target both
+% Incomplete command
+"""
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "switch configuration operation failed",
+                               self.switch.check_output, output, 'plug vni')
+
+    def test_check_output_vlan_vni_conflict_error(self):
+        """Test check_output detects VLAN/VNI mapping conflict."""
+        output = """interface Vxlan1
+vxlan vlan 104 vni 988
+% VLAN 105 is already mapped to VNI 988
+"""
+        self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
+                               "switch configuration operation failed",
+                               self.switch.check_output, output, 'plug vni')
