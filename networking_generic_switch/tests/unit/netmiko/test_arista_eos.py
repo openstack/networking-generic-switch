@@ -377,6 +377,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
+             'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
              'interface Vxlan1', 'vxlan vlan 100 vni 10100'])
@@ -396,6 +397,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
+             'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
              'interface Vxlan2', 'vxlan vlan 100 vni 10100'])
@@ -415,8 +417,9 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
-             'route-target both 65000:100', 'interface Vxlan1',
-             'vxlan vlan 100 vni 10100'])
+             'redistribute learned',
+             'route-target both 65000:100',
+             'interface Vxlan1', 'vxlan vlan 100 vni 10100'])
 
     def test_plug_switch_to_network_without_bgp_asn(self):
         """Test plug_switch_to_network fails without BGP ASN."""
@@ -537,6 +540,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
+             'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
              'interface Vxlan1', 'vxlan vlan 100 vni 10100',
@@ -562,6 +566,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 50', 'rd auto',
+             'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
              'interface Vxlan2', 'vxlan vlan 50 vni 5000',
@@ -585,6 +590,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
+             'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
              'interface Vxlan1', 'vxlan vlan 100 vni 10100',
@@ -608,6 +614,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
+             'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
              'interface Vxlan1', 'vxlan vlan 100 vni 10100'])

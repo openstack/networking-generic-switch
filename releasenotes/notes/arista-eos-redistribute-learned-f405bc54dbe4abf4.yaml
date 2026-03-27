@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed Arista EOS L2VNI configuration to advertise locally learned MACs
+    via BGP EVPN. Previously, the BGP EVPN VLAN configuration was missing
+    the ``redistribute learned`` command, which prevented locally learned
+    MAC addresses from being advertised as EVPN Type 2 routes to remote
+    VTEPs. This caused complete VXLAN data plane failure between nodes on
+    different leaf switches. See
+    `LP#2146559 <https://bugs.launchpad.net/networking-generic-switch/+bug/2146559>`__
+    for details.
