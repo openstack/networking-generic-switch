@@ -243,8 +243,8 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
            fabric infrastructure.
 
         Configures the following in order:
-        1. Configure EVPN VLAN (BGP control plane for MAC/IP learning and
-           redistribution of locally learned MACs)
+        0. Create VLAN (must exist before VXLAN mapping)
+        1. Configure EVPN VLAN (BGP control plane for MAC/IP learning)
         2. Map VLAN to VNI on the VXLAN interface
         3. Configure BUM replication (ingress-replication or flood vtep)
 
@@ -261,6 +261,13 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
                       'for L2VNI support on Arista EOS switches')
 
         cmds = []
+
+        # Step 0: Ensure VLAN exists
+        vlan_cmds = [
+            f'vlan {segmentation_id}',
+            'exit',
+        ]
+        cmds.extend(vlan_cmds)
 
         # Step 1: EVPN VLAN configuration (BGP control plane)
         # NOTE: EVPN used for MAC/IP learning in both modes

@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed Arista EOS L2VNI configuration to create the VLAN before
+    configuring VXLAN mappings. Previously, the driver configured BGP EVPN
+    and VXLAN interface mappings without creating the VLAN at the global
+    configuration level. Without the VLAN, switches would not advertise
+    IMET routes, remote VTEPs would not be discovered, and VXLAN
+    connectivity would fail.
+    See `LP#2146511 <https://bugs.launchpad.net/networking-generic-switch/+bug/2146511>`__
+    for details.

@@ -388,7 +388,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         switch.plug_switch_to_network(10100, 100)
         mock_exec.assert_called_with(
             switch,
-            ['router bgp 65000', 'vlan 100', 'rd auto',
+            ['vlan 100', 'exit', 'router bgp 65000', 'vlan 100', 'rd auto',
              'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
@@ -408,7 +408,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         switch.plug_switch_to_network(10100, 100)
         mock_exec.assert_called_with(
             switch,
-            ['router bgp 65000', 'vlan 100', 'rd auto',
+            ['vlan 100', 'exit', 'router bgp 65000', 'vlan 100', 'rd auto',
              'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
@@ -428,7 +428,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         switch.plug_switch_to_network(10100, 100)
         mock_exec.assert_called_with(
             switch,
-            ['router bgp 65000', 'vlan 100', 'rd auto',
+            ['vlan 100', 'exit', 'router bgp 65000', 'vlan 100', 'rd auto',
              'redistribute learned',
              'route-target both 65000:100',
              'interface Vxlan1', 'vxlan vlan 100 vni 10100'])
@@ -551,7 +551,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         # VNI 10100 % 256 = 116, so mcast group is 239.1.1.116
         mock_exec.assert_called_with(
             switch,
-            ['router bgp 65000', 'vlan 100', 'rd auto',
+            ['vlan 100', 'exit', 'router bgp 65000', 'vlan 100', 'rd auto',
              'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
@@ -577,7 +577,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         # VNI 5000 % 256 = 136, so mcast group is 239.2.2.136
         mock_exec.assert_called_with(
             switch,
-            ['router bgp 65000', 'vlan 50', 'rd auto',
+            ['vlan 50', 'exit', 'router bgp 65000', 'vlan 50', 'rd auto',
              'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
@@ -601,7 +601,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         # Should use explicit mapping instead of calculation
         mock_exec.assert_called_with(
             switch,
-            ['router bgp 65000', 'vlan 100', 'rd auto',
+            ['vlan 100', 'exit', 'router bgp 65000', 'vlan 100', 'rd auto',
              'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
@@ -625,7 +625,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         # Should NOT have flood vtep command
         mock_exec.assert_called_with(
             switch,
-            ['router bgp 65000', 'vlan 100', 'rd auto',
+            ['vlan 100', 'exit', 'router bgp 65000', 'vlan 100', 'rd auto',
              'redistribute learned',
              'route-target export auto 65000',
              'route-target import auto 65000',
