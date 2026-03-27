@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed Arista EOS route-target command syntax for BGP EVPN L2VNI
+    configuration. The driver was generating ``route-target both auto``
+    which is invalid on Arista EOS. The correct syntax requires separate
+    export and import directives with the AS number parameter:
+    ``route-target export auto <ASN>`` and ``route-target import auto <ASN>``.
+    See `LP#2146500 <https://bugs.launchpad.net/networking-generic-switch/+bug/2146500>`__
+    for details.
