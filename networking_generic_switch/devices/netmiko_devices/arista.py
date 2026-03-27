@@ -64,7 +64,7 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
 
     UNPLUG_SWITCH_FROM_NETWORK = (
         'interface {vxlan_interface}',
-        'no vxlan vlan {segmentation_id}',
+        'no vxlan vlan {segmentation_id} vni {vni}',
     )
 
     SHOW_VLAN_PORTS = ('show vlan id {segmentation_id}',)
