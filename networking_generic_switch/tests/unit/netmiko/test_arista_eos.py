@@ -436,7 +436,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         switch.unplug_switch_from_network(10100, 100)
         mock_exec.assert_called_with(
             switch,
-            ['interface Vxlan1', 'no vxlan vlan 100',
+            ['interface Vxlan1', 'no vxlan vlan 100 vni 10100',
              'router bgp 65000', 'no vlan 100'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -453,7 +453,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         switch.unplug_switch_from_network(10100, 100)
         mock_exec.assert_called_with(
             switch,
-            ['interface Vxlan2', 'no vxlan vlan 100',
+            ['interface Vxlan2', 'no vxlan vlan 100 vni 10100',
              'router bgp 65000', 'no vlan 100'])
 
     def test_unplug_switch_from_network_without_bgp_asn(self):
@@ -623,7 +623,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['interface Vxlan1', 'no vxlan vlan 100 flood vtep',
-             'interface Vxlan1', 'no vxlan vlan 100',
+             'interface Vxlan1', 'no vxlan vlan 100 vni 10100',
              'router bgp 65000', 'no vlan 100'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
@@ -642,7 +642,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         # Should NOT have flood vtep removal command
         mock_exec.assert_called_with(
             switch,
-            ['interface Vxlan1', 'no vxlan vlan 100',
+            ['interface Vxlan1', 'no vxlan vlan 100 vni 10100',
              'router bgp 65000', 'no vlan 100'])
 
     def test_parse_vlan_vni_with_multicast_flood(self):

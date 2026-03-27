@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed Arista EOS VLAN-to-VNI unplug command syntax. The driver was
+    generating ``no vxlan vlan {segmentation_id}`` which is incomplete
+    and rejected by Arista EOS with "% Incomplete command". The correct
+    syntax requires the VNI parameter:
+    ``no vxlan vlan {segmentation_id} vni {vni}``. This prevented
+    VLAN-to-VNI mappings from being removed during network deletion,
+    causing stale configurations to accumulate on switches.
+    See `LP#2146508 <https://bugs.launchpad.net/networking-generic-switch/+bug/2146508>`__
+    for details.
