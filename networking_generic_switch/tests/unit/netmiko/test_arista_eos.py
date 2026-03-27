@@ -377,8 +377,9 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
-             'route-target both auto', 'interface Vxlan1',
-             'vxlan vlan 100 vni 10100'])
+             'route-target export auto 65000',
+             'route-target import auto 65000',
+             'interface Vxlan1', 'vxlan vlan 100 vni 10100'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -395,8 +396,9 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
-             'route-target both auto', 'interface Vxlan2',
-             'vxlan vlan 100 vni 10100'])
+             'route-target export auto 65000',
+             'route-target import auto 65000',
+             'interface Vxlan2', 'vxlan vlan 100 vni 10100'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -535,9 +537,10 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
-             'route-target both auto', 'interface Vxlan1',
-             'vxlan vlan 100 vni 10100', 'interface Vxlan1',
-             'vxlan vlan 100 flood vtep 239.1.1.116'])
+             'route-target export auto 65000',
+             'route-target import auto 65000',
+             'interface Vxlan1', 'vxlan vlan 100 vni 10100',
+             'interface Vxlan1', 'vxlan vlan 100 flood vtep 239.1.1.116'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -559,9 +562,10 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 50', 'rd auto',
-             'route-target both auto', 'interface Vxlan2',
-             'vxlan vlan 50 vni 5000', 'interface Vxlan2',
-             'vxlan vlan 50 flood vtep 239.2.2.136'])
+             'route-target export auto 65000',
+             'route-target import auto 65000',
+             'interface Vxlan2', 'vxlan vlan 50 vni 5000',
+             'interface Vxlan2', 'vxlan vlan 50 flood vtep 239.2.2.136'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -581,9 +585,10 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
-             'route-target both auto', 'interface Vxlan1',
-             'vxlan vlan 100 vni 10100', 'interface Vxlan1',
-             'vxlan vlan 100 flood vtep 239.99.99.99'])
+             'route-target export auto 65000',
+             'route-target import auto 65000',
+             'interface Vxlan1', 'vxlan vlan 100 vni 10100',
+             'interface Vxlan1', 'vxlan vlan 100 flood vtep 239.99.99.99'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -603,8 +608,9 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         mock_exec.assert_called_with(
             switch,
             ['router bgp 65000', 'vlan 100', 'rd auto',
-             'route-target both auto', 'interface Vxlan1',
-             'vxlan vlan 100 vni 10100'])
+             'route-target export auto 65000',
+             'route-target import auto 65000',
+             'interface Vxlan1', 'vxlan vlan 100 vni 10100'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
