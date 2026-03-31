@@ -714,3 +714,96 @@ vxlan vlan 104 vni 988
         self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
                                "switch configuration operation failed",
                                self.switch.check_output, output, 'plug vni')
+
+    def test_parse_vlan_ports_with_physical_ports(self):
+        """Test _parse_vlan_ports detects physical ports."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+        output = """VLAN  Name                             Status    Ports
+----- -------------------------------- --------- ------
+105   VLAN0105                         active    Et1, Et2
+"""
+        self.assertTrue(switch._parse_vlan_ports(output, 105))
+
+    def test_parse_vlan_ports_with_only_vxlan_interface(self):
+        """Test _parse_vlan_ports ignores VXLAN interface (bug #2146507)."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+        # This is the bug scenario: VLAN has VNI mapping but no physical ports
+        output = """VLAN  Name                             Status    Ports
+----- -------------------------------- --------- ------
+105   VLAN0105                         active    Vx1
+"""
+        # Should return False because Vx1 is not a physical port
+        self.assertFalse(switch._parse_vlan_ports(output, 105))
+
+    def test_parse_vlan_ports_with_vxlan1_interface(self):
+        """Test _parse_vlan_ports ignores Vxlan1 interface."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+        output = """VLAN  Name                             Status    Ports
+----- -------------------------------- --------- ------
+105   VLAN0105                         active    Vxlan1
+"""
+        # Should return False because Vxlan1 is not a physical port
+        self.assertFalse(switch._parse_vlan_ports(output, 105))
+
+    def test_parse_vlan_ports_with_mixed_ports_and_vxlan(self):
+        """Test _parse_vlan_ports detects physical ports with VXLAN present."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+        output = """VLAN  Name                             Status    Ports
+----- -------------------------------- --------- ------
+105   VLAN0105                         active    Et1, Et2, Vx1
+"""
+        # Should return True because Et1 and Et2 are physical ports
+        self.assertTrue(switch._parse_vlan_ports(output, 105))
+
+    def test_parse_vlan_ports_with_no_ports(self):
+        """Test _parse_vlan_ports with VLAN having no ports."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+        output = """VLAN  Name                             Status    Ports
+----- -------------------------------- --------- ------
+105   VLAN0105                         active
+"""
+        self.assertFalse(switch._parse_vlan_ports(output, 105))
+
+    def test_parse_vlan_ports_vlan_not_found(self):
+        """Test _parse_vlan_ports when VLAN doesn't exist."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+        output = """VLAN  Name                             Status    Ports
+----- -------------------------------- --------- ------
+100   VLAN0100                         active    Et1
+"""
+        # VLAN 105 not in output
+        self.assertFalse(switch._parse_vlan_ports(output, 105))
+
+    def test_parse_vlan_ports_empty_output(self):
+        """Test _parse_vlan_ports with empty output."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+        output = ""
+        self.assertFalse(switch._parse_vlan_ports(output, 105))
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_vlan_has_ports_with_only_vxlan(self, mock_conn):
+        """Test vlan_has_ports returns False when only VXLAN interface."""
+        device_cfg = {'device_type': 'netmiko_arista_eos'}
+        switch = arista.AristaEos(device_cfg)
+
+        mock_net_connect = mock.MagicMock()
+        output = """VLAN  Name                             Status    Ports
+----- -------------------------------- --------- ------
+105   VLAN0105                         active    Vx1
+"""
+        mock_net_connect.send_command.return_value = output
+        mock_conn.return_value.__enter__.return_value = mock_net_connect
+
+        result = switch.vlan_has_ports(105)
+
+        self.assertFalse(result)
+        mock_net_connect.send_command.assert_called_once_with(
+            'show vlan id 105 configured-ports')

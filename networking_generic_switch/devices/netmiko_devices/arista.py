@@ -71,7 +71,7 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         'no vxlan vlan {segmentation_id} vni {vni}',
     )
 
-    SHOW_VLAN_PORTS = ('show vlan id {segmentation_id}',)
+    SHOW_VLAN_PORTS = ('show vlan id {segmentation_id} configured-ports',)
 
     SHOW_VLAN_VNI = ('show interfaces {vxlan_interface}',)
 
@@ -176,16 +176,25 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
             self.device_name)
 
     def _parse_vlan_ports(self, output: str, segmentation_id: int) -> bool:
-        """Parse Arista EOS 'show vlan id X' output for ports.
+        """Parse Arista EOS 'show vlan id X configured-ports' output for ports.
+
+        Uses 'configured-ports' to check for all ports with VLAN configuration
+        regardless of operational state. This ensures proper cleanup decisions
+        even when ports are administratively disabled.
+
+        Filters out VXLAN interfaces (Vx1, Vxlan1, etc.) which appear in the
+        Ports column but are not physical/logical ports that should prevent
+        VLAN-to-VNI mapping cleanup.
 
         :param output: Command output from switch
         :param segmentation_id: VLAN identifier being checked
-        :returns: True if VLAN has ports, False otherwise
+        :returns: True if VLAN has physical/logical ports, False otherwise
         """
         # Arista EOS output format:
         # VLAN  Name                             Status    Ports
         # ----- -------------------------------- --------- ------
         # 100   VLAN0100                         active    Et1, Et2
+        # 105   VLAN0105                         active    Vx1
         lines = output.strip().split('\n')
         for line in lines:
             # Skip empty lines and separator lines
@@ -196,10 +205,21 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
                 continue
             parts = line.split()
             # First part should be VLAN ID
-            if parts and parts[0].isdigit() and \
-               int(parts[0]) == segmentation_id:
+            if (parts and parts[0].isdigit()
+                    and int(parts[0]) == segmentation_id):
                 # Check if there are port entries (index 3 onwards)
-                return len(parts) > 3
+                if len(parts) <= 3:
+                    # No ports at all
+                    return False
+                # Extract port names from index 3 onwards
+                # Ports are comma-separated: "Et1, Et2, Vx1"
+                ports_str = ' '.join(parts[3:])
+                # Split by comma and strip whitespace then filter out VXLAN
+                # interfaces (Vx*)
+                physical_ports = [
+                    p for p in [x.strip() for x in ports_str.split(',')]
+                    if not p.lower().startswith('vx')]
+                return len(physical_ports) > 0
         # If no data row found, conservatively assume no ports
         return False
 
