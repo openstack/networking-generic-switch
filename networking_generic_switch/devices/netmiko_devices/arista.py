@@ -237,7 +237,8 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
            fabric infrastructure.
 
         Configures the following in order:
-        1. Configure EVPN VLAN (BGP control plane for MAC/IP learning)
+        1. Configure EVPN VLAN (BGP control plane for MAC/IP learning and
+           redistribution of locally learned MACs)
         2. Map VLAN to VNI on the VXLAN interface
         3. Configure BUM replication (ingress-replication or flood vtep)
 
@@ -261,6 +262,7 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
             f'router bgp {self.bgp_asn}',
             f'vlan {segmentation_id}',
             'rd auto',
+            'redistribute learned',
         ]
 
         if self.evpn_route_target == 'auto':
