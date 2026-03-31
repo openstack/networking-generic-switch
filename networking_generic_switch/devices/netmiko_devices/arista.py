@@ -28,8 +28,12 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
     For VXLAN L2VNI support, the ``ngs_bgp_asn`` configuration parameter is
     required. The ``vxlan_interface`` parameter can optionally be specified
     (defaults to ``Vxlan1``). The ``ngs_evpn_route_target`` parameter can
-    optionally be specified to configure the route-target value (defaults
-    to ``auto``).
+    optionally be specified to configure the route-target value. When set to
+    ``auto`` (the default), the commands ``route-target export auto <ASN>``
+    and ``route-target import auto <ASN>`` are used, which allows Arista
+    EOS to automatically derive route-target values. Alternatively, an
+    explicit value can be provided in the format ``<ASN>:<number>``
+    (e.g., ``65000:100``).
 
     Supports two BUM (Broadcast, Unknown unicast, Multicast) traffic
     replication modes:
@@ -257,8 +261,17 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
             f'router bgp {self.bgp_asn}',
             f'vlan {segmentation_id}',
             'rd auto',
-            f'route-target both {self.evpn_route_target}',
         ]
+
+        if self.evpn_route_target == 'auto':
+            evpn_cmds.extend([
+                f'route-target export auto {self.bgp_asn}',
+                f'route-target import auto {self.bgp_asn}',
+            ])
+        else:
+            evpn_cmds.append(
+                f'route-target both {self.evpn_route_target}')
+
         cmds.extend(evpn_cmds)
 
         # Step 2: Map VLAN to VNI
