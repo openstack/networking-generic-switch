@@ -134,6 +134,12 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         'switchport trunk allowed vlan remove {segmentation_id}'
     )
 
+    ERROR_MSG_PATTERNS = (
+        re.compile(r'% Invalid input'),
+        re.compile(r'% Incomplete command'),
+        re.compile(r'% VLAN \d+ is already mapped to VNI \d+'),
+    )
+
     def __init__(self, device_cfg, *args, **kwargs):
         """Initialize Arista EOS device with VXLAN configuration support.
 
