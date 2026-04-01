@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes incorrect instantiations of GenericSwitchNotSupported exceptions. See
+    `LP#2147055
+    <https://bugs.launchpad.net/networking-generic-switch/+bug/2147055>`__ for
+    details.
