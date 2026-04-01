@@ -854,7 +854,12 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock.support_trunk_on_bond_ports = False
         self.switch_mock.support_trunk_on_ports = False
 
-        with self.assertRaises(exceptions.GenericSwitchNotSupported):
+        exception_regex = (
+            'Requested feature trunks is not supported by '
+            'networking-generic-switch on the .*. Trunks are not supported on '
+            'ports.')
+        with self.assertRaisesRegex(exceptions.GenericSwitchNotSupported,
+                                    exception_regex):
             driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_not_called()
         m_pc.assert_not_called()
