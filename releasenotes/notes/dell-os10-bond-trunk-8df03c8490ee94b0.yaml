@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Add bond trunk commands so LACP bond trunk ports are supported on Dell OS10
+    switches.

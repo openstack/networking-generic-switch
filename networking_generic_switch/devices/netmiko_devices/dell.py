@@ -50,8 +50,21 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
         "exit",
     )
 
+    PLUG_BOND_TO_NETWORK = (
+        "interface {bond}",
+        "switchport mode access",
+        "switchport access vlan {segmentation_id}",
+        "exit",
+    )
+
     DELETE_PORT = (
         "interface {port}",
+        "no switchport access vlan",
+        "exit",
+    )
+
+    UNPLUG_BOND_FROM_NETWORK = (
+        "interface {bond}",
         "no switchport access vlan",
         "exit",
     )
@@ -63,8 +76,21 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
         "exit",
     )
 
+    ADD_NETWORK_TO_BOND_TRUNK = (
+        "interface {bond}",
+        "switchport mode trunk",
+        "switchport trunk allowed vlan {segmentation_id}",
+        "exit",
+    )
+
     REMOVE_NETWORK_FROM_TRUNK = (
         "interface {port}",
+        "no switchport trunk allowed vlan {segmentation_id}",
+        "exit",
+    )
+
+    DELETE_NETWORK_ON_BOND_TRUNK = (
+        "interface {bond}",
         "no switchport trunk allowed vlan {segmentation_id}",
         "exit",
     )
@@ -75,8 +101,19 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
         'switchport access vlan {segmentation_id}',
     )
 
+    SET_NATIVE_VLAN_BOND = (
+        'interface {bond}',
+        'switchport mode trunk',
+        'switchport access vlan {segmentation_id}',
+    )
+
     DELETE_NATIVE_VLAN = (
         'interface {port}',
+        'no switchport access vlan',
+    )
+
+    DELETE_NATIVE_VLAN_BOND = (
+        'interface {bond}',
         'no switchport access vlan',
     )
 
