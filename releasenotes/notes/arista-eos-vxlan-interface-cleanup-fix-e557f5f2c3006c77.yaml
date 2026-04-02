@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed Arista EOS VLAN cleanup to ignore VXLAN interfaces. Previously,
+    VXLAN interfaces (Vx1, Vxlan1) were incorrectly treated as physical
+    ports, preventing VLAN-to-VNI mappings from being cleaned up. This
+    caused stale VNI mappings to accumulate on switches.
+    See `LP#2146507
+    <https://bugs.launchpad.net/networking-generic-switch/+bug/2146507>`_
+    for details.
