@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds port enable/disable support for Arista EOS devices. When the
+    ``ngs_disable_inactive_ports`` configuration option is enabled, switch
+    ports will be administratively disabled (shutdown) when unplugged from a
+    network and enabled (no shutdown) when plugged into a network. This
+    enhances security by ensuring unused ports remain in a disabled state,
+    preventing unauthorized network access through inactive baremetal server
+    connections.

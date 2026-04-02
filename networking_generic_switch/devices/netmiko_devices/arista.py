@@ -22,6 +22,8 @@ from networking_generic_switch import exceptions as exc
 class AristaEos(netmiko_devices.NetmikoSwitch):
     """Device Name: Arista EOS
 
+    Port can be disabled: True
+
     VXLAN L2VNI Support
     ~~~~~~~~~~~~~~~~~~~
 
@@ -138,6 +140,16 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         re.compile(r'% Invalid input'),
         re.compile(r'% Incomplete command'),
         re.compile(r'% VLAN \d+ is already mapped to VNI \d+'),
+    )
+
+    ENABLE_PORT = (
+        'interface {port}',
+        'no shutdown',
+    )
+
+    DISABLE_PORT = (
+        'interface {port}',
+        'shutdown',
     )
 
     def __init__(self, device_cfg, *args, **kwargs):

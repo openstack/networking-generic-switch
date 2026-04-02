@@ -97,6 +97,18 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
                    'switchport trunk allowed vlan none']
         self.assertEqual(del_exp, cmd_set)
 
+        cmd_set = self.switch._format_commands(
+            arista.AristaEos.ENABLE_PORT,
+            port=3333)
+        enable_exp = ['interface 3333', 'no shutdown']
+        self.assertEqual(enable_exp, cmd_set)
+
+        cmd_set = self.switch._format_commands(
+            arista.AristaEos.DISABLE_PORT,
+            port=3333)
+        disable_exp = ['interface 3333', 'shutdown']
+        self.assertEqual(disable_exp, cmd_set)
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
                 return_value='', autospec=True)
