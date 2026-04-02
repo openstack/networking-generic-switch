@@ -449,7 +449,7 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
             ['evpn', 'vni 10100 l2', 'rd auto', 'route-target both auto',
              'exit', 'vlan 100', 'vn-segment 10100', 'exit',
              'interface nve1', 'member vni 10100',
-             'ingress-replication protocol bgp', 'exit'])
+             'ingress-replication protocol bgp', 'suppress-arp', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
@@ -466,7 +466,7 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
             ['evpn', 'vni 10100 l2', 'rd auto', 'route-target both auto',
              'exit', 'vlan 100', 'vn-segment 10100', 'exit',
              'interface nve2', 'member vni 10100',
-             'ingress-replication protocol bgp', 'exit'])
+             'ingress-replication protocol bgp', 'suppress-arp', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)

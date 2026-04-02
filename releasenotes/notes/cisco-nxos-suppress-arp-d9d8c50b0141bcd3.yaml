@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed intermittent connectivity issues with Cisco NX-OS VXLAN deployments
+    where baremetal nodes would not receive ARP replies. The NVE interface VNI
+    member configuration now includes ``suppress-arp`` to enable proper ARP
+    handling via EVPN Type-2 routes. See
+    `LP#2144910 <https://bugs.launchpad.net/networking-baremetal/+bug/2144910>`__
+    for details.
