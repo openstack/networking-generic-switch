@@ -400,16 +400,17 @@ class GenericSwitchDriver(api.MechanismDriver):
                     if (trunk_details and not
                             switch.support_trunk_on_bond_ports):
                         raise ngs_exc.GenericSwitchNotSupported(
-                            "Trunks are not supported by "
-                            "networking-generic-switch %s.",
-                            switch.device_name)
+                            feature="trunks",
+                            switch=switch.device_name,
+                            error="Trunks are not supported on bond ports.")
                     switch.plug_bond_to_network(port_id, segmentation_id,
                                                 **plug_kwargs)
                 else:
                     if trunk_details and not switch.support_trunk_on_ports:
                         raise ngs_exc.GenericSwitchNotSupported(
                             feature="trunks",
-                            switch=switch.device_name)
+                            switch=switch.device_name,
+                            error="Trunks are not supported on ports.")
                     switch.plug_port_to_network(port_id, segmentation_id,
                                                 **plug_kwargs)
                 LOG.info("Successfully plugged port %(port_id)s in segment "
