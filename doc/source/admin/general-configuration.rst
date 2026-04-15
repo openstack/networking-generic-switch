@@ -149,6 +149,59 @@ can be disabled::
     [genericswitch:device-hostname]
     ngs_save_configuration = False
 
+MTU Management
+==============
+
+By default, no MTU management is performed on switch ports. In environments
+where different networks require different MTU settings (e.g. jumbo frames on
+some networks, standard 1500-byte MTU on others), this can cause frame size
+mismatches and silent packet drops.
+
+Networking Generic Switch can optionally propagate the MTU from Neutron
+networks to the physical switch ports. MTU management must be explicitly
+enabled on a per-device basis by setting ``ngs_manage_mtu`` to ``True``.
+When disabled (the default), no MTU commands are sent to the switch,
+preserving backward-compatible behavior::
+
+    [genericswitch:device-hostname]
+    ngs_manage_mtu = True
+
+``ngs_port_default_mtu`` sets the default MTU for access (bound) ports. This
+value is used as a fallback when the network object does not specify an MTU,
+and to reset the port MTU when a port is unbound. When used as a Neutron ML2
+mechanism driver, all networks include an MTU value (Neutron's database enforces
+a non-nullable default of 1500), but this fallback is useful for standalone
+usage or when directly invoking the driver::
+
+    [genericswitch:device-hostname]
+    ngs_port_default_mtu = 1500
+
+``ngs_trunk_port_mtu`` sets the MTU on trunk (uplink) ports when VLANs are
+created. It also serves as the upper bound for access port MTU validation.
+If a Neutron network requests an MTU that exceeds this value, port binding
+will fail with a ``GenericSwitchMtuExceedError``. If this option is not set,
+no trunk port MTU is configured and no upper-bound validation occurs::
+
+    [genericswitch:device-hostname]
+    ngs_trunk_port_mtu = 9216
+
+A typical jumbo-frame configuration might look like::
+
+    [genericswitch:leaf-switch-01]
+    device_type = netmiko_arista_eos
+    ip = 192.0.2.10
+    username = admin
+    password = password
+    ngs_trunk_ports = Ethernet49/1, Ethernet50/1
+    ngs_manage_mtu = True
+    ngs_port_default_mtu = 1500
+    ngs_trunk_port_mtu = 9216
+
+Not all device drivers include MTU command templates. Devices without
+MTU command templates will silently skip MTU configuration even when
+``ngs_manage_mtu`` is enabled. Refer to the individual driver
+documentation or source for per-device support details.
+
 Trunk ports
 ===========
 

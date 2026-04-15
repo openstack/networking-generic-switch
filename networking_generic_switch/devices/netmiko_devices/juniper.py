@@ -106,6 +106,10 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         'set interfaces {port} disable',
     )
 
+    SET_PORT_MTU = (
+        'set interfaces {port} mtu {mtu}',
+    )
+
     ADD_NETWORK_TO_TRUNK = (
         'set interfaces {port} unit 0 family ethernet-switching '
         'vlan members {segmentation_id}',

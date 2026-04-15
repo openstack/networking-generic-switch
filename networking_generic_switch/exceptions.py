@@ -88,3 +88,8 @@ class GenericSwitchNetconfLockDenied(GenericSwitchException):
 class GenericSwitchNetconfOperationFailed(GenericSwitchException):
     message = _("The NETCONF device returned operation-failed. "
                 "The request will be retried.")
+
+
+class GenericSwitchMtuExceedError(GenericSwitchException):
+    message = _("Requested MTU %(mtu)s exceeds trunk port MTU "
+                "%(trunk_mtu)s on switch %(switch)s.")

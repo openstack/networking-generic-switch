@@ -1008,6 +1008,33 @@ Total count : 0'''
         self.assertIn('vtysh', cmds[1])
         self.assertIn('config vxlan map add', cmds[2])
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_plug_port_to_network_with_mtu(self, mock_exec):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.plug_port_to_network(3333, 33, mtu=9000)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['config vlan member del 123 3333',
+             'config vlan member add -u 33 3333',
+             'config interface mtu 3333 9000'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_delete_port_resets_mtu(self, mock_exec):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_port_default_mtu': '1500'})
+        switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            switch,
+            ['config vlan member del 33 3333',
+             'config vlan add 123',
+             'config vlan member add -u 123 3333',
+             'config interface mtu 3333 1500'])
+
 
 class TestNetmikoDellEnterpriseSonic(test_netmiko_base.NetmikoSwitchTestBase):
 

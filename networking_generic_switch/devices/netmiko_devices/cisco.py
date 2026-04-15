@@ -138,6 +138,12 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
         'exit',
     )
 
+    SET_PORT_MTU = (
+        'interface {port}',
+        'mtu {mtu}',
+        'exit',
+    )
+
     ENABLE_PORT = (
         'interface {port}',
         'no shutdown',

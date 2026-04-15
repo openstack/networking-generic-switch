@@ -46,6 +46,9 @@ command_descriptions = {
     'SET_NATIVE_VLAN': 'Sets a specified native VLAN',
     'DELETE_NATIVE_VLAN': 'Removes the native VLAN',
     'SAVE_CONFIGURATION': 'Saves the configuration',
+    'SET_PORT_MTU': 'Sets the MTU on a port. Requires ngs_manage_mtu.',
+    'SET_BOND_MTU': 'Sets the MTU on a bond interface. Requires \
+        ngs_manage_mtu.',
     'SET_NATIVE_VLAN_BOND': 'Sets the native VLAN for the bond interface',
     'DELETE_NATIVE_VLAN_BOND': 'Unsets the native VLAN for the bond \
         interface',

@@ -98,6 +98,33 @@ class TestNetmikoOvsLinux(test_netmiko_base.NetmikoSwitchTestBase):
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_with_mtu(self, mock_exec):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.plug_port_to_network(4444, 44, mtu=9000)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['ovs-vsctl set port 4444 vlan_mode=access',
+             'ovs-vsctl set port 4444 tag=44',
+             'ovs-vsctl set interface 4444 mtu_request=9000'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_delete_port_resets_mtu(self, mock_exec):
+        device_cfg = {'device_type': 'netmiko_ovs_linux',
+                      'ip': 'localhost',
+                      'ngs_manage_mtu': True,
+                      'ngs_port_default_mtu': '1500'}
+        switch = ovs.OvsLinux(device_cfg)
+        switch.delete_port(4444, 44)
+        mock_exec.assert_called_with(
+            switch,
+            ['ovs-vsctl clear port 4444 tag',
+             'ovs-vsctl clear port 4444 trunks',
+             'ovs-vsctl clear port 4444 vlan_mode',
+             'ovs-vsctl set interface 4444 mtu_request=1500'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
     def test_plug_bond_to_network_subports(self, mock_exec):
         trunk_details = {"sub_ports": [{"segmentation_id": "tag1"},
                                        {"segmentation_id": "tag2"}]}

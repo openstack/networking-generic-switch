@@ -23,6 +23,11 @@ class ArubaOSCX(netmiko_devices.NetmikoSwitch):
     Port can be disabled: True
     """
 
+    SET_PORT_MTU = (
+        'interface {port}',
+        'mtu {mtu}',
+    )
+
     ADD_NETWORK = (
         'vlan {segmentation_id}',
         'name {network_name}',

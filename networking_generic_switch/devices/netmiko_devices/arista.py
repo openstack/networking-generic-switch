@@ -147,6 +147,11 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         re.compile(r'% VLAN \d+ is already mapped to VNI \d+'),
     )
 
+    SET_PORT_MTU = (
+        'interface {port}',
+        'mtu {mtu}',
+    )
+
     ENABLE_PORT = (
         'interface {port}',
         'no shutdown',

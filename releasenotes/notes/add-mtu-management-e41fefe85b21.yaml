@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds opt-in MTU management for switch ports. A new per-device
+    option ``ngs_manage_mtu`` (default ``False``) must be enabled
+    before any MTU commands are sent to a switch. Additional options
+    ``ngs_port_default_mtu`` and ``ngs_trunk_port_mtu`` control the
+    default and upper-bound values. See the administrator
+    documentation for configuration details and per-device support.

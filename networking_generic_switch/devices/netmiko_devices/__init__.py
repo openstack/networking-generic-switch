@@ -115,6 +115,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     SAVE_CONFIGURATION = None
 
+    SET_PORT_MTU = None
+
+    SET_BOND_MTU = None
+
     SET_NATIVE_VLAN = None
 
     DELETE_NATIVE_VLAN = None
@@ -451,10 +455,14 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                      segmentation_id=segmentation_id,
                                      network_id=network_id,
                                      network_name=network_name)
+        trunk_mtu = self._get_trunk_port_mtu()
         for port in self.get_trunk_ports():
             cmds += self._format_commands(self.ADD_NETWORK_TO_TRUNK,
                                           port=port,
                                           segmentation_id=segmentation_id)
+            if self._manage_mtu() and self.SET_PORT_MTU and trunk_mtu:
+                cmds += self._format_commands(
+                    self.SET_PORT_MTU, port=port, mtu=trunk_mtu)
         return self.send_commands_to_device(cmds)
 
     @check_output('delete network')
@@ -606,7 +614,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     @check_output('plug port')
     def plug_port_to_network(self, port, segmentation_id, trunk_details=None,
-                             default_vlan=None):
+                             default_vlan=None, mtu=None):
         cmds = []
         if self._disable_inactive_ports() and self.ENABLE_PORT:
             cmds += self._format_commands(self.ENABLE_PORT, port=port)
@@ -631,11 +639,17 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 port=port,
                 segmentation_id=segmentation_id)
 
+        if self._manage_mtu():
+            port_mtu = mtu or self._get_port_default_mtu()
+            if self.SET_PORT_MTU and port_mtu:
+                cmds += self._format_commands(
+                    self.SET_PORT_MTU, port=port, mtu=port_mtu)
+
         return self.send_commands_to_device(cmds)
 
     @check_output('unplug port')
     def delete_port(self, port, segmentation_id, trunk_details=None,
-                    default_vlan=None):
+                    default_vlan=None, mtu=None):
         cmds = self._format_commands(self.DELETE_PORT,
                                      port=port,
                                      segmentation_id=segmentation_id)
@@ -663,6 +677,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 self.PLUG_PORT_TO_NETWORK,
                 port=port,
                 segmentation_id=port_default_vlan)
+
+        if self._manage_mtu():
+            default_mtu = mtu or self._get_port_default_mtu()
+            if self.SET_PORT_MTU and default_mtu:
+                cmds += self._format_commands(
+                    self.SET_PORT_MTU, port=port, mtu=default_mtu)
+
         if self._disable_inactive_ports() and self.DISABLE_PORT:
             cmds += self._format_commands(self.DISABLE_PORT, port=port)
 
@@ -670,12 +691,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     @check_output('plug bond')
     def plug_bond_to_network(self, bond, segmentation_id, trunk_details=None,
-                             default_vlan=None):
+                             default_vlan=None, mtu=None):
         # Fallback to regular plug port if no specialist PLUG_BOND_TO_NETWORK
         # commands set
         if not self.PLUG_BOND_TO_NETWORK:
             return self.plug_port_to_network(bond, segmentation_id,
-                                             trunk_details=trunk_details)
+                                             trunk_details=trunk_details,
+                                             mtu=mtu)
         cmds = []
         if self._disable_inactive_ports() and self.ENABLE_BOND:
             cmds += self._format_commands(self.ENABLE_BOND, bond=bond)
@@ -700,16 +722,24 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 bond=bond,
                 segmentation_id=segmentation_id)
 
+        if self._manage_mtu():
+            port_mtu = mtu or self._get_port_default_mtu()
+            if self.SET_BOND_MTU and port_mtu:
+                cmds += self._format_commands(
+                    self.SET_BOND_MTU, bond=bond, mtu=port_mtu)
+
         return self.send_commands_to_device(cmds)
 
     @check_output('unplug bond')
     def unplug_bond_from_network(self, bond, segmentation_id,
-                                 trunk_details=None, default_vlan=None):
+                                 trunk_details=None, default_vlan=None,
+                                 mtu=None):
         # Fallback to regular port delete if no specialist
         # UNPLUG_BOND_FROM_NETWORK commands set
         if not self.UNPLUG_BOND_FROM_NETWORK:
             return self.delete_port(bond, segmentation_id,
-                                    trunk_details=trunk_details)
+                                    trunk_details=trunk_details,
+                                    mtu=mtu)
         cmds = self._format_commands(self.UNPLUG_BOND_FROM_NETWORK,
                                      bond=bond,
                                      segmentation_id=segmentation_id)
@@ -737,6 +767,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 self.PLUG_BOND_TO_NETWORK,
                 bond=bond,
                 segmentation_id=port_default_vlan)
+
+        if self._manage_mtu():
+            default_mtu = mtu or self._get_port_default_mtu()
+            if self.SET_BOND_MTU and default_mtu:
+                cmds += self._format_commands(
+                    self.SET_BOND_MTU, bond=bond, mtu=default_mtu)
+
         if self._disable_inactive_ports() and self.DISABLE_BOND:
             cmds += self._format_commands(self.DISABLE_BOND, bond=bond)
 

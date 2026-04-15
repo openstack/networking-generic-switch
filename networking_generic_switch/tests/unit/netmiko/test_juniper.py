@@ -615,3 +615,29 @@ default-switch          vlan200             200
         switch = juniper.Juniper(device_cfg)
         self.assertRaises(exc.GenericSwitchNetmikoConfigError,
                           switch.unplug_switch_from_network, 10100, 100)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_with_mtu(self, mock_exec):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.plug_port_to_network(3333, 33, mtu=9000)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['delete interfaces 3333 unit 0 family '
+             'ethernet-switching vlan members',
+             'set interfaces 3333 unit 0 family '
+             'ethernet-switching vlan members 33',
+             'set interfaces 3333 mtu 9000'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_delete_port_resets_mtu(self, mock_exec):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_port_default_mtu': '1500'})
+        switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            switch,
+            ['delete interfaces 3333 unit 0 family '
+             'ethernet-switching vlan members',
+             'set interfaces 3333 mtu 1500'])

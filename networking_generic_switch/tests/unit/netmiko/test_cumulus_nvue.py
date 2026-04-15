@@ -871,3 +871,48 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
 
         result = switch.vlan_has_vni(100, 5000)
         self.assertFalse(result)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_plug_port_to_network_with_mtu(self, mock_exec):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.plug_port_to_network(3333, 33, mtu=9000)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['nv set interface 3333 link state up',
+             'nv unset interface 3333 bridge domain br_default '
+             'access',
+             'nv unset interface 3333 bridge domain br_default '
+             'untagged',
+             'nv unset interface 3333 bridge domain br_default '
+             'vlan',
+             'nv unset interface 3333 bridge domain br_default '
+             'untagged',
+             'nv set interface 3333 bridge domain br_default '
+             'access 33',
+             'nv set interface 3333 link mtu 9000'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value="", autospec=True)
+    def test_delete_port_resets_mtu(self, mock_exec):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_port_default_mtu': '1500'})
+        switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            switch,
+            ['nv unset interface 3333 bridge domain br_default '
+             'access',
+             'nv unset interface 3333 bridge domain br_default '
+             'untagged',
+             'nv unset interface 3333 bridge domain br_default '
+             'vlan',
+             'nv set bridge domain br_default vlan 123',
+             'nv unset interface 3333 bridge domain br_default '
+             'untagged',
+             'nv set interface 3333 bridge domain br_default '
+             'access 123',
+             'nv set interface 3333 link mtu 1500',
+             'nv set interface 3333 link state down'])

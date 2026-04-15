@@ -61,6 +61,32 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
             self.switch,
             ['interface 3333', 'no switchport access vlan', 'exit'])
 
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_with_mtu(self, mock_exec):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.plug_port_to_network(3333, 33, mtu=9000)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 3333', 'switchport mode access',
+             'switchport access vlan 33', 'exit',
+             'interface 3333', 'mtu 9000', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_delete_port_resets_mtu(self, mock_exec):
+        device_cfg = {
+            'device_type': 'netmiko_cisco_nxos',
+            'ngs_manage_mtu': True,
+            'ngs_port_default_mtu': '1500',
+        }
+        switch = cisco.CiscoNxOS(device_cfg)
+        switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            switch,
+            ['interface 3333', 'no switchport access vlan', 'exit',
+             'interface 3333', 'mtu 1500', 'exit'])
+
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
             cisco.CiscoNxOS.ADD_NETWORK,

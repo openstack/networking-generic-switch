@@ -685,7 +685,9 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
     def test_plug_bond_to_network_fallback(self, m_plug):
         self.switch.PLUG_BOND_TO_NETWORK = None
         self.switch.plug_bond_to_network(2222, 22)
-        m_plug.assert_called_with(self.switch, 2222, 22, trunk_details=None)
+        m_plug.assert_called_with(self.switch, 2222, 22,
+                                  trunk_details=None,
+                                  mtu=None)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -710,7 +712,9 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
     def test_unplug_bond_from_network_fallback(self, m_delete):
         self.switch.UNPLUG_BOND_FROM_NETWORK = None
         self.switch.unplug_bond_from_network(2222, 22)
-        m_delete.assert_called_with(self.switch, 2222, 22, trunk_details=None)
+        m_delete.assert_called_with(self.switch, 2222, 22,
+                                    trunk_details=None,
+                                    mtu=None)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -1174,6 +1178,190 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
         lock_mock.return_value.__exit__.assert_called_once()
         lock_mock.return_value.__enter__.assert_called_once()
         mock_hostname.assert_called_once()
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_to_network_with_mtu(self, m_check, m_sctd):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.SET_PORT_MTU = (
+            'interface {port}',
+            'mtu {mtu}',
+        )
+        self.switch.plug_port_to_network(2222, 22, mtu=9000)
+        m_sctd.assert_called_with(self.switch, [
+            'plug port 2222 to network 22',
+            'interface 2222',
+            'mtu 9000'])
+        m_check.assert_called_once_with(
+            self.switch, 'fake output', 'plug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_to_network_with_mtu_no_template(
+            self, m_check, m_sctd):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.plug_port_to_network(2222, 22, mtu=9000)
+        m_sctd.assert_called_with(self.switch, [
+            'plug port 2222 to network 22'])
+        m_check.assert_called_once_with(
+            self.switch, 'fake output', 'plug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_to_network_config_mtu_fallback(
+            self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_port_default_mtu': '1500'})
+        switch.SET_PORT_MTU = (
+            'interface {port}',
+            'mtu {mtu}',
+        )
+        switch.plug_port_to_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'plug port 2222 to network 22',
+            'interface 2222',
+            'mtu 1500'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_bond_to_network_config_mtu_fallback(
+            self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_port_default_mtu': '1500'})
+        switch.SET_BOND_MTU = (
+            'interface {bond}',
+            'mtu {mtu}',
+        )
+        switch.plug_bond_to_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'plug bond 2222 to network 22',
+            'interface 2222',
+            'mtu 1500'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug bond')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_delete_port_resets_mtu(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_port_default_mtu': '1500'})
+        switch.SET_PORT_MTU = (
+            'interface {port}',
+            'mtu {mtu}',
+        )
+        switch.delete_port(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'delete port 2222 from network 22',
+            'interface 2222',
+            'mtu 1500'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'unplug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_delete_port_no_default_mtu_no_reset(
+            self, m_check, m_sctd):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.SET_PORT_MTU = (
+            'interface {port}',
+            'mtu {mtu}',
+        )
+        self.switch.delete_port(2222, 22)
+        m_sctd.assert_called_with(self.switch, [
+            'delete port 2222 from network 22'])
+        m_check.assert_called_once_with(
+            self.switch, 'fake output', 'unplug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_bond_to_network_with_mtu(self, m_check, m_sctd):
+        self.switch.ngs_config['ngs_manage_mtu'] = True
+        self.switch.SET_BOND_MTU = (
+            'interface {bond}',
+            'mtu {mtu}',
+        )
+        self.switch.plug_bond_to_network(2222, 22, mtu=9000)
+        m_sctd.assert_called_with(self.switch, [
+            'plug bond 2222 to network 22',
+            'interface 2222',
+            'mtu 9000'])
+        m_check.assert_called_once_with(
+            self.switch, 'fake output', 'plug bond')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_unplug_bond_resets_mtu(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_port_default_mtu': '1500'})
+        switch.SET_BOND_MTU = (
+            'interface {bond}',
+            'mtu {mtu}',
+        )
+        switch.unplug_bond_from_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'unplug bond 2222 from network 22',
+            'interface 2222',
+            'mtu 1500'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'unplug bond')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_add_network_sets_trunk_port_mtu(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_manage_mtu': True,
+             'ngs_trunk_ports': 'port1, port2',
+             'ngs_trunk_port_mtu': '9216'})
+        switch.SET_PORT_MTU = (
+            'interface {port}',
+            'mtu {mtu}',
+        )
+        switch.add_network(
+            22, '0ae071f5-5be9-43e4-80ea-e41fefe85b21')
+        m_sctd.assert_called_with(switch, [
+            'add network 22 0ae071f55be943e480eae41fefe85b21 '
+            '0ae071f55be943e480eae41fefe85b21',
+            'add network 22 to trunk port1',
+            'interface port1',
+            'mtu 9216',
+            'add network 22 to trunk port2',
+            'interface port2',
+            'mtu 9216'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'add network')
 
     def test_check_output(self):
         self.switch.check_output('fake output', 'fake op')

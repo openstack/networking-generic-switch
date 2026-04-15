@@ -57,6 +57,14 @@ class Cumulus(netmiko_devices.NetmikoSwitch):
         'net del vlan {segmentation_id}',
     )
 
+    SET_PORT_MTU = (
+        'net add interface {port} mtu {mtu}',
+    )
+
+    SET_BOND_MTU = (
+        'net add bond {bond} mtu {mtu}',
+    )
+
     PLUG_PORT_TO_NETWORK = (
         'net add interface {port} bridge access {segmentation_id}',
     )
@@ -182,6 +190,10 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
 
     SHOW_VLAN_VNI = ('nv show bridge domain br_default vlan-vni-map '
                      '-o json',)
+
+    SET_PORT_MTU = (
+        'nv set interface {port} link mtu {mtu}',
+    )
 
     PLUG_PORT_TO_NETWORK = (
         'nv unset interface {port} bridge domain br_default untagged',
