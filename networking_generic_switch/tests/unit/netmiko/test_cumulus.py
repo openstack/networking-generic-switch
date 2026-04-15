@@ -223,6 +223,59 @@ class TestNetmikoCumulus(test_netmiko_base.NetmikoSwitchTestBase):
              'net add bond 3333 mtu 1500',
              'net add bond 3333 link down'])
 
+    def test__format_commands_stp(self):
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.SET_PORT_STP_EDGE,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['net add interface swp1 stp '
+                          'portadminedge'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.UNSET_PORT_STP_EDGE,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['net del interface swp1 stp '
+                          'portadminedge'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.SET_PORT_BPDU_GUARD,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['net add interface swp1 stp bpduguard'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.UNSET_PORT_BPDU_GUARD,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['net del interface swp1 stp bpduguard'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.SET_BOND_STP_EDGE,
+            bond='bond0')
+        self.assertEqual(cmd_set,
+                         ['net add bond bond0 stp '
+                          'portadminedge'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.UNSET_BOND_STP_EDGE,
+            bond='bond0')
+        self.assertEqual(cmd_set,
+                         ['net del bond bond0 stp '
+                          'portadminedge'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.SET_BOND_BPDU_GUARD,
+            bond='bond0')
+        self.assertEqual(cmd_set,
+                         ['net add bond bond0 stp bpduguard'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.Cumulus.UNSET_BOND_BPDU_GUARD,
+            bond='bond0')
+        self.assertEqual(cmd_set,
+                         ['net del bond bond0 stp bpduguard'])
+
     def test_save(self):
         mock_connect = mock.MagicMock()
         mock_connect.save_config.side_effect = NotImplementedError

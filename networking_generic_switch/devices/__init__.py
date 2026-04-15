@@ -97,6 +97,12 @@ NGS_INTERNAL_OPTS = [
     # to trigger a carrier drop/raise, signalling the host to re-run
     # DHCP. Ports remain UP when not bound, preserving LLDP.
     {'name': 'ngs_bounce_ports_on_plug', 'default': False},
+    # If True, configure ports as STP edge (portfast) during bind
+    # to skip STP convergence delay.
+    {'name': 'ngs_port_stp_edge', 'default': False},
+    # If True, enable BPDU guard on ports during bind to protect
+    # against spanning tree loops.
+    {'name': 'ngs_port_bpdu_guard', 'default': False},
 ]
 
 EM_SEMAPHORE = 'ngs_device_manager'
@@ -240,6 +246,16 @@ class GenericSwitchDevice(abc.ABC):
         """Return whether ports should be bounced during bind."""
         return strutils.bool_from_string(
             self.ngs_config['ngs_bounce_ports_on_plug'])
+
+    def _port_stp_edge(self):
+        """Return whether ports should be configured as STP edge."""
+        return strutils.bool_from_string(
+            self.ngs_config['ngs_port_stp_edge'])
+
+    def _port_bpdu_guard(self):
+        """Return whether BPDU guard should be enabled on ports."""
+        return strutils.bool_from_string(
+            self.ngs_config['ngs_port_bpdu_guard'])
 
     def _get_save_configuration(self):
         """Return whether configuration should be saved on device."""

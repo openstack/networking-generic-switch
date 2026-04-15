@@ -144,6 +144,30 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
         'exit',
     )
 
+    SET_PORT_STP_EDGE = (
+        'interface {port}',
+        'spanning-tree port type edge',
+        'exit',
+    )
+
+    UNSET_PORT_STP_EDGE = (
+        'interface {port}',
+        'no spanning-tree port type edge',
+        'exit',
+    )
+
+    SET_PORT_BPDU_GUARD = (
+        'interface {port}',
+        'spanning-tree bpduguard enable',
+        'exit',
+    )
+
+    UNSET_PORT_BPDU_GUARD = (
+        'interface {port}',
+        'no spanning-tree bpduguard enable',
+        'exit',
+    )
+
     ENABLE_PORT = (
         'interface {port}',
         'no shutdown',

@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds opt-in ``ngs_port_stp_edge`` and ``ngs_port_bpdu_guard`` options.
+    When ``ngs_port_stp_edge`` is enabled, ports are configured as STP edge
+    (portfast) during bind to skip the 30-50 second STP convergence delay.
+    When ``ngs_port_bpdu_guard`` is enabled, BPDU guard is activated on ports
+    during bind to protect against spanning tree loops caused by misconfigured
+    hosts. Both settings are removed on unbind and can be used independently.
+    Supported on Arista EOS, Cisco NX-OS, Dell OS10, Cumulus (NCLU and NVUE),
+    and Juniper Junos (edge only).

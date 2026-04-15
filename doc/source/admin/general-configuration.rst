@@ -110,6 +110,44 @@ When combined with ``ngs_disable_inactive_ports``, the port is already
 admin-down from a prior unbind so the disable step is skipped, but the port
 is still enabled after configuration is applied.
 
+STP Edge Port and BPDU Guard
+============================
+
+When a port is bound, STP convergence can delay traffic forwarding for 30-50
+seconds while the switch transitions the port through listening and learning
+states. Additionally, misconfigured hosts can generate BPDUs that cause
+spanning tree topology changes or loops.
+
+Two independent, opt-in options address these issues:
+
+``ngs_port_stp_edge``
+    Configure ports as STP edge (portfast) during bind to skip STP convergence
+    delay. The setting is removed on unbind::
+
+        [genericswitch:device-hostname]
+        ngs_port_stp_edge = True
+
+``ngs_port_bpdu_guard``
+    Enable BPDU guard on ports during bind to protect against spanning tree
+    loops. If the port receives a BPDU, the switch disables the port. The
+    setting is removed on unbind::
+
+        [genericswitch:device-hostname]
+        ngs_port_bpdu_guard = True
+
+Both options can be enabled independently or together. They follow the same
+lifecycle as MTU management: commands are applied during port bind and removed
+during unbind.
+
+Driver support varies:
+
+* **Arista EOS**: STP edge and BPDU guard (port only)
+* **Cisco NX-OS**: STP edge and BPDU guard (port only)
+* **Dell OS10**: STP edge and BPDU guard (port only)
+* **Cumulus NCLU**: STP edge and BPDU guard (port and bond)
+* **Cumulus NVUE**: STP edge and BPDU guard (port only)
+* **Juniper Junos**: STP edge only (no BPDU guard)
+
 Network Name Format
 ===================
 

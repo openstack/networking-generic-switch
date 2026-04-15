@@ -110,6 +110,14 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         'set interfaces {port} mtu {mtu}',
     )
 
+    SET_PORT_STP_EDGE = (
+        'set protocols rstp interface {port} edge',
+    )
+
+    UNSET_PORT_STP_EDGE = (
+        'delete protocols rstp interface {port} edge',
+    )
+
     ADD_NETWORK_TO_TRUNK = (
         'set interfaces {port} unit 0 family ethernet-switching '
         'vlan members {segmentation_id}',

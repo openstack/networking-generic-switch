@@ -373,6 +373,20 @@ error: configuration check-out failed
                           'family ethernet-switching '
                           'vlan members 33'])
 
+        cmd_set = self.switch._format_commands(
+            juniper.Juniper.SET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['set protocols rstp interface '
+                          '3333 edge'])
+
+        cmd_set = self.switch._format_commands(
+            juniper.Juniper.UNSET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['delete protocols rstp interface '
+                          '3333 edge'])
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
                 return_value="", autospec=True)
