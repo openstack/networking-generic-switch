@@ -14,8 +14,14 @@
 import json
 import re
 
+from oslo_log import log as logging
+
+from networking_generic_switch._i18n import _
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch.devices import utils as device_utils
+from networking_generic_switch import exceptions as exc
+
+LOG = logging.getLogger(__name__)
 
 
 class Cumulus(netmiko_devices.NetmikoSwitch):
@@ -344,14 +350,11 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
                     vtep_list = [v.strip() for v in vteps.split(',')]
                     self._physnet_her_map[physnet.strip()] = vtep_list
             except ValueError as e:
-                from oslo_log import log as logging
-                LOG = logging.getLogger(__name__)
                 LOG.error(
                     "Invalid ngs_physnet_her_flood format. "
                     "Expected 'physnet1:ip1,ip2;physnet2:ip3,ip4', got: "
                     "'%s'. Error: %s",
                     self.physnet_her_flood, e)
-                from networking_generic_switch import exceptions as exc
                 raise exc.GenericSwitchNetmikoConfigError()
 
         super(CumulusNVUE, self).__init__(device_cfg, *args, **kwargs)
@@ -478,11 +481,11 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         # Step 1: EVPN VNI configuration (distributed EVPN deployments)
         if self.evpn_vni_config:
             if not self.bgp_asn:
-                from networking_generic_switch import exceptions as exc
-                raise exc.GenericSwitchNetmikoConfigError(
-                    switch=self.device_name,
-                    error='ngs_bgp_asn configuration parameter is '
-                          'required when ngs_evpn_vni_config is enabled')
+                LOG.error(
+                    _("ngs_bgp_asn configuration parameter is required when "
+                      "ngs_evpn_vni_config is enabled. Device: %(device)s"),
+                    {'device': device_utils.sanitise_config(self.config)})
+                raise exc.GenericSwitchNetmikoConfigError()
             cmds.extend(self._format_commands(
                 self.PLUG_EVPN_VNI,
                 bgp_asn=self.bgp_asn,
@@ -544,11 +547,11 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         # Step 2: Remove EVPN VNI configuration if it was created
         if self.evpn_vni_config:
             if not self.bgp_asn:
-                from networking_generic_switch import exceptions as exc
-                raise exc.GenericSwitchNetmikoConfigError(
-                    switch=self.device_name,
-                    error='ngs_bgp_asn configuration parameter is '
-                          'required when ngs_evpn_vni_config is enabled')
+                LOG.error(
+                    _("ngs_bgp_asn configuration parameter is required when "
+                      "ngs_evpn_vni_config is enabled. Device: %(device)s"),
+                    {'device': device_utils.sanitise_config(self.config)})
+                raise exc.GenericSwitchNetmikoConfigError()
             cmds.extend(self._format_commands(
                 self.UNPLUG_EVPN_VNI,
                 bgp_asn=self.bgp_asn,

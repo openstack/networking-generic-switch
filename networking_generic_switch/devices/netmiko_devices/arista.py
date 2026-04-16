@@ -16,6 +16,7 @@ import re
 
 from oslo_log import log as logging
 
+from networking_generic_switch._i18n import _
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
@@ -338,10 +339,11 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         :returns: Command output
         """
         if not self.bgp_asn:
-            raise exc.GenericSwitchNetmikoConfigError(
-                switch=self.device_name,
-                error='ngs_bgp_asn configuration parameter is required '
-                      'for L2VNI support on Arista EOS switches')
+            LOG.error(
+                _("ngs_bgp_asn configuration parameter is required for L2VNI "
+                  "support on Arista EOS switches. Device: %(device)s"),
+                {'device': device_utils.sanitise_config(self.config)})
+            raise exc.GenericSwitchNetmikoConfigError()
 
         cmds = []
 
@@ -400,10 +402,11 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         :returns: Command output
         """
         if not self.bgp_asn:
-            raise exc.GenericSwitchNetmikoConfigError(
-                switch=self.device_name,
-                error='ngs_bgp_asn configuration parameter is required '
-                      'for L2VNI support on Arista EOS switches')
+            LOG.error(
+                _("ngs_bgp_asn configuration parameter is required for L2VNI "
+                  "support on Arista EOS switches. Device: %(device)s"),
+                {'device': device_utils.sanitise_config(self.config)})
+            raise exc.GenericSwitchNetmikoConfigError()
 
         cmds = []
 
