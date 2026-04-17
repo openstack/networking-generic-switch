@@ -91,6 +91,42 @@ command_descriptions = {
         configuration on the switch',
     'ADD_ACL_TABLE': 'A tuple of command strings used to add an ACL \
         table for a security group',
+    'ENSURE_VLAN': 'A tuple of command strings used to ensure a VLAN \
+        exists before configuring VXLAN mappings',
+    'PLUG_EVPN_VLAN': 'A tuple of command strings used to configure \
+        EVPN VLAN in BGP for L2VNI',
+    'PLUG_EVPN_ROUTE_TARGET_AUTO': 'A tuple of command strings used \
+        to set automatic EVPN route-targets',
+    'PLUG_EVPN_ROUTE_TARGET_EXPLICIT': 'A tuple of command strings \
+        used to set an explicit EVPN route-target',
+    'PLUG_MCAST_FLOOD_VTEP': 'A tuple of command strings used to \
+        configure multicast flood VTEP for BUM traffic',
+    'UNPLUG_MCAST_FLOOD_VTEP': 'A tuple of command strings used to \
+        remove multicast flood VTEP configuration',
+    'UNPLUG_EVPN_VLAN': 'A tuple of command strings used to remove \
+        EVPN VLAN from BGP',
+    'PLUG_EVPN_VNI': 'A tuple of command strings used to configure \
+        EVPN VNI in the control plane',
+    'PLUG_VLAN_VNI_SEGMENT': 'A tuple of command strings used to map \
+        a VLAN to a VNI segment',
+    'PLUG_NVE_MEMBER': 'A tuple of command strings used to add VNI \
+        membership to an NVE interface',
+    'PLUG_NVE_MCAST_GROUP': 'A tuple of command strings used to \
+        configure a multicast group on the NVE interface',
+    'PLUG_NVE_INGRESS_REPLICATION': 'A tuple of command strings used \
+        to configure ingress-replication on the NVE interface',
+    'UNPLUG_NVE_MEMBER': 'A tuple of command strings used to remove \
+        VNI membership from an NVE interface',
+    'UNPLUG_VLAN_VNI_SEGMENT': 'A tuple of command strings used to \
+        remove the VLAN to VNI segment mapping',
+    'UNPLUG_EVPN_VNI': 'A tuple of command strings used to remove \
+        EVPN VNI from the control plane',
+    'PLUG_HER_FLOOD': 'A tuple of command strings used to configure \
+        a head-end-replication flood list entry',
+    'PLUG_EVPN_VRF_TARGET': 'A tuple of command strings used to \
+        configure an EVPN VRF target for L2VNI',
+    'UNPLUG_EVPN_VRF_TARGET': 'A tuple of command strings used to \
+        remove the EVPN VRF target',
 }
 
 class DeviceParser:

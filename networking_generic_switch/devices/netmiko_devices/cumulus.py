@@ -241,6 +241,28 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         re.compile(r'Failure during apply'),
     )
 
+    PLUG_EVPN_VNI = (
+        'vtysh -c "configure terminal" '
+        '-c "router bgp {bgp_asn}" '
+        '-c "address-family l2vpn evpn" '
+        '-c "vni {vni}" '
+        '-c "rd auto" '
+        '-c "route-target import auto" '
+        '-c "route-target export auto"',
+    )
+
+    UNPLUG_EVPN_VNI = (
+        'vtysh -c "configure terminal" '
+        '-c "router bgp {bgp_asn}" '
+        '-c "address-family l2vpn evpn" '
+        '-c "no vni {vni}"',
+    )
+
+    PLUG_HER_FLOOD = (
+        'nv set nve vxlan flooding head-end-replication '
+        '{vtep_ip}',
+    )
+
     def __init__(self, device_cfg, *args, **kwargs):
         """Initialize Cumulus NVUE with VXLAN configuration support.
 
@@ -385,33 +407,24 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
                     switch=self.device_name,
                     error='ngs_bgp_asn configuration parameter is '
                           'required when ngs_evpn_vni_config is enabled')
-            # Configure per-VNI EVPN in FRR using vtysh
-            evpn_cmd = (
-                f'vtysh -c "configure terminal" '
-                f'-c "router bgp {self.bgp_asn}" '
-                f'-c "address-family l2vpn evpn" '
-                f'-c "vni {vni}" '
-                f'-c "rd auto" '
-                f'-c "route-target import auto" '
-                f'-c "route-target export auto"')
-            cmds.append(evpn_cmd)
+            cmds.extend(self._format_commands(
+                self.PLUG_EVPN_VNI,
+                bgp_asn=self.bgp_asn,
+                vni=vni))
 
         # Step 2: Map VLAN to VNI
-        vxlan_cmds = self._format_commands(
+        cmds.extend(self._format_commands(
             self.PLUG_SWITCH_TO_NETWORK,
             vni=vni,
-            segmentation_id=segmentation_id)
-        cmds.extend(vxlan_cmds)
+            segmentation_id=segmentation_id))
 
         # Step 3: Configure HER flood list if provided
         her_flood_list = self._get_her_flood_list_for_physnet(physnet)
         if her_flood_list:
-            # Cumulus uses nv set for HER flood list
             for vtep_ip in her_flood_list:
-                her_cmd = (
-                    f'nv set nve vxlan flooding head-end-replication '
-                    f'{vtep_ip}')
-                cmds.append(her_cmd)
+                cmds.extend(self._format_commands(
+                    self.PLUG_HER_FLOOD,
+                    vtep_ip=vtep_ip))
 
         return self.send_commands_to_device(cmds)
 
@@ -443,13 +456,10 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
                     switch=self.device_name,
                     error='ngs_bgp_asn configuration parameter is '
                           'required when ngs_evpn_vni_config is enabled')
-            # Remove per-VNI EVPN from FRR
-            evpn_cmd = (
-                f'vtysh -c "configure terminal" '
-                f'-c "router bgp {self.bgp_asn}" '
-                f'-c "address-family l2vpn evpn" '
-                f'-c "no vni {vni}"')
-            cmds.append(evpn_cmd)
+            cmds.extend(self._format_commands(
+                self.UNPLUG_EVPN_VNI,
+                bgp_asn=self.bgp_asn,
+                vni=vni))
 
         return self.send_commands_to_device(cmds)
 

@@ -152,6 +152,42 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         'shutdown',
     )
 
+    ENSURE_VLAN = (
+        'vlan {segmentation_id}',
+        'exit',
+    )
+
+    PLUG_EVPN_VLAN = (
+        'router bgp {bgp_asn}',
+        'vlan {segmentation_id}',
+        'rd auto',
+        'redistribute learned',
+    )
+
+    PLUG_EVPN_ROUTE_TARGET_AUTO = (
+        'route-target export auto {bgp_asn}',
+        'route-target import auto {bgp_asn}',
+    )
+
+    PLUG_EVPN_ROUTE_TARGET_EXPLICIT = (
+        'route-target both {evpn_route_target}',
+    )
+
+    PLUG_MCAST_FLOOD_VTEP = (
+        'interface {vxlan_interface}',
+        'vxlan vlan {segmentation_id} flood vtep {mcast_group}',
+    )
+
+    UNPLUG_MCAST_FLOOD_VTEP = (
+        'interface {vxlan_interface}',
+        'no vxlan vlan {segmentation_id} flood vtep',
+    )
+
+    UNPLUG_EVPN_VLAN = (
+        'router bgp {bgp_asn}',
+        'no vlan {segmentation_id}',
+    )
+
     def __init__(self, device_cfg, *args, **kwargs):
         """Initialize Arista EOS device with VXLAN configuration support.
 
@@ -295,50 +331,41 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         cmds = []
 
         # Step 0: Ensure VLAN exists
-        vlan_cmds = [
-            f'vlan {segmentation_id}',
-            'exit',
-        ]
-        cmds.extend(vlan_cmds)
+        cmds.extend(self._format_commands(
+            self.ENSURE_VLAN,
+            segmentation_id=segmentation_id))
 
         # Step 1: EVPN VLAN configuration (BGP control plane)
         # NOTE: EVPN used for MAC/IP learning in both modes
-        evpn_cmds = [
-            f'router bgp {self.bgp_asn}',
-            f'vlan {segmentation_id}',
-            'rd auto',
-            'redistribute learned',
-        ]
+        cmds.extend(self._format_commands(
+            self.PLUG_EVPN_VLAN,
+            bgp_asn=self.bgp_asn,
+            segmentation_id=segmentation_id))
 
         if self.evpn_route_target == 'auto':
-            evpn_cmds.extend([
-                f'route-target export auto {self.bgp_asn}',
-                f'route-target import auto {self.bgp_asn}',
-            ])
+            cmds.extend(self._format_commands(
+                self.PLUG_EVPN_ROUTE_TARGET_AUTO,
+                bgp_asn=self.bgp_asn))
         else:
-            evpn_cmds.append(
-                f'route-target both {self.evpn_route_target}')
-
-        cmds.extend(evpn_cmds)
+            cmds.extend(self._format_commands(
+                self.PLUG_EVPN_ROUTE_TARGET_EXPLICIT,
+                evpn_route_target=self.evpn_route_target))
 
         # Step 2: Map VLAN to VNI
-        vxlan_cmds = self._format_commands(
+        cmds.extend(self._format_commands(
             self.PLUG_SWITCH_TO_NETWORK,
             vni=vni,
             segmentation_id=segmentation_id,
-            vxlan_interface=self.vxlan_interface)
-        cmds.extend(vxlan_cmds)
+            vxlan_interface=self.vxlan_interface))
 
         # Step 3: BUM traffic replication configuration
         if self.bum_replication_mode == 'multicast':
-            # Use multicast group for BUM traffic (ASM with PIM)
             mcast_group = self._get_multicast_group(vni)
-            multicast_cmds = [
-                f'interface {self.vxlan_interface}',
-                f'vxlan vlan {segmentation_id} flood vtep {mcast_group}',
-            ]
-            cmds.extend(multicast_cmds)
-        # else: ingress-replication is the default, no explicit config needed
+            cmds.extend(self._format_commands(
+                self.PLUG_MCAST_FLOOD_VTEP,
+                vxlan_interface=self.vxlan_interface,
+                segmentation_id=segmentation_id,
+                mcast_group=mcast_group))
 
         return self.send_commands_to_device(cmds)
 
@@ -367,26 +394,23 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
 
         # Step 1: Remove multicast flood vtep (if in multicast mode)
         if self.bum_replication_mode == 'multicast':
-            multicast_cmds = [
-                f'interface {self.vxlan_interface}',
-                f'no vxlan vlan {segmentation_id} flood vtep',
-            ]
-            cmds.extend(multicast_cmds)
+            cmds.extend(self._format_commands(
+                self.UNPLUG_MCAST_FLOOD_VTEP,
+                vxlan_interface=self.vxlan_interface,
+                segmentation_id=segmentation_id))
 
         # Step 2: Remove VXLAN map
-        vxlan_cmds = self._format_commands(
+        cmds.extend(self._format_commands(
             self.UNPLUG_SWITCH_FROM_NETWORK,
             vni=vni,
             segmentation_id=segmentation_id,
-            vxlan_interface=self.vxlan_interface)
-        cmds.extend(vxlan_cmds)
+            vxlan_interface=self.vxlan_interface))
 
         # Step 3: Remove EVPN VLAN from BGP
-        evpn_cmds = [
-            f'router bgp {self.bgp_asn}',
-            f'no vlan {segmentation_id}',
-        ]
-        cmds.extend(evpn_cmds)
+        cmds.extend(self._format_commands(
+            self.UNPLUG_EVPN_VLAN,
+            bgp_asn=self.bgp_asn,
+            segmentation_id=segmentation_id))
 
         return self.send_commands_to_device(cmds)
 
