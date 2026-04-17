@@ -14,9 +14,13 @@
 
 import re
 
+from oslo_log import log as logging
+
 from networking_generic_switch.devices import netmiko_devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
+
+LOG = logging.getLogger(__name__)
 
 
 class AristaEos(netmiko_devices.NetmikoSwitch):
@@ -28,7 +32,7 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
     ~~~~~~~~~~~~~~~~~~~
 
     For VXLAN L2VNI support, the ``ngs_bgp_asn`` configuration parameter is
-    required. The ``vxlan_interface`` parameter can optionally be specified
+    required. The ``ngs_vxlan_interface`` parameter can optionally be specified
     (defaults to ``Vxlan1``). The ``ngs_evpn_route_target`` parameter can
     optionally be specified to configure the route-target value. When set to
     ``auto`` (the default), the commands ``route-target export auto <ASN>``
@@ -48,7 +52,7 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         [genericswitch:arista-switch]
         device_type = netmiko_arista_eos
         ngs_bgp_asn = 65000
-        vxlan_interface = Vxlan1
+        ngs_vxlan_interface = Vxlan1
         ngs_evpn_route_target = auto
         ngs_bum_replication_mode = ingress-replication
         ngs_mcast_group_base = 239.1.1.0
@@ -159,7 +163,18 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         all ngs_* options.
         """
         # Extract VXLAN config before parent removes ngs_* options
-        self.vxlan_interface = device_cfg.get('vxlan_interface', 'Vxlan1')
+        # Support both ngs_vxlan_interface (new) and deprecated
+        self.vxlan_interface = device_cfg.get('ngs_vxlan_interface')
+        if self.vxlan_interface is None:
+            # Fallback to deprecated parameter for backward compatibility
+            self.vxlan_interface = device_cfg.pop('vxlan_interface',
+                                                  'Vxlan1')
+            if self.vxlan_interface != 'Vxlan1':
+                LOG.warning(
+                    "Configuration parameter 'vxlan_interface' is "
+                    "deprecated and will be removed in a future release. "
+                    "Please use 'ngs_vxlan_interface' instead.")
+
         self.bgp_asn = device_cfg.get('ngs_bgp_asn')
         self.evpn_route_target = device_cfg.get('ngs_evpn_route_target',
                                                 'auto')

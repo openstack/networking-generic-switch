@@ -49,7 +49,7 @@ class Sonic(netmiko_devices.NetmikoSwitch):
     VXLAN L2VNI Support
     ~~~~~~~~~~~~~~~~~~~
 
-    For VXLAN L2VNI support, the ``vtep_name`` and ``ngs_bgp_asn``
+    For VXLAN L2VNI support, the ``ngs_vtep_name`` and ``ngs_bgp_asn``
     configuration parameters are required. Uses BGP EVPN with
     ingress-replication for BUM traffic handling.
 
@@ -57,7 +57,7 @@ class Sonic(netmiko_devices.NetmikoSwitch):
 
         [genericswitch:<hostname>]
         device_type = netmiko_sonic
-        vtep_name = vtep
+        ngs_vtep_name = vtep
         ngs_bgp_asn = 65000
 
     Security Group Implementation
@@ -82,7 +82,17 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         all ngs_* options.
         """
         # Extract VTEP config before parent removes ngs_* options
-        self.vtep_name = device_cfg.get('vtep_name')
+        # Support both ngs_vtep_name (new) and vtep_name (deprecated)
+        self.vtep_name = device_cfg.get('ngs_vtep_name')
+        if self.vtep_name is None:
+            # Fallback to deprecated parameter name for backward compatibility
+            self.vtep_name = device_cfg.pop('vtep_name', None)
+            if self.vtep_name is not None:
+                LOG.warning(
+                    "Configuration parameter 'vtep_name' is deprecated and "
+                    "will be removed in a future release. Please use "
+                    "'ngs_vtep_name' instead.")
+
         self.bgp_asn = device_cfg.get('ngs_bgp_asn')
 
         super(Sonic, self).__init__(device_cfg, *args, **kwargs)

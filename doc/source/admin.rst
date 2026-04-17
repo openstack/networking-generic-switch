@@ -543,7 +543,7 @@ SONiC Configuration Parameters
 
 Configuration parameters:
 
-* ``vtep_name`` - VXLAN tunnel endpoint interface name (required)
+* ``ngs_vtep_name`` - VXLAN tunnel endpoint interface name (required)
 * ``ngs_bgp_asn`` - BGP AS number (required)
 
 Configuration Example:
@@ -558,7 +558,7 @@ Configuration Example:
    ngs_physical_networks = datacenter1,datacenter2
 
    # VTEP interface name (required)
-   vtep_name = vtep
+   ngs_vtep_name = vtep
 
    # BGP AS number (required)
    ngs_bgp_asn = 65000
@@ -608,7 +608,7 @@ Arista EOS Configuration Parameters
 
 Configuration parameters:
 
-* ``vxlan_interface`` - VXLAN interface name (default: ``Vxlan1``)
+* ``ngs_vxlan_interface`` - VXLAN interface name (default: ``Vxlan1``)
 * ``ngs_bgp_asn`` - BGP AS number (required)
 * ``ngs_evpn_route_target`` - Route-target value (default: ``auto``)
 * ``ngs_bum_replication_mode`` - BUM traffic replication mode (default:
@@ -635,7 +635,7 @@ Configuration Example (Ingress-Replication Mode):
    ngs_physical_networks = datacenter1,datacenter2
 
    # VXLAN interface name (optional, default: Vxlan1)
-   vxlan_interface = Vxlan1
+   ngs_vxlan_interface = Vxlan1
 
    # BGP AS number (required)
    ngs_bgp_asn = 65000
@@ -661,7 +661,7 @@ Configuration Example (Multicast Mode):
    ngs_mcast_group_base = 239.1.1.0
 
    # VXLAN interface (optional, default: Vxlan1)
-   vxlan_interface = Vxlan1
+   ngs_vxlan_interface = Vxlan1
 
    # BGP AS number (required)
    ngs_bgp_asn = 65000
