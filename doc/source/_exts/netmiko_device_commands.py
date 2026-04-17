@@ -70,7 +70,27 @@ command_descriptions = {
     'ADD_SECURITY_GROUP_RULE_EGRESS': 'Add an egress rule to a security group',
     'BIND_SECURITY_GROUP': 'Bind a port to a security group',
     'UNBIND_SECURITY_GROUP': 'Unbind a port from a security group',
-    'SUPPORT_SG_PORT_RANGE': 'Whether the switch ACL implementation supports port ranges',
+    'SUPPORT_SG_PORT_RANGE': 'Whether the switch ACL implementation \
+        supports port ranges',
+    'REMOVE_SECURITY_GROUP_RULE_INGRESS': 'Remove an ingress rule from \
+        a security group',
+    'REMOVE_SECURITY_GROUP_RULE_EGRESS': 'Remove an egress rule from \
+        a security group',
+    'SHOW_VLANS': 'A tuple of command strings used to show VLAN \
+        information',
+    'SHOW_PORTS': 'A tuple of command strings used to show port \
+        information',
+    'SHOW_BRIDGE_EXTERNAL_IDS': 'A tuple of command strings used to \
+        show the external IDs of a bridge',
+    'TABLE_ADD_COMMAND': 'Command string used to add an ACL table',
+    'TABLE_REMOVE_COMMAND': 'Command string used to remove an ACL \
+        table',
+    'WRITE_ACL': 'A tuple of command strings used to write ACL \
+        configuration to the switch',
+    'LOAD_ACL': 'A tuple of command strings used to load ACL \
+        configuration on the switch',
+    'ADD_ACL_TABLE': 'A tuple of command strings used to add an ACL \
+        table for a security group',
 }
 
 class DeviceParser:
