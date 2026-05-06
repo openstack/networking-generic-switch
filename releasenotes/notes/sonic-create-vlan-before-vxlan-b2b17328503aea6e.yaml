@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed SONiC driver to create VLANs before adding members or configuring
+    VXLAN mappings. Previously, the driver attempted to add VLAN members
+    and configure VXLAN mappings without creating the VLAN first. This
+    caused "Error: VlanXXX does not exist" failures when processing trunk
+    subports. The fix ensures VLANs are created in both
+    ``add_subports_on_trunk()`` and ``plug_switch_to_network()`` methods.
+    See `LP#2148349 <https://bugs.launchpad.net/networking-generic-switch/+bug/2148349>`_
+    for details.

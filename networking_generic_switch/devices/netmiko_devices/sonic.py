@@ -514,6 +514,7 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         deployments and avoids static flood list scaling issues.
 
         Configures the following in order:
+        0. Create VLAN (must exist before VXLAN mapping)
         1. Configure EVPN VNI in FRR (BGP control plane)
         2. Map VLAN to VNI on the VTEP
 
@@ -535,6 +536,12 @@ class Sonic(netmiko_devices.NetmikoSwitch):
                       'for L2VNI support on SONiC switches')
 
         cmds = []
+
+        # Step 0: Ensure VLAN exists
+        vlan_cmds = self._format_commands(
+            self.ADD_NETWORK,
+            segmentation_id=segmentation_id)
+        cmds.extend(vlan_cmds)
 
         # Step 1: Configure per-VNI EVPN in FRR (BGP control plane)
         evpn_cmd = (
@@ -627,6 +634,35 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         with self._get_connection() as net_connect:
             output = net_connect.send_command(cmd[0])
             return self._parse_vlan_vni(output, segmentation_id, vni)
+
+    @netmiko_devices.check_output('add trunk subports')
+    def add_subports_on_trunk(self, binding_profile, port_id, subports):
+        """Allow subports on trunk, creating VLANs first if needed.
+
+        SONiC requires VLANs to exist before members can be added. This
+        override ensures VLANs are created before attempting to add members.
+
+        Note: SONiC uses the same command for both physical ports and
+        PortChannels (bonds), so we don't need to check is_802_3ad.
+
+        :param binding_profile: Binding profile of parent port
+        :param port_id: The name of the switch port from Local Link Information
+        :param subports: List with subports objects.
+        """
+        cmds = []
+
+        # Create VLANs first (idempotent - won't fail if VLAN exists)
+        for sub_port in subports:
+            cmds += self._format_commands(
+                self.ADD_NETWORK,
+                segmentation_id=sub_port['segmentation_id'])
+
+        # Then add members to trunk (same command for physical ports and bonds)
+        for sub_port in subports:
+            cmds += self._format_commands(
+                self.ADD_NETWORK_TO_TRUNK, port=port_id,
+                segmentation_id=sub_port['segmentation_id'])
+        return self.send_commands_to_device(cmds)
 
 
 class DellEnterpriseSonic(Sonic):

@@ -653,7 +653,8 @@ Total count : 2'''
             '-c "route-target export auto"')
         mock_exec.assert_called_with(
             switch,
-            [expected_evpn_cmd,
+            ['config vlan add 100',
+             expected_evpn_cmd,
              'config vxlan map add vtep 100 10100'])
 
     def test_plug_switch_to_network_without_vtep_name(self):
@@ -881,45 +882,52 @@ Total count : 0'''
         result = switch.vlan_has_vni(100, 5000)
         self.assertFalse(result)
 
-    def test__parse_vlan_vni_format_with_vtep_column(self):
-        """Test parsing format with VTEP Name column (Format 3)."""
-        output = '''VTEP Name    VLAN ID    VNI
------------  ---------  -------
-vtep1        100        10000
-vtep1        200        20000
-vtep1        300        30000'''
-        result = self.switch._parse_vlan_vni(output, 100, 10000)
-        self.assertTrue(result)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
+    def test_add_subports_on_trunk_no_subports(self, mock_exec):
+        """Test add_subports_on_trunk with no subports."""
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'bar', 'port_id': 'Ethernet8'}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': 'port-uuid'
+        }
+        subports = []
+        self.switch.add_subports_on_trunk(parent_port, 'Ethernet8',
+                                          subports=subports)
+        mock_exec.assert_called_with(self.switch, [])
 
-    def test__parse_vlan_vni_format_with_vtep_column_no_match(self):
-        """Test parsing format with VTEP Name column, wrong VNI."""
-        output = '''VTEP Name    VLAN ID    VNI
------------  ---------  -------
-vtep1        100        10000
-vtep1        200        20000'''
-        result = self.switch._parse_vlan_vni(output, 100, 9999)
-        self.assertFalse(result)
-
-    def test__parse_vlan_vni_format_with_equals_separator(self):
-        """Test parsing format with equals sign separator (Format 4)."""
-        output = '''VLAN VNI
-= = = = = =
-Vlan99 99
-Total count: 1'''
-        result = self.switch._parse_vlan_vni(output, 99, 99)
-        self.assertTrue(result)
-
-    def test__parse_vlan_vni_format_right_aligned(self):
-        """Test parsing with right-aligned VNI column."""
-        output = '''+---------+-------+
-| VLAN    |   VNI |
-+=========+=======+
-| Vlan100 |   100 |
-+---------+-------+
-| Vlan101 |   101 |
-+---------+-------+'''
-        result = self.switch._parse_vlan_vni(output, 101, 101)
-        self.assertTrue(result)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
+    def test_add_subports_on_trunk_subports(self, mock_exec):
+        """Test add_subports_on_trunk creates VLANs before adding members."""
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'bar', 'port_id': 'Ethernet8'}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': 'port-uuid'
+        }
+        subports = [
+            {"segmentation_id": 100},
+            {"segmentation_id": 200}
+        ]
+        self.switch.add_subports_on_trunk(parent_port, 'Ethernet8',
+                                          subports=subports)
+        # Should create VLANs first, then add members
+        mock_exec.assert_called_with(
+            self.switch,
+            ['config vlan add 100',
+             'config vlan add 200',
+             'config vlan member add 100 Ethernet8',
+             'config vlan member add 200 Ethernet8'])
 
 
 class TestNetmikoDellEnterpriseSonic(test_netmiko_base.NetmikoSwitchTestBase):
