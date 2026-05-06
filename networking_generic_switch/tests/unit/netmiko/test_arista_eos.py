@@ -349,14 +349,41 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertEqual(switch.vxlan_interface, 'Vxlan1')
         self.assertIsNone(switch.bgp_asn)
 
-    def test_init_custom_vxlan_interface(self):
-        """Test __init__ with custom VXLAN interface."""
+    def test_init_custom_ngs_vxlan_interface(self):
+        """Test __init__ with custom ngs_vxlan_interface."""
+        device_cfg = {
+            'device_type': 'netmiko_arista_eos',
+            'ngs_vxlan_interface': 'Vxlan2'
+        }
+        switch = arista.AristaEos(device_cfg)
+        self.assertEqual(switch.vxlan_interface, 'Vxlan2')
+
+    @mock.patch('networking_generic_switch.devices.'
+                'netmiko_devices.arista.LOG', autospec=True)
+    def test_init_deprecated_vxlan_interface(self, mock_log):
+        """Test __init__ with deprecated vxlan_interface parameter."""
         device_cfg = {
             'device_type': 'netmiko_arista_eos',
             'vxlan_interface': 'Vxlan2'
         }
         switch = arista.AristaEos(device_cfg)
         self.assertEqual(switch.vxlan_interface, 'Vxlan2')
+        # Verify vxlan_interface was removed from config to avoid
+        # passing to Netmiko
+        self.assertNotIn('vxlan_interface', switch.config)
+        # Verify deprecation warning was logged
+        mock_log.warning.assert_called_once()
+        self.assertIn('deprecated', mock_log.warning.call_args[0][0])
+
+    def test_init_ngs_vxlan_interface_takes_precedence(self):
+        """Test ngs_vxlan_interface takes precedence."""
+        device_cfg = {
+            'device_type': 'netmiko_arista_eos',
+            'ngs_vxlan_interface': 'Vxlan3',
+            'vxlan_interface': 'Vxlan2'
+        }
+        switch = arista.AristaEos(device_cfg)
+        self.assertEqual(switch.vxlan_interface, 'Vxlan3')
 
     def test_init_with_bgp_asn(self):
         """Test __init__ with BGP ASN configuration."""
@@ -414,7 +441,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         device_cfg = {
             'device_type': 'netmiko_arista_eos',
             'ngs_bgp_asn': '65000',
-            'vxlan_interface': 'Vxlan2'
+            'ngs_vxlan_interface': 'Vxlan2'
         }
         switch = arista.AristaEos(device_cfg)
         switch.plug_switch_to_network(10100, 100)
@@ -476,7 +503,7 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         device_cfg = {
             'device_type': 'netmiko_arista_eos',
             'ngs_bgp_asn': '65000',
-            'vxlan_interface': 'Vxlan2'
+            'ngs_vxlan_interface': 'Vxlan2'
         }
         switch = arista.AristaEos(device_cfg)
         switch.unplug_switch_from_network(10100, 100)

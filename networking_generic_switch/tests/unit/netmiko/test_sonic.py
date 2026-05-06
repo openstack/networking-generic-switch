@@ -611,14 +611,41 @@ Total count : 2'''
         self.assertIsNone(switch.vtep_name)
         self.assertIsNone(switch.bgp_asn)
 
-    def test_init_with_vtep_name(self):
-        """Test __init__ with vtep_name."""
+    def test_init_with_ngs_vtep_name(self):
+        """Test __init__ with ngs_vtep_name."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'ngs_vtep_name': 'vtep1'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertEqual(switch.vtep_name, 'vtep1')
+
+    @mock.patch('networking_generic_switch.devices.'
+                'netmiko_devices.sonic.LOG', autospec=True)
+    def test_init_with_deprecated_vtep_name(self, mock_log):
+        """Test __init__ with deprecated vtep_name parameter."""
         device_cfg = {
             'device_type': 'netmiko_sonic',
             'vtep_name': 'vtep1'
         }
         switch = sonic.Sonic(device_cfg)
         self.assertEqual(switch.vtep_name, 'vtep1')
+        # Verify vtep_name was removed from config to avoid
+        # passing to Netmiko
+        self.assertNotIn('vtep_name', switch.config)
+        # Verify deprecation warning was logged
+        mock_log.warning.assert_called_once()
+        self.assertIn('deprecated', mock_log.warning.call_args[0][0])
+
+    def test_init_ngs_vtep_name_takes_precedence(self):
+        """Test ngs_vtep_name takes precedence over vtep_name."""
+        device_cfg = {
+            'device_type': 'netmiko_sonic',
+            'ngs_vtep_name': 'vtep_new',
+            'vtep_name': 'vtep_old'
+        }
+        switch = sonic.Sonic(device_cfg)
+        self.assertEqual(switch.vtep_name, 'vtep_new')
 
     def test_init_with_bgp_asn(self):
         """Test __init__ with BGP ASN configuration."""
@@ -638,7 +665,7 @@ Total count : 2'''
         """Test plug_switch_to_network with BGP EVPN."""
         device_cfg = {
             'device_type': 'netmiko_sonic',
-            'vtep_name': 'vtep',
+            'ngs_vtep_name': 'vtep',
             'ngs_bgp_asn': '65000'
         }
         switch = sonic.Sonic(device_cfg)
@@ -671,7 +698,7 @@ Total count : 2'''
         """Test plug_switch_to_network fails without BGP ASN."""
         device_cfg = {
             'device_type': 'netmiko_sonic',
-            'vtep_name': 'vtep'
+            'ngs_vtep_name': 'vtep'
         }
         switch = sonic.Sonic(device_cfg)
         self.assertRaises(exc.GenericSwitchNetmikoConfigError,
@@ -684,7 +711,7 @@ Total count : 2'''
         """Test unplug_switch_from_network with BGP EVPN."""
         device_cfg = {
             'device_type': 'netmiko_sonic',
-            'vtep_name': 'vtep',
+            'ngs_vtep_name': 'vtep',
             'ngs_bgp_asn': '65000'
         }
         switch = sonic.Sonic(device_cfg)

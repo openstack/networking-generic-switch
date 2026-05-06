@@ -1,0 +1,29 @@
+---
+fixes:
+  - |
+    Fixed SONiC and Arista EOS drivers failing to establish SSH connections
+    when VXLAN L2VNI configuration parameters were set. The ``vtep_name``
+    (SONiC) and ``vxlan_interface`` (Arista) parameters were incorrectly
+    passed to Netmiko's ConnectHandler, causing connection errors.
+    These parameters have been renamed to ``ngs_vtep_name`` and
+    ``ngs_vxlan_interface`` respectively to align with the framework's
+    configuration handling.
+    See `LP#2148681
+    <https://bugs.launchpad.net/networking-generic-switch/+bug/2148681>`_
+    for details.
+upgrade:
+  - |
+    The SONiC driver's ``vtep_name`` configuration parameter has been
+    renamed to ``ngs_vtep_name``. Users should update their configuration
+    files to use the new parameter name.
+  - |
+    The Arista EOS driver's ``vxlan_interface`` configuration parameter has
+    been renamed to ``ngs_vxlan_interface``. Users should update their
+    configuration files to use the new parameter name.
+deprecations:
+  - |
+    The SONiC driver's ``vtep_name`` configuration parameter is deprecated
+    in favor of ``ngs_vtep_name``.
+  - |
+    The Arista EOS driver's ``vxlan_interface`` configuration parameter is
+    deprecated in favor of ``ngs_vxlan_interface``.
