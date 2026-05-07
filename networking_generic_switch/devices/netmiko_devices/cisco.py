@@ -178,6 +178,54 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
         'exit',
     )
 
+    PLUG_EVPN_VNI = (
+        'evpn',
+        'vni {vni} l2',
+        'rd auto',
+        'route-target both auto',
+        'exit',
+    )
+
+    PLUG_VLAN_VNI_SEGMENT = (
+        'vlan {segmentation_id}',
+        'vn-segment {vni}',
+        'exit',
+    )
+
+    PLUG_NVE_MEMBER = (
+        'interface {nve_interface}',
+        'member vni {vni}',
+    )
+
+    PLUG_NVE_MCAST_GROUP = (
+        'mcast-group {mcast_group}',
+        'exit',
+    )
+
+    PLUG_NVE_INGRESS_REPLICATION = (
+        'ingress-replication protocol bgp',
+        'suppress-arp',
+        'exit',
+    )
+
+    UNPLUG_NVE_MEMBER = (
+        'interface {nve_interface}',
+        'no member vni {vni}',
+        'exit',
+    )
+
+    UNPLUG_VLAN_VNI_SEGMENT = (
+        'vlan {segmentation_id}',
+        'no vn-segment',
+        'exit',
+    )
+
+    UNPLUG_EVPN_VNI = (
+        'evpn',
+        'no vni {vni}',
+        'exit',
+    )
+
     def __init__(self, device_cfg, *args, **kwargs):
         """Initialize Cisco NX-OS device with NVE configuration support.
 
@@ -232,52 +280,38 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
         :param physnet: Physical network name (unused, kept for
                         compatibility)
         """
-        cmds = [
-            # Step 1: EVPN VNI configuration (BGP control plane)
-            # NOTE: EVPN used for MAC/IP learning in both modes
-            'evpn',
-            'vni {vni} l2',
-            'rd auto',
-            'route-target both auto',
-            'exit',
-            # Step 2: VLAN to VNI mapping
-            'vlan {segmentation_id}',
-            'vn-segment {vni}',
-            'exit',
-            # Step 3: NVE interface membership
-            'interface {nve_interface}',
-            'member vni {vni}',
-        ]
+        cmds = []
+
+        # Step 1: EVPN VNI configuration (BGP control plane)
+        # NOTE: EVPN used for MAC/IP learning in both modes
+        cmds.extend(self._format_commands(
+            self.PLUG_EVPN_VNI, vni=vni))
+
+        # Step 2: VLAN to VNI mapping
+        cmds.extend(self._format_commands(
+            self.PLUG_VLAN_VNI_SEGMENT,
+            vni=vni,
+            segmentation_id=segmentation_id))
+
+        # Step 3: NVE interface membership
+        cmds.extend(self._format_commands(
+            self.PLUG_NVE_MEMBER,
+            vni=vni,
+            nve_interface=self.nve_interface))
 
         # Step 4: BUM traffic replication configuration
-        format_params = {
-            'vni': vni,
-            'segmentation_id': segmentation_id,
-            'nve_interface': self.nve_interface,
-        }
-
         if self.bum_replication_mode == 'multicast':
             # Use multicast group for BUM traffic (ASM with PIM)
             mcast_group = self._get_multicast_group(vni)
-            cmds.extend([
-                'mcast-group {mcast_group}',
-                'exit',
-            ])
-            format_params['mcast_group'] = mcast_group
+            cmds.extend(self._format_commands(
+                self.PLUG_NVE_MCAST_GROUP,
+                mcast_group=mcast_group))
         else:
             # Use ingress-replication with BGP (default)
-            cmds.extend([
-                'ingress-replication protocol bgp',
-                # Enable ARP suppression so VTEP responds to ARP using EVPN
-                # Type-2 routes instead of flooding ARP into the fabric
-                'suppress-arp',
-                'exit',
-            ])
+            cmds.extend(self._format_commands(
+                self.PLUG_NVE_INGRESS_REPLICATION))
 
-        formatted_cmds = self._format_commands(tuple(cmds),
-                                               **format_params)
-
-        return self.send_commands_to_device(formatted_cmds)
+        return self.send_commands_to_device(cmds)
 
     def unplug_switch_from_network(self, vni: int, segmentation_id: int,
                                    physnet: str = None):
@@ -292,25 +326,24 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
         :param segmentation_id: VLAN ID
         :param physnet: Physical network name (unused but kept for signature)
         """
-        cmds = [
-            'interface {nve_interface}',
-            'no member vni {vni}',
-            'exit',
-            'vlan {segmentation_id}',
-            'no vn-segment',
-            'exit',
-            'evpn',
-            'no vni {vni}',
-            'exit',
-        ]
+        cmds = []
 
-        formatted_cmds = self._format_commands(
-            tuple(cmds),
+        # Step 1: Remove NVE interface membership
+        cmds.extend(self._format_commands(
+            self.UNPLUG_NVE_MEMBER,
             vni=vni,
-            segmentation_id=segmentation_id,
-            nve_interface=self.nve_interface)
+            nve_interface=self.nve_interface))
 
-        return self.send_commands_to_device(formatted_cmds)
+        # Step 2: Remove VLAN to VNI mapping
+        cmds.extend(self._format_commands(
+            self.UNPLUG_VLAN_VNI_SEGMENT,
+            segmentation_id=segmentation_id))
+
+        # Step 3: Remove EVPN VNI configuration
+        cmds.extend(self._format_commands(
+            self.UNPLUG_EVPN_VNI, vni=vni))
+
+        return self.send_commands_to_device(cmds)
 
     def _get_acl_names(self, sg_id):
         # Add 'in' to the name to denote that this ACL contains switch

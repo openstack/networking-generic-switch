@@ -183,6 +183,23 @@ class Sonic(netmiko_devices.NetmikoSwitch):
 
     SUPPORT_SG_PORT_RANGE = True
 
+    PLUG_EVPN_VNI = (
+        'vtysh -c "configure terminal" '
+        '-c "router bgp {bgp_asn}" '
+        '-c "address-family l2vpn evpn" '
+        '-c "vni {vni}" '
+        '-c "rd auto" '
+        '-c "route-target import auto" '
+        '-c "route-target export auto"',
+    )
+
+    UNPLUG_EVPN_VNI = (
+        'vtysh -c "configure terminal" '
+        '-c "router bgp {bgp_asn}" '
+        '-c "address-family l2vpn evpn" '
+        '-c "no vni {vni}"',
+    )
+
     def _get_acl_names(self, sg_id):
         # convert to table name format now for consistency
         sg_id_upper = sg_id.upper().replace("-", "_")
@@ -554,23 +571,17 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         cmds.extend(vlan_cmds)
 
         # Step 1: Configure per-VNI EVPN in FRR (BGP control plane)
-        evpn_cmd = (
-            f'vtysh -c "configure terminal" '
-            f'-c "router bgp {self.bgp_asn}" '
-            f'-c "address-family l2vpn evpn" '
-            f'-c "vni {vni}" '
-            f'-c "rd auto" '
-            f'-c "route-target import auto" '
-            f'-c "route-target export auto"')
-        cmds.append(evpn_cmd)
+        cmds.extend(self._format_commands(
+            self.PLUG_EVPN_VNI,
+            bgp_asn=self.bgp_asn,
+            vni=vni))
 
         # Step 2: Map VLAN to VNI
-        vxlan_cmds = self._format_commands(
+        cmds.extend(self._format_commands(
             self.PLUG_SWITCH_TO_NETWORK,
             vni=vni,
             segmentation_id=segmentation_id,
-            vtep_name=self.vtep_name)
-        cmds.extend(vxlan_cmds)
+            vtep_name=self.vtep_name))
 
         return self.send_commands_to_device(cmds)
 
@@ -608,12 +619,10 @@ class Sonic(netmiko_devices.NetmikoSwitch):
             vtep_name=self.vtep_name)
 
         # Step 2: Remove per-VNI EVPN from FRR
-        evpn_cmd = (
-            f'vtysh -c "configure terminal" '
-            f'-c "router bgp {self.bgp_asn}" '
-            f'-c "address-family l2vpn evpn" '
-            f'-c "no vni {vni}"')
-        cmds.append(evpn_cmd)
+        cmds.extend(self._format_commands(
+            self.UNPLUG_EVPN_VNI,
+            bgp_asn=self.bgp_asn,
+            vni=vni))
 
         return self.send_commands_to_device(cmds)
 

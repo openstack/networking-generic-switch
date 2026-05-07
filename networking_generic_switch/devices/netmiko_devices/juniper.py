@@ -93,6 +93,15 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         'vlan members {segmentation_id}',
     )
 
+    PLUG_EVPN_VRF_TARGET = (
+        'set vlans {vlan_name} vrf-target '
+        'target:{bgp_asn}:{vni}',
+    )
+
+    UNPLUG_EVPN_VRF_TARGET = (
+        'delete vlans {vlan_name} vrf-target',
+    )
+
     def __init__(self, device_cfg, *args, **kwargs):
         """Initialize Juniper Junos with EVPN configuration support.
 
@@ -375,10 +384,11 @@ class Juniper(netmiko_devices.NetmikoSwitch):
                     switch=self.device_name,
                     error='ngs_bgp_asn configuration parameter is '
                           'required when ngs_evpn_vni_config is enabled')
-            # Configure VRF target for EVPN Type-2 routes
-            evpn_cmd = (f'set vlans {vlan_name} vrf-target '
-                        f'target:{self.bgp_asn}:{vni}')
-            cmds.append(evpn_cmd)
+            cmds.extend(self._format_commands(
+                self.PLUG_EVPN_VRF_TARGET,
+                vlan_name=vlan_name,
+                bgp_asn=self.bgp_asn,
+                vni=vni))
 
         return self.send_commands_to_device(cmds)
 
@@ -413,9 +423,9 @@ class Juniper(netmiko_devices.NetmikoSwitch):
                     switch=self.device_name,
                     error='ngs_bgp_asn configuration parameter is '
                           'required when ngs_evpn_vni_config is enabled')
-            # Remove VRF target
-            evpn_cmd = f'delete vlans {vlan_name} vrf-target'
-            cmds.append(evpn_cmd)
+            cmds.extend(self._format_commands(
+                self.UNPLUG_EVPN_VRF_TARGET,
+                vlan_name=vlan_name))
 
         return self.send_commands_to_device(cmds)
 
