@@ -15,6 +15,7 @@ import json
 import re
 
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch.devices import utils as device_utils
 
 
 class Cumulus(netmiko_devices.NetmikoSwitch):
@@ -124,6 +125,31 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
 
     Cumulus NVUE supports VXLAN L2VNI configuration. VLANs are mapped to VNIs
     on the default bridge domain ``br_default``.
+
+    Supports three BUM (Broadcast, Unknown unicast, Multicast) traffic
+    replication modes:
+
+    1. **ingress-replication** (default when no HER lists configured):
+       Uses EVPN-learned VTEPs for dynamic replication
+    2. **head-end-replication** (default when HER lists configured):
+       Uses static VTEP flood lists
+    3. **multicast**: Uses PIM multicast groups
+
+    Configuration parameters:
+
+    * ``ngs_bum_replication_mode`` - BUM traffic replication mode (default:
+      auto-detected based on HER list presence). Options:
+      ``ingress-replication``, ``head-end-replication``, ``multicast``
+    * ``ngs_her_flood_list`` - Global HER flood list (comma-separated VTEP IPs)
+    * ``ngs_physnet_her_flood`` - Per-physnet HER flood lists
+      (format: ``physnet1:ip1,ip2;physnet2:ip3,ip4``)
+    * ``ngs_mcast_group_map`` - Explicit VNI-to-multicast-group mappings
+    * ``ngs_mcast_group_base`` - Base multicast group address for automatic
+      derivation
+    * ``ngs_evpn_vni_config`` - Enable EVPN VNI control plane configuration
+      (default: false)
+    * ``ngs_bgp_asn`` - BGP AS number (required when ``ngs_evpn_vni_config``
+      is enabled)
 
     """
     NETMIKO_DEVICE_TYPE = "linux"
@@ -263,6 +289,16 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         '{vtep_ip}',
     )
 
+    PLUG_MCAST_FLOOD = (
+        'nv set bridge domain br_default vlan {segmentation_id} '
+        'vni {vni} flooding multicast-group {mcast_group}',
+    )
+
+    PLUG_INGRESS_REPLICATION = (
+        'nv set bridge domain br_default vlan {segmentation_id} '
+        'vni {vni} flooding head-end-replication evpn',
+    )
+
     def __init__(self, device_cfg, *args, **kwargs):
         """Initialize Cumulus NVUE with VXLAN configuration support.
 
@@ -277,6 +313,26 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         evpn_config = device_cfg.get('ngs_evpn_vni_config', 'false')
         self.evpn_vni_config = evpn_config.lower() in ('true', 'yes', '1')
         self.bgp_asn = device_cfg.get('ngs_bgp_asn')
+
+        # Use shared utility for multicast config parsing
+        mcast_config = device_utils.parse_vxlan_multicast_config(device_cfg)
+        self.mcast_group_base = mcast_config.mcast_group_base
+        self.mcast_group_increment = mcast_config.mcast_group_increment
+        self.mcast_group_map = mcast_config.mcast_group_map
+
+        # Determine BUM replication mode with backward compatibility
+        # Option B: Auto-detect head-end-replication if HER lists exist,
+        # otherwise default to ingress-replication
+        explicit_mode = device_cfg.get('ngs_bum_replication_mode')
+        if explicit_mode:
+            # User explicitly set the mode, use it
+            self.bum_replication_mode = mcast_config.bum_replication_mode
+        elif self.her_flood_list or self.physnet_her_flood:
+            # Backward compatibility: HER lists present, use static HER
+            self.bum_replication_mode = 'head-end-replication'
+        else:
+            # Default: EVPN-learned VTEPs
+            self.bum_replication_mode = 'ingress-replication'
 
         # Parse per-physnet HER flood mapping if provided
         self._physnet_her_map = {}
@@ -299,6 +355,20 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
                 raise exc.GenericSwitchNetmikoConfigError()
 
         super(CumulusNVUE, self).__init__(device_cfg, *args, **kwargs)
+
+    def _get_multicast_group(self, vni: int) -> str:
+        """Calculate multicast group address for a given VNI.
+
+        Delegates to shared utility function for consistent multicast
+        group derivation logic across all vendors.
+
+        :param vni: VXLAN Network Identifier
+        :returns: Multicast group IP address (e.g., '239.1.1.100')
+        :raises: GenericSwitchConfigError if no mapping or base configured
+        """
+        return device_utils.get_vxlan_multicast_group(
+            vni, self.mcast_group_map, self.mcast_group_base,
+            self.device_name)
 
     def _get_her_flood_list_for_physnet(self, physnet):
         """Resolve HER flood list for a given physical network.
@@ -385,12 +455,18 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
     @netmiko_devices.check_output('plug vni')
     def plug_switch_to_network(self, vni: int, segmentation_id: int,
                                physnet: str = None):
-        """Configure L2VNI mapping with HER flood list on Cumulus NVUE.
+        """Configure L2VNI mapping with BUM replication on Cumulus NVUE.
+
+        Supports three BUM (Broadcast, Unknown unicast, Multicast) traffic
+        replication modes:
+        1. **ingress-replication** (default): Uses EVPN-learned VTEPs
+        2. **head-end-replication**: Uses static VTEP flood lists
+        3. **multicast**: Uses PIM multicast groups
 
         Dynamically generates commands based on configuration:
         1. Configure EVPN VNI (if ngs_evpn_vni_config enabled)
         2. Map VLAN to VNI on the bridge
-        3. Configure HER flood list based on physnet (if provided)
+        3. Configure BUM replication based on mode
 
         :param vni: VXLAN Network Identifier
         :param segmentation_id: VLAN identifier
@@ -418,13 +494,27 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
             vni=vni,
             segmentation_id=segmentation_id))
 
-        # Step 3: Configure HER flood list if provided
-        her_flood_list = self._get_her_flood_list_for_physnet(physnet)
-        if her_flood_list:
-            for vtep_ip in her_flood_list:
-                cmds.extend(self._format_commands(
-                    self.PLUG_HER_FLOOD,
-                    vtep_ip=vtep_ip))
+        # Step 3: Configure BUM replication based on mode
+        if self.bum_replication_mode == 'multicast':
+            mcast_group = self._get_multicast_group(vni)
+            cmds.extend(self._format_commands(
+                self.PLUG_MCAST_FLOOD,
+                segmentation_id=segmentation_id,
+                vni=vni,
+                mcast_group=mcast_group))
+        elif self.bum_replication_mode == 'head-end-replication':
+            her_flood_list = self._get_her_flood_list_for_physnet(
+                physnet)
+            if her_flood_list:
+                for vtep_ip in her_flood_list:
+                    cmds.extend(self._format_commands(
+                        self.PLUG_HER_FLOOD,
+                        vtep_ip=vtep_ip))
+        elif self.bum_replication_mode == 'ingress-replication':
+            cmds.extend(self._format_commands(
+                self.PLUG_INGRESS_REPLICATION,
+                segmentation_id=segmentation_id,
+                vni=vni))
 
         return self.send_commands_to_device(cmds)
 
@@ -434,7 +524,10 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
         """Remove L2VNI mapping and EVPN VNI from Cumulus NVUE.
 
         Removes configuration in reverse order of creation:
-        1. Remove VXLAN map (HER flood list removed automatically)
+        1. Remove VXLAN map (per-VNI BUM replication config removed
+           automatically for multicast and ingress-replication modes;
+           global HER flood list is NOT removed for head-end-replication
+           mode as it may be used by other VNIs)
         2. Remove EVPN VNI configuration (if enabled)
 
         :param vni: VXLAN Network Identifier

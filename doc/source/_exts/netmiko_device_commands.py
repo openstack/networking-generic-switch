@@ -123,6 +123,10 @@ command_descriptions = {
         EVPN VNI from the control plane',
     'PLUG_HER_FLOOD': 'A tuple of command strings used to configure \
         a head-end-replication flood list entry',
+    'PLUG_MCAST_FLOOD': 'A tuple of command strings used to configure \
+        multicast group flooding for BUM traffic on a VNI',
+    'PLUG_INGRESS_REPLICATION': 'A tuple of command strings used to \
+        configure EVPN ingress-replication for BUM traffic on a VNI',
     'PLUG_EVPN_VRF_TARGET': 'A tuple of command strings used to \
         configure an EVPN VRF target for L2VNI',
     'UNPLUG_EVPN_VRF_TARGET': 'A tuple of command strings used to \

@@ -334,9 +334,12 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
                 return_value="", autospec=True)
     def test_plug_switch_to_network(self, mock_exec):
         self.switch.plug_switch_to_network(5000, 100)
+        # Default mode is ingress-replication (EVPN-learned VTEPs)
         mock_exec.assert_called_with(
             self.switch,
-            ['nv set bridge domain br_default vlan 100 vni 5000'])
+            ['nv set bridge domain br_default vlan 100 vni 5000',
+             'nv set bridge domain br_default vlan 100 vni 5000 '
+             'flooding head-end-replication evpn'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
@@ -440,6 +443,8 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
         self.assertIsNone(switch.physnet_her_flood)
         self.assertEqual(switch._physnet_her_map, {})
         self.assertFalse(switch.evpn_vni_config)
+        # Default BUM mode is ingress-replication when no HER lists
+        self.assertEqual(switch.bum_replication_mode, 'ingress-replication')
 
     def test_init_with_global_her_flood_list(self):
         """Test __init__ with global HER flood list."""
@@ -553,14 +558,16 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
                 'NetmikoSwitch.send_commands_to_device',
                 return_value='', autospec=True)
     def test_plug_switch_to_network_without_her(self, mock_exec):
-        """Test plug_switch_to_network without HER (EVPN only)."""
+        """Test plug_switch_to_network defaults to ingress-replication."""
         device_cfg = {'device_type': 'netmiko_cumulus_nvue'}
         switch = cumulus.CumulusNVUE(device_cfg)
         switch.plug_switch_to_network(10100, 100, physnet='physnet1')
-        # Should only have VXLAN map, no HER commands
+        # Should have VXLAN map + ingress-replication (EVPN-learned VTEPs)
         mock_exec.assert_called_with(
             switch,
-            ['nv set bridge domain br_default vlan 100 vni 10100'])
+            ['nv set bridge domain br_default vlan 100 vni 10100',
+             'nv set bridge domain br_default vlan 100 vni 10100 '
+             'flooding head-end-replication evpn'])
 
     # EVPN Configuration Tests
 
@@ -584,10 +591,13 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
             '-c "rd auto" '
             '-c "route-target import auto" '
             '-c "route-target export auto"')
+        # Default BUM mode is ingress-replication
         mock_exec.assert_called_with(
             switch,
             [expected_evpn_cmd,
-             'nv set bridge domain br_default vlan 100 vni 10100'])
+             'nv set bridge domain br_default vlan 100 vni 10100',
+             'nv set bridge domain br_default vlan 100 vni 10100 '
+             'flooding head-end-replication evpn'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
