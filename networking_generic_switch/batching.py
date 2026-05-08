@@ -15,6 +15,7 @@
 import atexit
 import json
 import threading
+import time
 
 import etcd3gw
 from etcd3gw.client import DEFAULT_API_PATH
@@ -31,6 +32,7 @@ import tenacity
 from networking_generic_switch import exceptions as exc
 
 SHUTDOWN_TIMEOUT = 60
+RESULT_WATCH_TIMEOUT = 10
 
 LOG = logging.getLogger(__name__)
 
@@ -154,21 +156,45 @@ class SwitchQueue(object):
             unsuccessful
         """
         result_key = self.RESULT_ITEM_KEY % (self.switch_name, item.uuid)
-        try:
-            event = self.client.watch_once(result_key, timeout=timeout,
-                                           start_revision=item.create_revision)
-        except etcd3gw_exc.WatchTimedOut:
-            raise exc.GenericSwitchBatchError(
-                device=self.switch_name,
-                error="Timed out waiting for result key: %s" % result_key)
+        deadline = time.monotonic() + timeout
+        result_dict = None
+        start_revision = item.create_revision
+        # NOTE(bbezak): A result can exist even if the watch event was missed.
+        while time.monotonic() < deadline:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            watch_timeout = min(RESULT_WATCH_TIMEOUT, remaining)
+            try:
+                event = self.client.watch_once(
+                    result_key, timeout=watch_timeout,
+                    start_revision=start_revision)
+            except etcd3gw_exc.WatchTimedOut:
+                result_dict = self._get_and_delete_result(result_key)
+                if result_dict is not None:
+                    break
+                # NOTE(bbezak): The result key does not exist now; avoid
+                # retrying from a revision that may be compacted.
+                start_revision = None
+                LOG.debug("Result key not ready yet: %s", result_key)
+                continue
 
-        LOG.debug("got event: %s", event)
-        if event["kv"]["version"] == 0:
-            raise exc.GenericSwitchBatchError(
-                device=self.switch_name,
-                error="Output key was deleted, perhaps lease expired")
-        # TODO(johngarbutt) check we have the create event and result?
-        result_dict = self._get_and_delete_result(result_key)
+            LOG.debug("got event: %s", event)
+            if event["kv"]["version"] == 0:
+                raise exc.GenericSwitchBatchError(
+                    device=self.switch_name,
+                    error="Output key was deleted, perhaps lease expired")
+            # TODO(johngarbutt) check we have the create event and result?
+            result_dict = self._get_and_delete_result(result_key)
+            break
+
+        if result_dict is None:
+            result_dict = self._get_and_delete_result(result_key)
+            if result_dict is None:
+                raise exc.GenericSwitchBatchError(
+                    device=self.switch_name,
+                    error="Timed out waiting for result key: %s" % result_key)
+
         LOG.debug("got result: %s", result_dict)
         if "result" in result_dict:
             return result_dict["result"]
@@ -178,7 +204,7 @@ class SwitchQueue(object):
                 error=result_dict["error"])
 
     def _get_and_delete_result(self, result_key):
-        # called when watch event says the result key should exist
+        # Consume the result if it exists, otherwise return None.
         txn = {
             'compare': [],
             'success': [{
@@ -196,6 +222,8 @@ class SwitchQueue(object):
                 device=self.switch_name,
                 error="Unable to find result: %s" % result_key)
         delete_response = result['responses'][0]['response_delete_range']
+        if not delete_response.get('prev_kvs'):
+            return None
         raw_value = delete_response['prev_kvs'][0]['value']
         result_dict = json.loads(_decode(raw_value))
         LOG.debug("fetched and deleted result for: %s", result_key)

@@ -15,6 +15,7 @@
 from unittest import mock
 
 from etcd3gw.exceptions import Etcd3Exception
+from etcd3gw.exceptions import WatchTimedOut
 from etcd3gw.utils import _encode
 from etcd3gw.utils import _increment_last_byte
 import fixtures
@@ -110,8 +111,48 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
         self.assertEqual("result1", result)
         result_key = '/ngs/batch/switch1/output/uuid'
         self.client.watch_once.assert_called_once_with(
-            result_key, timeout=43, start_revision=42)
+            result_key, timeout=batching.RESULT_WATCH_TIMEOUT,
+            start_revision=42)
         mock_get.assert_called_once_with(self.queue, result_key)
+
+    @mock.patch.object(batching.SwitchQueue, "_get_and_delete_result",
+                       autospec=True)
+    def test_wait_for_result_after_watch_timeout(self, mock_get):
+        self.client.watch_once.side_effect = WatchTimedOut
+        mock_get.return_value = {"result": "result1"}
+        item = batching.SwitchQueueItem("uuid", 42)
+
+        result = self.queue.wait_for_result(item, 43)
+
+        self.assertEqual("result1", result)
+        result_key = '/ngs/batch/switch1/output/uuid'
+        self.client.watch_once.assert_called_once_with(
+            result_key, timeout=batching.RESULT_WATCH_TIMEOUT,
+            start_revision=42)
+        mock_get.assert_called_once_with(self.queue, result_key)
+
+    @mock.patch.object(batching.SwitchQueue, "_get_and_delete_result",
+                       autospec=True)
+    def test_wait_for_result_after_multiple_watch_timeouts(self, mock_get):
+        self.client.watch_once.side_effect = WatchTimedOut
+        mock_get.side_effect = [None, {"result": "result1"}]
+        item = batching.SwitchQueueItem("uuid", 42)
+
+        result = self.queue.wait_for_result(item, 43)
+
+        self.assertEqual("result1", result)
+        result_key = '/ngs/batch/switch1/output/uuid'
+        first_call = mock.call(
+            result_key, timeout=batching.RESULT_WATCH_TIMEOUT,
+            start_revision=42)
+        second_call = mock.call(
+            result_key, timeout=batching.RESULT_WATCH_TIMEOUT,
+            start_revision=None)
+        self.client.watch_once.assert_has_calls([first_call, second_call])
+        self.assertEqual(2, self.client.watch_once.call_count)
+        mock_get.assert_has_calls([mock.call(self.queue, result_key),
+                                   mock.call(self.queue, result_key)])
+        self.assertEqual(2, mock_get.call_count)
 
     def test_get_and_delete_result(self):
         self.client.transaction.return_value = {
@@ -140,6 +181,20 @@ class SwitchQueueTest(fixtures.TestWithFixtures):
             'failure': []
         }
         self.client.transaction.assert_called_once_with(expected_txn)
+
+    def test_get_and_delete_result_missing(self):
+        self.client.transaction.return_value = {
+            "succeeded": True,
+            "responses": [{
+                "response_delete_range": {
+                    "prev_kvs": []
+                }
+            }]
+        }
+
+        result = self.queue._get_and_delete_result(b"result_key")
+
+        self.assertIsNone(result)
 
     def test_get_and_delete_result_failure(self):
         self.client.transaction.return_value = {"succeeded": False}
