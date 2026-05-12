@@ -106,7 +106,7 @@ def _load_failure_hook(manager, entrypoint, exception):
         err=exception)
 
 
-class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
+class GenericSwitchDevice(abc.ABC):
 
     def __init__(self, device_cfg, device_name=""):
         self.ngs_config = {}
