@@ -37,7 +37,7 @@ from networking_generic_switch import exceptions as exc
 from networking_generic_switch import locking as ngs_lock
 from networking_generic_switch import utils as ngs_utils
 
-# NOTE(TheJulia) monkey patch paramiko's get_finerprint function
+# NOTE(TheJulia) monkey patch paramiko's get_fingerprint function
 # to use sha256 instead of md5, since Paramiko's maintainer doesn't
 # seem to be concerned about FIPS compliance.
 _pkey.get_fingerprint = lambda x: hashlib.sha256(x.asbytes()).digest()
