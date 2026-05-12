@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Networking Generic Switch Release Notes'
-copyright = '2018, The Networkig Generic Switch team'
+copyright = '2018, The Networking Generic Switch team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
