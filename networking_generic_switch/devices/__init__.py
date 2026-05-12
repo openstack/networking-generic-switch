@@ -232,7 +232,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         allowed_ports = self._get_allowed_ports()
         if allowed_ports is not None:
             is_port_id_allowed = port_id in allowed_ports
-            LOG.debug("Port %(port_id) allowed: %(is_port_id_allowed",
+            LOG.debug("Port %(port_id)s allowed: %(is_port_id_allowed)s",
                       {"port_id": port_id,
                        "is_port_id_allowed": is_port_id_allowed})
 
@@ -240,7 +240,7 @@ class GenericSwitchDevice(object, metaclass=abc.ABCMeta):
         allowed_vlans = self._get_allowed_vlans()
         if allowed_vlans is not None:
             is_vlan_allowed = str(segmentation_id) in allowed_vlans
-            LOG.debug("VLAN %(vlan) allowed: %(is_allowed",
+            LOG.debug("VLAN %(vlan)s allowed: %(is_allowed)s",
                       {"vlan": segmentation_id,
                        "is_allowed": is_vlan_allowed})
 
