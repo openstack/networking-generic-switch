@@ -19,7 +19,9 @@ import re
 from neutron_lib import constants as const
 from oslo_log import log as logging
 
+from networking_generic_switch._i18n import _
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 
 LOG = logging.getLogger(__name__)
@@ -551,16 +553,18 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         :returns: Command output
         """
         if not self.vtep_name:
-            raise exc.GenericSwitchNetmikoConfigError(
-                switch=self.device_name,
-                error='vtep_name configuration parameter is required '
-                      'for L2VNI support on SONiC switches')
+            LOG.error(
+                _("vtep_name configuration parameter is required for L2VNI "
+                  "support on SONiC switches. Device: %(device)s"),
+                {'device': device_utils.sanitise_config(self.config)})
+            raise exc.GenericSwitchNetmikoConfigError()
 
         if not self.bgp_asn:
-            raise exc.GenericSwitchNetmikoConfigError(
-                switch=self.device_name,
-                error='ngs_bgp_asn configuration parameter is required '
-                      'for L2VNI support on SONiC switches')
+            LOG.error(
+                _("ngs_bgp_asn configuration parameter is required for L2VNI "
+                  "support on SONiC switches. Device: %(device)s"),
+                {'device': device_utils.sanitise_config(self.config)})
+            raise exc.GenericSwitchNetmikoConfigError()
 
         cmds = []
 
@@ -600,16 +604,18 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         :returns: Command output
         """
         if not self.vtep_name:
-            raise exc.GenericSwitchNetmikoConfigError(
-                switch=self.device_name,
-                error='vtep_name configuration parameter is required '
-                      'for L2VNI support on SONiC switches')
+            LOG.error(
+                _("vtep_name configuration parameter is required for L2VNI "
+                  "support on SONiC switches. Device: %(device)s"),
+                {'device': device_utils.sanitise_config(self.config)})
+            raise exc.GenericSwitchNetmikoConfigError()
 
         if not self.bgp_asn:
-            raise exc.GenericSwitchNetmikoConfigError(
-                switch=self.device_name,
-                error='ngs_bgp_asn configuration parameter is required '
-                      'for L2VNI support on SONiC switches')
+            LOG.error(
+                _("ngs_bgp_asn configuration parameter is required for L2VNI "
+                  "support on SONiC switches. Device: %(device)s"),
+                {'device': device_utils.sanitise_config(self.config)})
+            raise exc.GenericSwitchNetmikoConfigError()
 
         # Step 1: Remove VXLAN map
         cmds = self._format_commands(

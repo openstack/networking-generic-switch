@@ -49,6 +49,11 @@ class GenericSwitchNetmikoConnectError(GenericSwitchException):
 
 
 class GenericSwitchNetmikoConfigError(GenericSwitchException):
+    """Exception for Netmiko switch configuration errors.
+
+    This exception does not accept arguments.
+    Error details should be logged before raising this exception.
+    """
     message = _("Netmiko switch configuration operation failed. "
                 "Please contact your administrator.")
 

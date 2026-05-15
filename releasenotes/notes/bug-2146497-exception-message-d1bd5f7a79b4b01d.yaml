@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed error handling to properly log error messages before raising
+    GenericSwitchNetmikoConfigError. The exception class does not accept
+    arguments, so error details are now logged first following the
+    established pattern. See `LP#2146497
+    <https://bugs.launchpad.net/networking-generic-switch/+bug/2146497>`_
+    for details.

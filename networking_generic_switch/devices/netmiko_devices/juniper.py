@@ -380,10 +380,11 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         # Step 2: Configure EVPN VRF target if enabled
         if self.evpn_vni_config:
             if not self.bgp_asn:
-                raise exc.GenericSwitchNetmikoConfigError(
-                    switch=self.device_name,
-                    error='ngs_bgp_asn configuration parameter is '
-                          'required when ngs_evpn_vni_config is enabled')
+                LOG.error(
+                    _("ngs_bgp_asn configuration parameter is required when "
+                      "ngs_evpn_vni_config is enabled. Device: %(device)s"),
+                    {'device': device_utils.sanitise_config(self.config)})
+                raise exc.GenericSwitchNetmikoConfigError()
             cmds.extend(self._format_commands(
                 self.PLUG_EVPN_VRF_TARGET,
                 vlan_name=vlan_name,
@@ -419,10 +420,11 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         # Step 2: Remove EVPN VRF target if it was configured
         if self.evpn_vni_config:
             if not self.bgp_asn:
-                raise exc.GenericSwitchNetmikoConfigError(
-                    switch=self.device_name,
-                    error='ngs_bgp_asn configuration parameter is '
-                          'required when ngs_evpn_vni_config is enabled')
+                LOG.error(
+                    _("ngs_bgp_asn configuration parameter is required when "
+                      "ngs_evpn_vni_config is enabled. Device: %(device)s"),
+                    {'device': device_utils.sanitise_config(self.config)})
+                raise exc.GenericSwitchNetmikoConfigError()
             cmds.extend(self._format_commands(
                 self.UNPLUG_EVPN_VRF_TARGET,
                 vlan_name=vlan_name))
