@@ -20,10 +20,14 @@
               - ^tools/.*$
               - ^tox.ini$
               - ^setup.cfg$
+        - networking-baremetal-ovn-vxlan:
+            irrelevant-files: *irrelevant_files
         - networking-generic-switch-tox-codespell
 
     gate:
       jobs:
         - networking-generic-switch-tempest-dlm
         - ironic-tempest-ipa-wholedisk-direct-multinode:
+            irrelevant-files: *irrelevant_files
+        - networking-baremetal-ovn-vxlan:
             irrelevant-files: *irrelevant_files
