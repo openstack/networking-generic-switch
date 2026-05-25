@@ -3,3 +3,6 @@ sphinx>=2.0.0,!=2.1.0 # BSD
 sphinxcontrib-pecanwsme>=0.8.0 # Apache-2.0
 openstackdocstheme>=2.2.1 # Apache-2.0
 sphinxcontrib-apidoc>=0.2.0  # BSD
+# NOTE(hjensas): Build fail without pyroute2
+# This mirrors doc/requirements.txt in neutron
+pyroute2>=0.7.3;sys_platform!='win32' # Apache-2.0 (+ dual licensed GPL2)
