@@ -91,22 +91,34 @@ class GenericSwitchDriver(api.MechanismDriver):
         segmentation_id = network.get('provider:segmentation_id')
         physnet = network.get('provider:physical_network')
 
-        if provider_type == 'vlan' and segmentation_id:
-            # Create vlan on all switches from this driver
-            for switch_name, switch in self._get_devices_by_physnet(physnet):
-                try:
-                    switch.add_network(segmentation_id, network_id)
-                except Exception as e:
-                    LOG.error("Failed to create network %(net_id)s "
-                              "on device: %(switch)s, reason: %(exc)s",
-                              {'net_id': network_id,
-                               'switch': switch_name,
-                               'exc': e})
-                    raise
-                else:
-                    LOG.info('Network %(net_id)s has been added on device '
-                             '%(device)s', {'net_id': network['id'],
-                                            'device': switch_name})
+        if provider_type != 'vlan' or not segmentation_id:
+            return
+
+        # Create vlan on all switches from this driver
+        physnet_vlans_cache = {}
+        for switch_name, switch in self._get_devices_by_physnet(physnet):
+            physnet_vlans = None
+            if switch.trunk_vlans_converge and switch.get_trunk_ports():
+                switch_physnets = frozenset(switch.get_physical_networks())
+                if switch_physnets not in physnet_vlans_cache:
+                    physnet_vlans_cache[switch_physnets] = (
+                        self._get_physnet_vlans(context._plugin_context,
+                                                list(switch_physnets)))
+                physnet_vlans = physnet_vlans_cache[switch_physnets]
+            try:
+                switch.add_network(segmentation_id, network_id,
+                                   physnet_vlans=physnet_vlans)
+            except Exception as e:
+                LOG.error("Failed to create network %(net_id)s "
+                          "on device: %(switch)s, reason: %(exc)s",
+                          {'net_id': network_id,
+                           'switch': switch_name,
+                           'exc': e})
+                raise
+            else:
+                LOG.info('Network %(net_id)s has been added on device '
+                         '%(device)s', {'net_id': network['id'],
+                                        'device': switch_name})
 
     def update_network_precommit(self, context):
         """Update resources of a network.
@@ -176,29 +188,41 @@ class GenericSwitchDriver(api.MechanismDriver):
         segmentation_id = network.get('provider:segmentation_id')
         physnet = network.get('provider:physical_network')
 
-        if provider_type == 'vlan' and segmentation_id:
-            # Delete vlan on all switches from this driver
-            # NOTE(TheJulia): For L2VNI cases, VNI-to-VLAN mappings should
-            # have been cleaned up during port deletion via
-            # _unplug_port_from_segment(). This deletes the VLAN itself.
-            exc_info = None
-            for switch_name, switch in self._get_devices_by_physnet(physnet):
-                try:
-                    switch.del_network(segmentation_id, network['id'])
-                except Exception as e:
-                    LOG.error("Failed to delete network %(net_id)s "
-                              "on device: %(switch)s, reason: %(exc)s",
-                              {'net_id': network['id'],
-                               'switch': switch_name,
-                               'exc': e})
-                    # Save any exceptions for later reraise.
-                    exc_info = sys.exc_info()
-                else:
-                    LOG.info('Network %(net_id)s has been deleted on device '
-                             '%(device)s', {'net_id': network['id'],
-                                            'device': switch_name})
-            if exc_info:
-                raise exc_info[1]
+        if provider_type != 'vlan' or not segmentation_id:
+            return
+
+        # Delete vlan on all switches from this driver
+        # NOTE(TheJulia): For L2VNI cases, VNI-to-VLAN mappings should
+        # have been cleaned up during port deletion via
+        # _unplug_port_from_segment(). This deletes the VLAN itself.
+        exc_info = None
+        physnet_vlans_cache = {}
+        for switch_name, switch in self._get_devices_by_physnet(physnet):
+            physnet_vlans = None
+            if switch.trunk_vlans_converge and switch.get_trunk_ports():
+                switch_physnets = frozenset(switch.get_physical_networks())
+                if switch_physnets not in physnet_vlans_cache:
+                    physnet_vlans_cache[switch_physnets] = (
+                        self._get_physnet_vlans(context._plugin_context,
+                                                list(switch_physnets)))
+                physnet_vlans = physnet_vlans_cache[switch_physnets]
+            try:
+                switch.del_network(segmentation_id, network['id'],
+                                   physnet_vlans=physnet_vlans)
+            except Exception as e:
+                LOG.error("Failed to delete network %(net_id)s "
+                          "on device: %(switch)s, reason: %(exc)s",
+                          {'net_id': network['id'],
+                           'switch': switch_name,
+                           'exc': e})
+                # Save any exceptions for later reraise.
+                exc_info = sys.exc_info()
+            else:
+                LOG.info('Network %(net_id)s has been deleted on device '
+                         '%(device)s', {'net_id': network['id'],
+                                        'device': switch_name})
+        if exc_info:
+            raise exc_info[1]
 
     def create_subnet_precommit(self, context):
         """Allocate resources for a new subnet.
@@ -582,7 +606,7 @@ class GenericSwitchDriver(api.MechanismDriver):
                 return False
 
             physnet = segment.get(api.PHYSICAL_NETWORK)
-            switch_physnets = switch._get_physical_networks()
+            switch_physnets = switch.get_physical_networks()
             segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
 
             if switch_physnets and physnet not in switch_physnets:
@@ -1118,6 +1142,23 @@ class GenericSwitchDriver(api.MechanismDriver):
                 context.plugin_context, vxlan_segment, segment, switch,
                 segmentation_id, switch_info)
 
+    def _get_physnet_vlans(self, plugin_context, physnets):
+        """Query all VLAN segmentation IDs across the given physnets.
+
+        :param plugin_context: Neutron admin context for DB access.
+        :param physnets: List of physical network names, or empty list
+            for all physnets (no-physnet-configured case).
+        :returns: Set of segmentation IDs.
+        """
+        kwargs = {}
+        if physnets:
+            kwargs['physical_network'] = physnets
+
+        segments = network_obj.NetworkSegment.get_objects(
+            plugin_context, network_type='vlan', **kwargs)
+
+        return {s.segmentation_id for s in segments}
+
     def _get_devices_by_physnet(self, physnet):
         """Generator yielding switches on a particular physical network.
 
@@ -1126,7 +1167,7 @@ class GenericSwitchDriver(api.MechanismDriver):
             switch device object.
         """
         for switch_name, switch in self.switches.items():
-            physnets = switch._get_physical_networks()
+            physnets = switch.get_physical_networks()
             # NOTE(mgoddard): If the switch has no physical networks then
             # follow the old behaviour of mapping all networks to it.
             if not physnets or physnet in physnets:

@@ -39,7 +39,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock = mock.Mock()
         self.switch_mock.config = {'device_type': 'bar', 'spam': 'ham',
                                    'ip': 'ip'}
-        self.switch_mock._get_physical_networks.return_value = []
+        self.switch_mock.get_physical_networks.return_value = []
+        self.switch_mock.trunk_vlans_converge = False
         self.ctxt = mock.MagicMock()
         self.db = mock.MagicMock()
         patcher = mock.patch(
@@ -58,7 +59,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:physical_network': 'physnet1'}
 
         driver.create_network_postcommit(mock_context)
-        self.switch_mock.add_network.assert_called_once_with(22, 22)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
 
     def test_create_network_postcommit_with_physnet(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -68,10 +70,11 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
 
         driver.create_network_postcommit(mock_context)
-        self.switch_mock.add_network.assert_called_once_with(22, 22)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
 
     def test_create_network_postcommit_with_multiple_physnets(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -81,11 +84,12 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet1',
-                                                                'physnet2']
+        self.switch_mock.get_physical_networks.return_value = [
+            'physnet1', 'physnet2']
 
         driver.create_network_postcommit(mock_context)
-        self.switch_mock.add_network.assert_called_once_with(22, 22)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
         self.assertEqual(self.switch_mock.add_network.call_count, 1)
 
     def test_create_network_postcommit_with_different_physnet(self, m_list):
@@ -96,7 +100,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet2']
+        self.switch_mock.get_physical_networks.return_value = ['physnet2']
 
         driver.create_network_postcommit(mock_context)
         self.assertFalse(self.switch_mock.add_network.called)
@@ -115,7 +119,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         self.assertRaisesRegex(ValueError, "boom",
                                driver.create_network_postcommit, mock_context)
-        self.switch_mock.add_network.assert_called_once_with(22, 22)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
         self.assertNotIn('has been added', m_log.info.call_args[0][0])
@@ -138,7 +143,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         self.assertRaisesRegex(ValueError, "boom",
                                driver.create_network_postcommit, mock_context)
-        self.switch_mock.add_network.assert_called_once_with(22, 22)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
 
@@ -152,7 +158,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:physical_network': 'physnet1'}
 
         driver.delete_network_postcommit(mock_context)
-        self.switch_mock.del_network.assert_called_once_with(22, 22)
+        self.switch_mock.del_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
 
     def test_delete_network_postcommit_with_physnet(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -162,10 +169,11 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
 
         driver.delete_network_postcommit(mock_context)
-        self.switch_mock.del_network.assert_called_once_with(22, 22)
+        self.switch_mock.del_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
 
     def test_delete_network_postcommit_with_multiple_physnets(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -175,11 +183,12 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet1',
-                                                                'physnet2']
+        self.switch_mock.get_physical_networks.return_value = [
+            'physnet1', 'physnet2']
 
         driver.delete_network_postcommit(mock_context)
-        self.switch_mock.del_network.assert_called_once_with(22, 22)
+        self.switch_mock.del_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
         self.assertEqual(self.switch_mock.del_network.call_count, 1)
 
     def test_delete_network_postcommit_with_different_physnet(self, m_list):
@@ -190,7 +199,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                 'provider:network_type': 'vlan',
                                 'provider:segmentation_id': 22,
                                 'provider:physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet2']
+        self.switch_mock.get_physical_networks.return_value = ['physnet2']
 
         driver.delete_network_postcommit(mock_context)
         self.assertFalse(self.switch_mock.del_network.called)
@@ -209,7 +218,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         self.assertRaisesRegex(ValueError, "boom",
                                driver.delete_network_postcommit, mock_context)
-        self.switch_mock.del_network.assert_called_once_with(22, 22)
+        self.switch_mock.del_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to delete network', m_log.error.call_args[0][0])
         self.assertNotIn('has been deleted', m_log.info.call_args[0][0])
@@ -232,10 +242,192 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         self.assertRaisesRegex(ValueError, "boom",
                                driver.delete_network_postcommit, mock_context)
-        self.switch_mock.del_network.assert_called_with(22, 22)
+        self.switch_mock.del_network.assert_called_with(
+            22, 22, physnet_vlans=None)
         self.assertEqual(2, self.switch_mock.del_network.call_count)
         self.assertEqual(2, m_log.error.call_count)
         self.assertIn('Failed to delete network', m_log.error.call_args[0][0])
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    def test_create_network_postcommit_converge_with_trunk_ports(
+            self, mock_network_obj, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.trunk_vlans_converge = True
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
+        mock_seg1 = mock.Mock(segmentation_id=100)
+        mock_seg2 = mock.Mock(segmentation_id=200)
+        mock_network_obj.NetworkSegment.get_objects.return_value = [
+            mock_seg1, mock_seg2]
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context._plugin_context = mock.sentinel.plugin_context
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans={100, 200})
+        mock_network_obj.NetworkSegment.get_objects.assert_called_once_with(
+            mock.sentinel.plugin_context,
+            network_type='vlan', physical_network=['physnet1'])
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    def test_create_network_postcommit_converge_multiple_physnets(
+            self, mock_network_obj, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.trunk_vlans_converge = True
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        self.switch_mock.get_physical_networks.return_value = [
+            'physnet1', 'physnet2']
+        mock_seg1 = mock.Mock(segmentation_id=100)
+        mock_seg2 = mock.Mock(segmentation_id=200)
+        mock_seg3 = mock.Mock(segmentation_id=300)
+        mock_network_obj.NetworkSegment.get_objects.return_value = [
+            mock_seg1, mock_seg2, mock_seg3]
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context._plugin_context = mock.sentinel.plugin_context
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans={100, 200, 300})
+        mock_network_obj.NetworkSegment.get_objects.assert_called_once()
+        call_kwargs = (mock_network_obj.NetworkSegment
+                       .get_objects.call_args[1])
+        self.assertEqual('vlan', call_kwargs['network_type'])
+        self.assertEqual(sorted(call_kwargs['physical_network']),
+                         ['physnet1', 'physnet2'])
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    def test_create_network_postcommit_converge_no_physnets(
+            self, mock_network_obj, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.trunk_vlans_converge = True
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        self.switch_mock.get_physical_networks.return_value = []
+        mock_seg1 = mock.Mock(segmentation_id=100)
+        mock_network_obj.NetworkSegment.get_objects.return_value = [mock_seg1]
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context._plugin_context = mock.sentinel.plugin_context
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans={100})
+        mock_network_obj.NetworkSegment.get_objects.assert_called_once_with(
+            mock.sentinel.plugin_context, network_type='vlan')
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    def test_create_network_postcommit_converge_cache_hit(
+            self, mock_network_obj, m_list):
+        m_list.return_value = {
+            'foo': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
+            'bar': {'device_type': 'bar', 'spam': 'ham', 'ip': 'ip'},
+        }
+        switch_a = mock.Mock()
+        switch_a.trunk_vlans_converge = True
+        switch_a.get_trunk_ports.return_value = ['port1']
+        switch_a.get_physical_networks.return_value = ['physnet1']
+        switch_b = mock.Mock()
+        switch_b.trunk_vlans_converge = True
+        switch_b.get_trunk_ports.return_value = ['port2']
+        switch_b.get_physical_networks.return_value = ['physnet1']
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        driver.switches = {'foo': switch_a, 'bar': switch_b}
+        mock_seg1 = mock.Mock(segmentation_id=100)
+        mock_network_obj.NetworkSegment.get_objects.return_value = [mock_seg1]
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context._plugin_context = mock.sentinel.plugin_context
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.create_network_postcommit(mock_context)
+        self.assertEqual(2, switch_a.add_network.call_count
+                         + switch_b.add_network.call_count)
+        mock_network_obj.NetworkSegment.get_objects.assert_called_once()
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    def test_create_network_postcommit_converge_no_trunk_ports(
+            self, mock_network_obj, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.trunk_vlans_converge = True
+        self.switch_mock.get_trunk_ports.return_value = []
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
+        mock_network_obj.NetworkSegment.get_objects.assert_not_called()
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    def test_delete_network_postcommit_converge_with_trunk_ports(
+            self, mock_network_obj, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.trunk_vlans_converge = True
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
+        mock_seg1 = mock.Mock(segmentation_id=100)
+        mock_seg2 = mock.Mock(segmentation_id=200)
+        mock_network_obj.NetworkSegment.get_objects.return_value = [
+            mock_seg1, mock_seg2]
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context._plugin_context = mock.sentinel.plugin_context
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.delete_network_postcommit(mock_context)
+        self.switch_mock.del_network.assert_called_once_with(
+            22, 22, physnet_vlans={100, 200})
+        mock_network_obj.NetworkSegment.get_objects.assert_called_once_with(
+            mock.sentinel.plugin_context,
+            network_type='vlan', physical_network=['physnet1'])
+
+    @mock.patch('networking_generic_switch.generic_switch_mech.network_obj',
+                autospec=True)
+    def test_delete_network_postcommit_converge_no_trunk_ports(
+            self, mock_network_obj, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.trunk_vlans_converge = True
+        self.switch_mock.get_trunk_ports.return_value = []
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.delete_network_postcommit(mock_context)
+        self.switch_mock.del_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
+        mock_network_obj.NetworkSegment.get_objects.assert_not_called()
 
     def test_delete_port_postcommit(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -648,7 +840,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
         mock_context.bottom_bound_segment = {'physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
 
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once_with(
@@ -683,7 +875,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                  'id': '123',
                                  'binding:vif_type': 'unbound'}
         mock_context.bottom_bound_segment = {'physical_network': 'physnet1'}
-        self.switch_mock._get_physical_networks.return_value = ['physnet2']
+        self.switch_mock.get_physical_networks.return_value = ['physnet2']
 
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_not_called()
@@ -854,7 +1046,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         mock_context.bottom_bound_segment = {'physical_network': 'physnet1',
                                              'network_id': 'aaaa-bbbb-ccc',
                                              'segmentation_id': 123}
-        self.switch_mock._get_physical_networks.return_value = ['physnet1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
         self.switch_mock.support_trunk_on_bond_ports = False
         self.switch_mock.support_trunk_on_ports = False
 
@@ -902,7 +1094,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         mock_context.bottom_bound_segment = {'physical_network': 'physnet1',
                                              'network_id': 'aaaa-bbbb-ccc',
                                              'segmentation_id': 123}
-        self.switch_mock._get_physical_networks.return_value = ['physnet1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
         self.switch_mock.support_trunk_on_bond_ports = True
         self.switch_mock.support_trunk_on_ports = True
 
@@ -1093,7 +1285,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                 'physical_network': 'physnet1'
             }
         ]
-        self.switch_mock._get_physical_networks.return_value = ['physnet1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
 
         driver.bind_port(mock_context)
         mock_context.set_binding.assert_called_with(123, 'other', {})
@@ -1167,7 +1359,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                 'physical_network': 'physnet1'
             }
         ]
-        self.switch_mock._get_physical_networks.return_value = ['physnet1']
+        self.switch_mock.get_physical_networks.return_value = ['physnet1']
 
         driver.bind_port(mock_context)
         mock_context.set_binding.assert_not_called()
@@ -1309,7 +1501,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                 'id': 123
             }
         ]
-        self.switch_mock._get_physical_networks.return_value = ['physnet2']
+        self.switch_mock.get_physical_networks.return_value = ['physnet2']
         self.assertIsNone(driver.bind_port(mock_context))
         self.assertFalse(mock_context.set_binding.called)
         self.switch_mock.plug_port_to_network.assert_not_called()

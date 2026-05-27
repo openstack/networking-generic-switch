@@ -432,7 +432,11 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         return output
 
     @check_output('add network')
-    def add_network(self, segmentation_id, network_id):
+    def add_network(self, segmentation_id, network_id, physnet_vlans=None):
+        if physnet_vlans is not None:
+            raise exc.GenericSwitchException(
+                method="add_network: physnet_vlans is not supported by "
+                       "Netmiko drivers")
         if not self._do_vlan_management():
             LOG.info(f"Skipping add network for {segmentation_id}")
             return ""
@@ -447,14 +451,18 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                      segmentation_id=segmentation_id,
                                      network_id=network_id,
                                      network_name=network_name)
-        for port in self._get_trunk_ports():
+        for port in self.get_trunk_ports():
             cmds += self._format_commands(self.ADD_NETWORK_TO_TRUNK,
                                           port=port,
                                           segmentation_id=segmentation_id)
         return self.send_commands_to_device(cmds)
 
     @check_output('delete network')
-    def del_network(self, segmentation_id, network_id):
+    def del_network(self, segmentation_id, network_id, physnet_vlans=None):
+        if physnet_vlans is not None:
+            raise exc.GenericSwitchException(
+                method="del_network: physnet_vlans is not supported by "
+                       "Netmiko drivers")
         if not self._do_vlan_management():
             LOG.info(f"Skipping delete network for {segmentation_id}")
             return ""
@@ -463,7 +471,7 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         # is the max length of vlan name.
         network_id = uuid.UUID(network_id).hex
         cmds = []
-        for port in self._get_trunk_ports():
+        for port in self.get_trunk_ports():
             cmds += self._format_commands(self.REMOVE_NETWORK_FROM_TRUNK,
                                           port=port,
                                           segmentation_id=segmentation_id)

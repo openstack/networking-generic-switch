@@ -139,6 +139,16 @@ class GenericSwitchDevice(abc.ABC):
     def support_trunk_on_bond_ports(self):
         return False
 
+    @property
+    def trunk_vlans_converge(self):
+        """Whether trunk VLAN list should be fully converged on each operation.
+
+        When True, the mechanism driver queries the Neutron DB for all VLAN
+        segments on the physical network and passes the complete set
+        via the physnet_vlans parameter.
+        """
+        return False
+
     def _validate_network_name_format(self):
         """Validate the network name format configuration option."""
         network_name_format = self.ngs_config['ngs_network_name_format']
@@ -150,7 +160,7 @@ class GenericSwitchDevice(abc.ABC):
             raise gsw_exc.GenericSwitchNetworkNameFormatInvalid(
                 name_format=network_name_format)
 
-    def _get_trunk_ports(self):
+    def get_trunk_ports(self):
         """Return a list of trunk ports on this switch."""
         trunk_ports = self.ngs_config.get('ngs_trunk_ports')
         if not trunk_ports:
@@ -161,7 +171,7 @@ class GenericSwitchDevice(abc.ABC):
         """Return a default vlan of switch's interface if you specify."""
         return self.ngs_config.get('ngs_port_default_vlan', None)
 
-    def _get_physical_networks(self):
+    def get_physical_networks(self):
         """Return a list of physical networks mapped to this switch."""
         physnets = self.ngs_config.get('ngs_physical_networks')
         if not physnets:
@@ -247,11 +257,33 @@ class GenericSwitchDevice(abc.ABC):
         return is_port_id_allowed and is_vlan_allowed
 
     @abc.abstractmethod
-    def add_network(self, segmentation_id, network_id):
+    def add_network(self, segmentation_id, network_id, physnet_vlans=None):
+        """Create a network (VLAN) on the switch.
+
+        When physnet_vlans is provided, drivers can converge the full set of
+        trunk VLANs in a single operation rather than making incremental
+        changes.
+
+        :param segmentation_id: VLAN ID of the network.
+        :param network_id: UUID of the Neutron network.
+        :param physnet_vlans: Optional set of all VLAN segmentation IDs that
+            should exist on the switch's physical networks.
+        """
         pass
 
     @abc.abstractmethod
-    def del_network(self, segmentation_id, network_id):
+    def del_network(self, segmentation_id, network_id, physnet_vlans=None):
+        """Delete a network (VLAN) from the switch.
+
+        When physnet_vlans is provided, drivers can converge the full set of
+        trunk VLANs in a single operation rather than making incremental
+        changes.
+
+        :param segmentation_id: VLAN ID of the network.
+        :param network_id: UUID of the Neutron network.
+        :param physnet_vlans: Optional set of all VLAN segmentation IDs that
+            should remain on the switch's physical networks.
+        """
         pass
 
     @abc.abstractmethod
