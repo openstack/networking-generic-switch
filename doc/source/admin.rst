@@ -588,6 +588,70 @@ Prerequisites
 Your SONiC switches must have BGP EVPN pre-configured with
 ``advertise-all-vni`` enabled in FRR.
 
+BUM Traffic Replication
+^^^^^^^^^^^^^^^^^^^^^^^
+
+**IMPORTANT LIMITATION**: SONiC does NOT support multicast-based BUM
+replication for VXLAN. SONiC only supports **ingress-replication**
+mode with BGP EVPN.
+
+According to the official SONiC EVPN VXLAN HLD:
+"Support Ingress Replication for L2 BUM traffic over VXLAN tunnels.
+Underlay IP Multicast is not supported."
+
+Configuration:
+
+* Default mode: ``ingress-replication`` (automatically used)
+* Supported mode: ``ingress-replication`` only
+* Unsupported mode: ``multicast`` (will raise an error)
+
+Example - Ingress-Replication (Default):
+
+.. code-block:: ini
+
+   [genericswitch:sonic-leaf1]
+   device_type = netmiko_sonic
+   vtep_name = vtep
+   ngs_bgp_asn = 65000
+   # ngs_bum_replication_mode not needed (defaults to
+   # ingress-replication)
+
+Example - Explicit Ingress-Replication:
+
+.. code-block:: ini
+
+   [genericswitch:sonic-leaf1]
+   device_type = netmiko_sonic
+   vtep_name = vtep
+   ngs_bgp_asn = 65000
+   ngs_bum_replication_mode = ingress-replication
+
+Multicast Mode Error:
+
+If you configure multicast mode on a SONiC switch:
+
+.. code-block:: ini
+
+   [genericswitch:sonic-leaf1]
+   ngs_bum_replication_mode = multicast  # NOT SUPPORTED
+   ngs_mcast_group_base = 239.1.1.0
+
+The driver will raise a clear error:
+
+.. code-block:: text
+
+   GenericSwitchNetmikoConfigError: Multicast BUM replication mode
+   is not supported by SONiC. SONiC only supports
+   ingress-replication mode with BGP EVPN. Please set
+   ngs_bum_replication_mode=ingress-replication or remove this
+   parameter to use the default.
+
+For multicast-based BUM replication, consider using:
+
+* **Cumulus Linux NVUE** - Supports ingress-replication and
+  multicast modes
+* **Arista EOS** - Supports ingress-replication and multicast modes
+
 **Arista EOS** - Full L2VNI support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
