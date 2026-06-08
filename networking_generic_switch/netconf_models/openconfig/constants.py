@@ -30,3 +30,18 @@ VLAN_SUSPENDED = 'SUSPENDED'
 VLAN_MODE_TRUNK = 'TRUNK'
 VLAN_MODE_ACCESS = 'ACCESS'
 VLAN_RANGE = range(1, 4094)
+
+NAMESPACE_TO_MODULE = {
+    'http://openconfig.net/yang/interfaces':
+        'openconfig-interfaces',
+    'http://openconfig.net/yang/interfaces/ethernet':
+        'openconfig-if-ethernet',
+    'http://openconfig.net/yang/interfaces/aggregate':
+        'openconfig-if-aggregate',
+    'http://openconfig.net/yang/vlan':
+        'openconfig-vlan',
+    'http://openconfig.net/yang/network-instance':
+        'openconfig-network-instance',
+    'http://openconfig.net/yang/lacp':
+        'openconfig-lacp',
+}
