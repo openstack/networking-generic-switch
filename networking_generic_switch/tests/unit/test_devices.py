@@ -240,6 +240,64 @@ class TestDeviceManager(unittest.TestCase):
                          device.ngs_config['ngs_network_name_format'])
         self.assertNotIn('ngs_allowed_vlans', device.ngs_config)
         self.assertNotIn('ngs_allowed_ports', device.ngs_config)
+        # RESTCONF defaults
+        self.assertEqual('https',
+                         device.ngs_config['ngs_restconf_scheme'])
+        self.assertEqual('application/yang-data+json',
+                         device.ngs_config['ngs_restconf_content_type'])
+        self.assertEqual('/restconf/data',
+                         device.ngs_config['ngs_restconf_base_path'])
+        self.assertTrue(device.ngs_config['ngs_verify_tls'])
+        self.assertEqual('default',
+                         device.ngs_config['ngs_openconfig_network_instance'])
+        self.assertNotIn('ngs_port_id_re_sub', device.ngs_config)
+        self.assertNotIn('ngs_openconfig_disabled_properties',
+                         device.ngs_config)
+
+    def test_driver_ngs_restconf_config(self):
+        device_cfg = {
+            "device_type": 'netmiko_ovs_linux',
+            "port": "8443",
+            "ngs_restconf_scheme": "http",
+            "ngs_restconf_content_type": "application/yang.data+json",
+            "ngs_restconf_base_path": "/rests/data",
+            "ngs_verify_tls": "false",
+            "ngs_openconfig_network_instance": "myinst",
+            "ngs_port_id_re_sub": '{"pattern": "e", "repl": "E"}',
+            "ngs_openconfig_disabled_properties": "port_mtu",
+        }
+        device = devices.device_manager(device_cfg)
+        self.assertIsInstance(device, devices.GenericSwitchDevice)
+        for key in device_cfg:
+            if key in ('device_type', 'port'):
+                continue
+            self.assertNotIn(key, device.config)
+        self.assertEqual(8443, device.config['port'])
+        self.assertEqual('http',
+                         device.ngs_config['ngs_restconf_scheme'])
+        self.assertEqual('application/yang.data+json',
+                         device.ngs_config['ngs_restconf_content_type'])
+        self.assertEqual('/rests/data',
+                         device.ngs_config['ngs_restconf_base_path'])
+        self.assertEqual('false',
+                         device.ngs_config['ngs_verify_tls'])
+        self.assertEqual('myinst',
+                         device.ngs_config['ngs_openconfig_network_instance'])
+        self.assertEqual('{"pattern": "e", "repl": "E"}',
+                         device.ngs_config['ngs_port_id_re_sub'])
+        self.assertEqual(
+            'port_mtu',
+            device.ngs_config['ngs_openconfig_disabled_properties'])
+
+    def test_driver_load_restconf_openconfig(self):
+        device_cfg = {
+            "device_type": "restconf_openconfig",
+            "host": "switch.example.com",
+            "username": "admin",
+            "password": "secret",
+        }
+        device = devices.device_manager(device_cfg)
+        self.assertIsInstance(device, devices.GenericSwitchDevice)
 
     def test_get_trunk_ports(self):
         device_cfg = {"ngs_trunk_ports": 'port1, Po 1/30,port42'}

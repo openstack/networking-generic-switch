@@ -14,25 +14,22 @@ import json
 
 from oslo_log import log as logging
 
-from networking_generic_switch.devices.netconf_devices.netconf_switch import (
-    NetconfSwitch)
 from networking_generic_switch.devices.openconfig_mixin import (
     OpenConfigModelMixin)
+from networking_generic_switch.devices.restconf_devices.restconf_switch \
+    import RestconfSwitch
 from networking_generic_switch.devices import utils as device_utils
 
 LOG = logging.getLogger(__name__)
 
 
-class NetconfOpenConfigSwitch(OpenConfigModelMixin, NetconfSwitch):
-    """NETCONF OpenConfig switch driver.
+class RestconfOpenConfigSwitch(OpenConfigModelMixin, RestconfSwitch):
+    """RESTCONF OpenConfig switch driver.
 
     Manages network and port operations using OpenConfig YANG models
-    over NETCONF transport.  Callable class variables (ADD_NETWORK,
-    DELETE_NETWORK, ADD_NETWORK_TO_TRUNK, REMOVE_NETWORK_FROM_TRUNK,
-    PLUG_PORT_TO_NETWORK, DELETE_PORT, ENABLE_PORT, DISABLE_PORT,
-    ADD_SUBPORTS_ON_TRUNK, DEL_SUBPORTS_ON_TRUNK) build OpenConfig
-    model objects that the base class serialises to XML and pushes
-    via ``send_config_to_device``.
+    over RESTCONF transport (RFC 8040).  Callable class variables
+    build OpenConfig model objects that the base class serialises to
+    JSON (RFC 7951) and sends via HTTP PATCH.
     """
 
     def __init__(self, device_cfg, *args, **kwargs):
@@ -63,10 +60,6 @@ class NetconfOpenConfigSwitch(OpenConfigModelMixin, NetconfSwitch):
     def _port_id_resub(self, port_id):
         """Apply configured regex substitution to a port ID.
 
-        Some devices do not use the port description from LLDP in
-        NETCONF configuration.  When ``ngs_port_id_re_sub`` is set
-        the port_id is modified before building device configuration.
-
         :param port_id: Original port identifier from local link info.
         :returns: Possibly modified port identifier.
         """
@@ -76,9 +69,6 @@ class NetconfOpenConfigSwitch(OpenConfigModelMixin, NetconfSwitch):
     def support_trunk_on_ports(self):
         return True
 
-    # Wrapped in staticmethod() so that attribute access on an instance
-    # returns the raw function rather than a bound method — the base
-    # class passes ``self`` explicitly.
     ADD_NETWORK = staticmethod(OpenConfigModelMixin._add_network)
     DELETE_NETWORK = staticmethod(OpenConfigModelMixin._delete_network)
     ADD_NETWORK_TO_TRUNK = staticmethod(
