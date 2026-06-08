@@ -93,3 +93,16 @@ class GenericSwitchNetconfOperationFailed(GenericSwitchException):
 class GenericSwitchMtuExceedError(GenericSwitchException):
     message = _("Requested MTU %(mtu)s exceeds trunk port MTU "
                 "%(trunk_mtu)s on switch %(switch)s.")
+
+
+class GenericSwitchRestconfError(GenericSwitchException):
+    message = _("RESTCONF operation failed on device %(device)s: %(error)s")
+
+
+class GenericSwitchRestconfConnectError(GenericSwitchException):
+    message = _("Failed to connect to RESTCONF device %(device)s: %(error)s")
+
+
+class GenericSwitchRestconfRetryable(GenericSwitchException):
+    message = _("RESTCONF transient error on device %(device)s: %(error)s. "
+                "The request will be retried.")

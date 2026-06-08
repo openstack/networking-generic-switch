@@ -103,6 +103,13 @@ NGS_INTERNAL_OPTS = [
     # If True, enable BPDU guard on ports during bind to protect
     # against spanning tree loops.
     {'name': 'ngs_port_bpdu_guard', 'default': False},
+    # TLS certificate verification for HTTP-based transports
+    {'name': 'ngs_verify_tls', 'default': True},
+    # RESTCONF transport settings
+    {'name': 'ngs_restconf_scheme', 'default': 'https'},
+    {'name': 'ngs_restconf_content_type',
+     'default': 'application/yang-data+json'},
+    {'name': 'ngs_restconf_base_path', 'default': '/restconf/data'},
 ]
 
 EM_SEMAPHORE = 'ngs_device_manager'
