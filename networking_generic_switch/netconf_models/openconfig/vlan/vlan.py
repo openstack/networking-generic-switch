@@ -53,6 +53,19 @@ class TrunkVlans(abc.Collection):
             if value not in self._removals:
                 self._removals.append(types.VlanRange(value).vlan_range)
 
+    def to_restconf_list(self):
+        """Return trunk VLANs as a list for RESTCONF JSON serialization.
+
+        Integer VLAN IDs are returned as integers, ranges as strings.
+        """
+        result = []
+        for item in self._trunk_vlans:
+            if isinstance(item, int):
+                result.append(item)
+            else:
+                result.append(str(item))
+        return result
+
 
 class VlanSwitchedConfig:
     """Ethernet interface VLAN config
@@ -197,6 +210,22 @@ class VlanSwitchedConfig:
                 elem, 'interface-mode', self.interface_mode)
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {}
+        if self.interface_mode:
+            result['interface-mode'] = self.interface_mode
+        if self.access_vlan is not None:
+            result['access-vlan'] = self.access_vlan
+        if self.native_vlan is not None:
+            result['native-vlan'] = self.native_vlan
+        if self.trunk_vlans is not None and len(self.trunk_vlans) > 0:
+            result['trunk-vlans'] = self.trunk_vlans.to_restconf_list()
+        return result
+
 
 class VlanSwitchedVlan:
     """VLAN interface-specific data on Ethernet interfaces.
@@ -238,6 +267,21 @@ class VlanSwitchedVlan:
         if self.config:
             elem.append(self.config.to_xml_element())
         return elem
+
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        Uses 'openconfig-vlan:switched-vlan' as the augmentation
+        module-prefixed key when nested under ethernet.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {}
+        if self.config:
+            config_dict = self.config.to_restconf_dict()
+            if config_dict:
+                result['config'] = config_dict
+        return result
 
 
 class VlanConfig:
@@ -337,6 +381,20 @@ class VlanConfig:
             ncutils.txt_subelement(elem, 'status', self.status)
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {}
+        if self.vlan_id is not None:
+            result['vlan-id'] = self.vlan_id
+        if self.name is not None:
+            result['name'] = self.name
+        if self.status is not None:
+            result['status'] = self.status
+        return result
+
 
 class Vlan:
     """Base vlan"""
@@ -415,6 +473,20 @@ class Vlan:
             elem.append(self.config.to_xml_element())
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {}
+        if self.vlan_id is not None:
+            result['vlan-id'] = self.vlan_id
+        if self.config:
+            config_dict = self.config.to_restconf_dict()
+            if config_dict:
+                result['config'] = config_dict
+        return result
+
 
 class Vlans(abc.Collection):
     """Group/List of VLANs"""
@@ -472,3 +544,15 @@ class Vlans(abc.Collection):
         for vlan in self.vlans:
             elem.append(vlan.to_xml_element())
         return elem
+
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        Returns the vlans container with module prefix at the top level.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        vlan_list = []
+        for v in self.vlans:
+            vlan_list.append(v.to_restconf_dict())
+        return {'openconfig-vlan:vlans': {'vlan': vlan_list}}

@@ -26,3 +26,14 @@ def config_to_xml(config):
     for conf in config:
         element.append(conf.to_xml_element())
     return ElementTree.tostring(element).decode("utf-8")
+
+
+def config_to_restconf_json(config):
+    """Serialize model objects to RESTCONF JSON (RFC 7951).
+
+    Returns a dict suitable for passing to requests.patch(json=...).
+    """
+    result = {}
+    for conf in config:
+        result.update(conf.to_restconf_dict())
+    return result

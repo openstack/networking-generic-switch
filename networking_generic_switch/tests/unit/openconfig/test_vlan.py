@@ -186,3 +186,132 @@ class TestVlan(unittest.TestCase):
         trunk_vlans.remove(100)
         trunk_vlans.remove(100)
         self.assertEqual([100], trunk_vlans._removals)
+
+
+class TestVlanRestconf(unittest.TestCase):
+
+    def test_vlan_config_restconf_dict(self):
+        vlan_conf = vlan.VlanConfig(vlan_id=10, name='Vlan10',
+                                    status='ACTIVE')
+        result = vlan_conf.to_restconf_dict()
+        expected = {
+            'vlan-id': 10,
+            'name': 'Vlan10',
+            'status': 'ACTIVE',
+        }
+        self.assertEqual(expected, result)
+
+    def test_vlan_config_restconf_dict_minimal(self):
+        vlan_conf = vlan.VlanConfig(vlan_id=20)
+        result = vlan_conf.to_restconf_dict()
+        expected = {'vlan-id': 20}
+        self.assertEqual(expected, result)
+
+    def test_vlan_restconf_dict(self):
+        oc_vlan = vlan.Vlan(100)
+        oc_vlan.config.name = 'Production'
+        oc_vlan.config.status = 'ACTIVE'
+        result = oc_vlan.to_restconf_dict()
+        expected = {
+            'vlan-id': 100,
+            'config': {
+                'vlan-id': 100,
+                'name': 'Production',
+                'status': 'ACTIVE',
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_vlans_restconf_dict(self):
+        oc_vlans = vlan.Vlans()
+        v1 = oc_vlans.add(10)
+        v1.config.name = 'Vlan10'
+        v1.config.status = 'ACTIVE'
+        v2 = oc_vlans.add(20)
+        v2.config.name = 'Vlan20'
+        result = oc_vlans.to_restconf_dict()
+        expected = {
+            'openconfig-vlan:vlans': {
+                'vlan': [
+                    {
+                        'vlan-id': 10,
+                        'config': {
+                            'vlan-id': 10,
+                            'name': 'Vlan10',
+                            'status': 'ACTIVE',
+                        }
+                    },
+                    {
+                        'vlan-id': 20,
+                        'config': {
+                            'vlan-id': 20,
+                            'name': 'Vlan20',
+                        }
+                    },
+                ]
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_switched_vlan_config_restconf_dict_access(self):
+        conf = vlan.VlanSwitchedConfig(
+            interface_mode='ACCESS', access_vlan=100)
+        result = conf.to_restconf_dict()
+        expected = {
+            'interface-mode': 'ACCESS',
+            'access-vlan': 100,
+        }
+        self.assertEqual(expected, result)
+
+    def test_switched_vlan_config_restconf_dict_trunk(self):
+        conf = vlan.VlanSwitchedConfig(
+            interface_mode='TRUNK', native_vlan=1)
+        conf.trunk_vlans.add(100)
+        conf.trunk_vlans.add(200)
+        conf.trunk_vlans.add('300..400')
+        result = conf.to_restconf_dict()
+        expected = {
+            'interface-mode': 'TRUNK',
+            'native-vlan': 1,
+            'trunk-vlans': [100, 200, '300..400'],
+        }
+        self.assertEqual(expected, result)
+
+    def test_switched_vlan_config_restconf_dict_trunk_no_vlans(self):
+        conf = vlan.VlanSwitchedConfig(interface_mode='TRUNK')
+        result = conf.to_restconf_dict()
+        expected = {'interface-mode': 'TRUNK'}
+        self.assertEqual(expected, result)
+
+    def test_switched_vlan_restconf_dict(self):
+        switched_vlan = vlan.VlanSwitchedVlan()
+        switched_vlan.config.interface_mode = 'ACCESS'
+        switched_vlan.config.access_vlan = 50
+        result = switched_vlan.to_restconf_dict()
+        expected = {
+            'config': {
+                'interface-mode': 'ACCESS',
+                'access-vlan': 50,
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_trunk_vlans_restconf_list_integers(self):
+        trunk_vlans = vlan.TrunkVlans()
+        trunk_vlans.add(100)
+        trunk_vlans.add(200)
+        result = trunk_vlans.to_restconf_list()
+        self.assertEqual([100, 200], result)
+
+    def test_trunk_vlans_restconf_list_mixed(self):
+        trunk_vlans = vlan.TrunkVlans()
+        trunk_vlans.add(10)
+        trunk_vlans.add('100..200')
+        trunk_vlans.add(300)
+        result = trunk_vlans.to_restconf_list()
+        self.assertEqual([10, '100..200', 300], result)
+
+    def test_trunk_vlans_restconf_list_empty(self):
+        trunk_vlans = vlan.TrunkVlans()
+        result = trunk_vlans.to_restconf_list()
+        self.assertEqual([], result)

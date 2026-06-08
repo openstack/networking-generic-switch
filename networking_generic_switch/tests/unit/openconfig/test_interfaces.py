@@ -21,6 +21,7 @@ from networking_generic_switch.netconf_models.openconfig.interfaces import (
 from networking_generic_switch.netconf_models.openconfig.interfaces import (
     interfaces)
 from networking_generic_switch.netconf_models.openconfig.vlan import vlan
+from networking_generic_switch.netconf_models import utils as ncutils
 
 
 class TestInterfaces(unittest.TestCase):
@@ -191,3 +192,215 @@ class TestInterfaces(unittest.TestCase):
         xml_str = ElementTree.tostring(element).decode("utf-8")
         expected = '<config operation="remove" />'
         self.assertEqual(expected, xml_str)
+
+
+class TestInterfacesRestconf(unittest.TestCase):
+
+    def test_interface_config_restconf_dict(self):
+        if_conf = interfaces.InterfaceConfig()
+        if_conf.name = 'eth1/1'
+        if_conf.description = 'Server port'
+        if_conf.enabled = True
+        if_conf.mtu = 9000
+        result = if_conf.to_restconf_dict()
+        expected = {
+            'name': 'eth1/1',
+            'description': 'Server port',
+            'enabled': True,
+            'mtu': 9000,
+        }
+        self.assertEqual(expected, result)
+
+    def test_interface_config_restconf_dict_minimal(self):
+        if_conf = interfaces.InterfaceConfig()
+        result = if_conf.to_restconf_dict()
+        self.assertEqual({}, result)
+
+    def test_interface_config_restconf_dict_enabled_false(self):
+        if_conf = interfaces.InterfaceConfig(enabled=False)
+        result = if_conf.to_restconf_dict()
+        self.assertEqual({'enabled': False}, result)
+
+    def test_base_interface_restconf_dict(self):
+        iface = interfaces.BaseInterface('eth1/1')
+        iface.config.name = 'eth1/1'
+        result = iface.to_restconf_dict()
+        expected = {
+            'name': 'eth1/1',
+            'config': {'name': 'eth1/1'},
+        }
+        self.assertEqual(expected, result)
+
+    def test_interface_ethernet_restconf_dict_access(self):
+        iface = interfaces.InterfaceEthernet('eth1/31')
+        iface.ethernet.switched_vlan.config.interface_mode = 'ACCESS'
+        iface.ethernet.switched_vlan.config.access_vlan = 100
+        result = iface.to_restconf_dict()
+        expected = {
+            'name': 'eth1/31',
+            'openconfig-if-ethernet:ethernet': {
+                'openconfig-vlan:switched-vlan': {
+                    'config': {
+                        'interface-mode': 'ACCESS',
+                        'access-vlan': 100,
+                    }
+                }
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_interface_ethernet_restconf_dict_trunk(self):
+        iface = interfaces.InterfaceEthernet('eth1/5')
+        iface.ethernet.switched_vlan.config.interface_mode = 'TRUNK'
+        iface.ethernet.switched_vlan.config.native_vlan = 1
+        iface.ethernet.switched_vlan.config.trunk_vlans.add(100)
+        iface.ethernet.switched_vlan.config.trunk_vlans.add(200)
+        iface.ethernet.switched_vlan.config.trunk_vlans.add('300..400')
+        result = iface.to_restconf_dict()
+        expected = {
+            'name': 'eth1/5',
+            'openconfig-if-ethernet:ethernet': {
+                'openconfig-vlan:switched-vlan': {
+                    'config': {
+                        'interface-mode': 'TRUNK',
+                        'native-vlan': 1,
+                        'trunk-vlans': [100, 200, '300..400'],
+                    }
+                }
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_interface_aggregate_restconf_dict(self):
+        iface = interfaces.InterfaceAggregate('po10')
+        iface.aggregation.config.lag_type = 'LACP'
+        iface.aggregation.config.min_links = 2
+        iface.aggregation.switched_vlan.config.interface_mode = 'TRUNK'
+        iface.aggregation.switched_vlan.config.trunk_vlans.add(100)
+        result = iface.to_restconf_dict()
+        expected = {
+            'name': 'po10',
+            'openconfig-if-aggregate:aggregation': {
+                'config': {
+                    'lag-type': 'LACP',
+                    'min-links': 2,
+                },
+                'openconfig-vlan:switched-vlan': {
+                    'config': {
+                        'interface-mode': 'TRUNK',
+                        'trunk-vlans': [100],
+                    }
+                }
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_interfaces_restconf_dict(self):
+        ifaces = interfaces.Interfaces()
+        iface = ifaces.add('eth1/31')
+        iface.ethernet.switched_vlan.config.interface_mode = 'ACCESS'
+        iface.ethernet.switched_vlan.config.access_vlan = 100
+        result = ifaces.to_restconf_dict()
+        expected = {
+            'openconfig-interfaces:interfaces': {
+                'interface': [
+                    {
+                        'name': 'eth1/31',
+                        'openconfig-if-ethernet:ethernet': {
+                            'openconfig-vlan:switched-vlan': {
+                                'config': {
+                                    'interface-mode': 'ACCESS',
+                                    'access-vlan': 100,
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_interfaces_restconf_dict_multiple(self):
+        ifaces = interfaces.Interfaces()
+        iface1 = ifaces.add('eth1/1')
+        iface1.ethernet.switched_vlan.config.interface_mode = 'ACCESS'
+        iface1.ethernet.switched_vlan.config.access_vlan = 10
+        iface2 = ifaces.add('eth1/2')
+        iface2.ethernet.switched_vlan.config.interface_mode = 'TRUNK'
+        iface2.ethernet.switched_vlan.config.trunk_vlans.add(100)
+        result = ifaces.to_restconf_dict()
+        iface_list = (
+            result['openconfig-interfaces:interfaces']['interface'])
+        self.assertEqual(2, len(iface_list))
+        self.assertEqual('eth1/1', iface_list[0]['name'])
+        self.assertEqual('eth1/2', iface_list[1]['name'])
+
+    def test_ethernet_config_restconf_dict_aggregate_id(self):
+        eth_conf = ethernet.InterfacesEthernetConfig()
+        eth_conf.aggregate_id = 'po100'
+        result = eth_conf.to_restconf_dict()
+        expected = {
+            'openconfig-if-aggregate:aggregate-id': 'po100',
+        }
+        self.assertEqual(expected, result)
+
+    def test_ethernet_config_restconf_dict_empty(self):
+        eth_conf = ethernet.InterfacesEthernetConfig()
+        result = eth_conf.to_restconf_dict()
+        self.assertEqual({}, result)
+
+    def test_interfaces_ethernet_restconf_dict(self):
+        if_eth = ethernet.InterfacesEthernet()
+        if_eth.switched_vlan.config.interface_mode = 'ACCESS'
+        if_eth.switched_vlan.config.access_vlan = 50
+        result = if_eth.to_restconf_dict()
+        expected = {
+            'openconfig-vlan:switched-vlan': {
+                'config': {
+                    'interface-mode': 'ACCESS',
+                    'access-vlan': 50,
+                }
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_aggregation_config_restconf_dict(self):
+        agg_conf = aggregate.InterfacesAggregationConfig()
+        agg_conf.lag_type = 'LACP'
+        agg_conf.min_links = 4
+        result = agg_conf.to_restconf_dict()
+        expected = {
+            'lag-type': 'LACP',
+            'min-links': 4,
+        }
+        self.assertEqual(expected, result)
+
+    def test_aggregation_restconf_dict(self):
+        agg = aggregate.InterfacesAggregation()
+        agg.config.lag_type = 'LACP'
+        agg.switched_vlan.config.interface_mode = 'TRUNK'
+        agg.switched_vlan.config.trunk_vlans.add(200)
+        result = agg.to_restconf_dict()
+        expected = {
+            'config': {'lag-type': 'LACP'},
+            'openconfig-vlan:switched-vlan': {
+                'config': {
+                    'interface-mode': 'TRUNK',
+                    'trunk-vlans': [200],
+                }
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_config_to_restconf_json(self):
+        ifaces = interfaces.Interfaces()
+        iface = ifaces.add('eth1/31')
+        iface.ethernet.switched_vlan.config.interface_mode = 'ACCESS'
+        iface.ethernet.switched_vlan.config.access_vlan = 100
+        result = ncutils.config_to_restconf_json([ifaces])
+        self.assertIn('openconfig-interfaces:interfaces', result)
+        self.assertEqual(
+            100,
+            result['openconfig-interfaces:interfaces']['interface'][0]
+            ['openconfig-if-ethernet:ethernet']
+            ['openconfig-vlan:switched-vlan']['config']['access-vlan'])

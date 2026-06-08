@@ -16,6 +16,7 @@ from xml.etree import ElementTree
 from networking_generic_switch.netconf_models.openconfig.network_instance \
     import network_instance
 from networking_generic_switch.netconf_models.openconfig.vlan import vlan
+from networking_generic_switch.netconf_models import utils as ncutils
 
 
 class TestNetworkInstance(unittest.TestCase):
@@ -48,3 +49,91 @@ class TestNetworkInstance(unittest.TestCase):
                     '<fake-oc-vlans />'
                     '</network-instance>')
         self.assertEqual(expected, xml_str)
+
+
+class TestNetworkInstanceRestconf(unittest.TestCase):
+
+    def test_network_instance_restconf_dict(self):
+        ni = network_instance.NetworkInstance('default')
+        v = ni.vlans.add(100)
+        v.config.name = 'Production'
+        v.config.status = 'ACTIVE'
+        result = ni.to_restconf_dict()
+        expected = {
+            'name': 'default',
+            'openconfig-vlan:vlans': {
+                'vlan': [
+                    {
+                        'vlan-id': 100,
+                        'config': {
+                            'vlan-id': 100,
+                            'name': 'Production',
+                            'status': 'ACTIVE',
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_network_instance_restconf_dict_multiple_vlans(self):
+        ni = network_instance.NetworkInstance('default')
+        v1 = ni.vlans.add(10)
+        v1.config.name = 'Management'
+        v2 = ni.vlans.add(20)
+        v2.config.name = 'Data'
+        result = ni.to_restconf_dict()
+        self.assertEqual('default', result['name'])
+        vlan_list = result['openconfig-vlan:vlans']['vlan']
+        self.assertEqual(2, len(vlan_list))
+        self.assertEqual(10, vlan_list[0]['vlan-id'])
+        self.assertEqual(20, vlan_list[1]['vlan-id'])
+
+    def test_network_instance_restconf_dict_no_vlans(self):
+        ni = network_instance.NetworkInstance('default')
+        result = ni.to_restconf_dict()
+        expected = {'name': 'default'}
+        self.assertEqual(expected, result)
+
+    def test_network_instances_restconf_dict(self):
+        nis = network_instance.NetworkInstances()
+        ni = nis.add('default')
+        v = ni.vlans.add(100)
+        v.config.name = 'Vlan100'
+        v.config.status = 'ACTIVE'
+        result = nis.to_restconf_dict()
+        expected = {
+            'openconfig-network-instance:network-instances': {
+                'network-instance': [
+                    {
+                        'name': 'default',
+                        'openconfig-vlan:vlans': {
+                            'vlan': [
+                                {
+                                    'vlan-id': 100,
+                                    'config': {
+                                        'vlan-id': 100,
+                                        'name': 'Vlan100',
+                                        'status': 'ACTIVE',
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+        self.assertEqual(expected, result)
+
+    def test_config_to_restconf_json_network_instance(self):
+        nis = network_instance.NetworkInstances()
+        ni = nis.add('default')
+        ni.vlans.add(100)
+        result = ncutils.config_to_restconf_json([nis])
+        self.assertIn(
+            'openconfig-network-instance:network-instances', result)
+        ni_list = (
+            result['openconfig-network-instance:network-instances']
+            ['network-instance'])
+        self.assertEqual(1, len(ni_list))
+        self.assertEqual('default', ni_list[0]['name'])
