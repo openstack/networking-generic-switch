@@ -26,6 +26,7 @@ extensions = [
     'openstackdocstheme',
     'netmiko_device_commands',
     'netconf_device_commands',
+    'restconf_device_commands',
 ]
 
 # openstackdocstheme options
