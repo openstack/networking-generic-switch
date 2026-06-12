@@ -19,7 +19,7 @@ from docutils.statemachine import ViewList
 from sphinx.util.nodes import nested_parse_with_titles
 import stevedore
 
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import utils as yutils
 
 
 EXAMPLE_SEGMENTATION_ID = 100
@@ -244,7 +244,7 @@ class RestconfDeviceCommandsDirective(rst.Directive):
                     continue
 
                 http_method = op['http_method']
-                restconf_data = ncutils.config_to_restconf_json(result)
+                restconf_data = yutils.config_to_restconf_json(result)
                 for container_key, container_data in (
                         restconf_data.items()):
                     url_path = f'/restconf/data/{container_key}'

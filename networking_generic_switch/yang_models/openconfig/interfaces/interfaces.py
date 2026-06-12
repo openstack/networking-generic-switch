@@ -14,14 +14,14 @@ from typing import Optional
 from urllib.parse import quote
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig import (
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig import (
     constants as oc_constants)
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     aggregate)
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     ethernet)
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class InterfaceConfig:
@@ -32,7 +32,7 @@ class InterfaceConfig:
     TAG = 'config'
 
     def __init__(self,
-                 operation=ncconst.NetconfEditConfigOperation.MERGE,
+                 operation=yconst.EditOperation.MERGE,
                  name: Optional[str] = None,
                  description: Optional[str] = None,
                  enabled: Optional[bool] = None,
@@ -57,10 +57,10 @@ class InterfaceConfig:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -144,19 +144,19 @@ class InterfaceConfig:
         """
         elem = ElementTree.Element(self.TAG)
         if self.name is not None:
-            ncutils.txt_subelement(
+            yutils.txt_subelement(
                 elem, 'name', self.name,
                 attrib={'operation': self.operation})
         if self.description is not None:
-            ncutils.txt_subelement(
+            yutils.txt_subelement(
                 elem, 'description', self.description,
                 attrib={'operation': self.operation})
         if self.enabled is not None:
-            ncutils.txt_subelement(
+            yutils.txt_subelement(
                 elem, 'enabled', str(self.enabled).lower(),
                 attrib={'operation': self.operation})
         if self.mtu is not None:
-            ncutils.txt_subelement(
+            yutils.txt_subelement(
                 elem, 'mtu', str(self.mtu),
                 attrib={'operation': self.operation})
         return elem
@@ -231,7 +231,7 @@ class BaseInterface:
         :return: ElementTree Element with SubElements
         """
         elem = ElementTree.Element(self.TAG)
-        ncutils.txt_subelement(elem, 'name', self.name)
+        yutils.txt_subelement(elem, 'name', self.name)
         if self._config:
             elem.append(self.config.to_xml_element())
         return elem
@@ -281,7 +281,7 @@ class InterfaceEthernet(BaseInterface):
         :return: ElementTree Element with SubElements
         """
         elem = ElementTree.Element(self.TAG)
-        ncutils.txt_subelement(elem, 'name', self.name)
+        yutils.txt_subelement(elem, 'name', self.name)
         if self.config:
             elem.append(self.config.to_xml_element())
         if self.ethernet:
@@ -308,7 +308,7 @@ class InterfaceEthernet(BaseInterface):
 class InterfaceAggregate(BaseInterface):
 
     def __init__(self, name: str,
-                 operation: str = ncconst.NetconfEditConfigOperation.MERGE):
+                 operation: str = yconst.EditOperation.MERGE):
         super(InterfaceAggregate, self).__init__(name)
         self.operation = operation
         self._aggregation = aggregate.InterfacesAggregation()
@@ -321,10 +321,10 @@ class InterfaceAggregate(BaseInterface):
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -357,7 +357,7 @@ class InterfaceAggregate(BaseInterface):
         elem = ElementTree.Element(self.TAG)
         if self.operation:
             elem.set('operation', self.operation)
-        ncutils.txt_subelement(elem, 'name', self.name)
+        yutils.txt_subelement(elem, 'name', self.name)
         if self.config:
             elem.append(self.config.to_xml_element())
         if self.aggregation:

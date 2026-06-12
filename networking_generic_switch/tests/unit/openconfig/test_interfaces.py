@@ -13,15 +13,15 @@ import unittest
 from unittest import mock
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     aggregate)
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     ethernet)
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     interfaces)
-from networking_generic_switch.netconf_models.openconfig.vlan import vlan
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models.openconfig.vlan import vlan
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class TestInterfaces(unittest.TestCase):
@@ -133,8 +133,7 @@ class TestInterfaces(unittest.TestCase):
 
     def test_interfaces_interface_config(self):
         if_conf = interfaces.InterfaceConfig()
-        self.assertEqual(ncconst.NetconfEditConfigOperation.MERGE.value,
-                         if_conf.operation)
+        self.assertEqual(yconst.EditOperation.MERGE.value, if_conf.operation)
         self.assertRaises(ValueError, interfaces.InterfaceConfig,
                           **dict(operation='invalid'))
         self.assertRaises(TypeError, interfaces.InterfaceConfig,
@@ -172,7 +171,7 @@ class TestInterfaces(unittest.TestCase):
 
     def test_interfaces_interface_ethernet_config(self):
         eth_conf = ethernet.InterfacesEthernetConfig()
-        self.assertEqual(ncconst.NetconfEditConfigOperation.MERGE.value,
+        self.assertEqual(yconst.EditOperation.MERGE.value,
                          eth_conf.operation)
         self.assertRaises(ValueError,
                           ethernet.InterfacesEthernetConfig,
@@ -397,7 +396,7 @@ class TestInterfacesRestconf(unittest.TestCase):
         iface = ifaces.add('eth1/31')
         iface.ethernet.switched_vlan.config.interface_mode = 'ACCESS'
         iface.ethernet.switched_vlan.config.access_vlan = 100
-        result = ncutils.config_to_restconf_json([ifaces])
+        result = yutils.config_to_restconf_json([ifaces])
         self.assertIn('openconfig-interfaces:interfaces', result)
         self.assertEqual(
             100,

@@ -13,8 +13,8 @@ from collections import abc
 from urllib.parse import quote
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models.openconfig.vlan import vlan
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models.openconfig.vlan import vlan
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class NetworkInstances(abc.Collection):
@@ -136,7 +136,7 @@ class NetworkInstance:
         """
         elem = ElementTree.Element(self.TAG)
         if self.name:
-            ncutils.txt_subelement(elem, 'name', self.name)
+            yutils.txt_subelement(elem, 'name', self.name)
         if self.vlans:
             elem.append(self.vlans.to_xml_element())
         return elem

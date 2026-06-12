@@ -14,7 +14,7 @@ import unittest
 from unittest import mock
 
 from networking_generic_switch.devices.restconf_devices import openconfig
-from networking_generic_switch.netconf_models.openconfig import (
+from networking_generic_switch.yang_models.openconfig import (
     constants as oc_constants)
 
 

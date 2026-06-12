@@ -19,7 +19,7 @@ from docutils.statemachine import ViewList
 from sphinx.util.nodes import nested_parse_with_titles
 import stevedore
 
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import utils as yutils
 
 
 EXAMPLE_SEGMENTATION_ID = 100
@@ -242,7 +242,7 @@ class NetconfDeviceCommandsDirective(rst.Directive):
                 try:
                     result = method(**op['kwargs'])
                     if result:
-                        xml_str = ncutils.config_to_xml(result)
+                        xml_str = yutils.config_to_xml(result)
                         pretty = _pretty_xml(xml_str)
                         output_lines.append('.. code-block:: xml', '')
                         output_lines.append('', '')

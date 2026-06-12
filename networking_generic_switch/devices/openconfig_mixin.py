@@ -10,14 +10,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig import (
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig import (
     constants as oc_constants)
-from networking_generic_switch.netconf_models.openconfig.interfaces \
+from networking_generic_switch.yang_models.openconfig.interfaces \
     .interfaces import Interfaces
-from networking_generic_switch.netconf_models.openconfig \
+from networking_generic_switch.yang_models.openconfig \
     .network_instance.network_instance import NetworkInstances
-from networking_generic_switch.netconf_models.openconfig.vlan \
+from networking_generic_switch.yang_models.openconfig.vlan \
     .vlan import VlanSwitchedVlan
 
 
@@ -82,8 +82,7 @@ class OpenConfigModelMixin:
             switched_vlan = VlanSwitchedVlan()
             switched_vlan.config.interface_mode = oc_constants.VLAN_MODE_TRUNK
             if physnet_vlans is not None:
-                switched_vlan.config.operation = (
-                    ncconst.NetconfEditConfigOperation.REPLACE)
+                switched_vlan.config.operation = yconst.EditOperation.REPLACE
                 for vlan_id in sorted(physnet_vlans):
                     switched_vlan.config.trunk_vlans = vlan_id
             else:
@@ -115,8 +114,7 @@ class OpenConfigModelMixin:
             switched_vlan = VlanSwitchedVlan()
             switched_vlan.config.interface_mode = oc_constants.VLAN_MODE_TRUNK
             if physnet_vlans is not None:
-                switched_vlan.config.operation = (
-                    ncconst.NetconfEditConfigOperation.REPLACE)
+                switched_vlan.config.operation = yconst.EditOperation.REPLACE
                 for vlan_id in sorted(physnet_vlans):
                     switched_vlan.config.trunk_vlans = vlan_id
             else:
@@ -146,8 +144,7 @@ class OpenConfigModelMixin:
         iface = ifaces.add(port_id)
 
         switched_vlan = VlanSwitchedVlan()
-        switched_vlan.config.operation = (
-            ncconst.NetconfEditConfigOperation.REPLACE)
+        switched_vlan.config.operation = yconst.EditOperation.REPLACE
 
         if trunk_details:
             switched_vlan.config.interface_mode = oc_constants.VLAN_MODE_TRUNK
@@ -175,10 +172,10 @@ class OpenConfigModelMixin:
 
         ifaces = Interfaces()
         iface = ifaces.add(port_id)
-        iface.config.operation = ncconst.NetconfEditConfigOperation.REMOVE
+        iface.config.operation = yconst.EditOperation.REMOVE
         iface.config.description = ''
         iface.ethernet.switched_vlan.config.operation = (
-            ncconst.NetconfEditConfigOperation.REMOVE)
+            yconst.EditOperation.REMOVE)
 
         return [ifaces]
 
@@ -234,8 +231,7 @@ class OpenConfigModelMixin:
         switched_vlan.config.interface_mode = oc_constants.VLAN_MODE_TRUNK
 
         if trunk_details is not None:
-            switched_vlan.config.operation = (
-                ncconst.NetconfEditConfigOperation.REPLACE)
+            switched_vlan.config.operation = yconst.EditOperation.REPLACE
             native_vlan = trunk_details.get('segmentation_id')
             if native_vlan:
                 switched_vlan.config.native_vlan = int(native_vlan)
@@ -275,8 +271,7 @@ class OpenConfigModelMixin:
         switched_vlan.config.interface_mode = oc_constants.VLAN_MODE_TRUNK
 
         if trunk_details is not None:
-            switched_vlan.config.operation = (
-                ncconst.NetconfEditConfigOperation.REPLACE)
+            switched_vlan.config.operation = yconst.EditOperation.REPLACE
             remaining = trunk_details.get('sub_ports', [])
             native_vlan = trunk_details.get('segmentation_id')
             if remaining:

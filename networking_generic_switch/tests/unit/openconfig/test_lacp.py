@@ -13,10 +13,10 @@ import unittest
 from unittest import mock
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig import (
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig import (
     constants as oc_constants)
-from networking_generic_switch.netconf_models.openconfig.lacp import lacp
+from networking_generic_switch.yang_models.openconfig.lacp import lacp
 
 
 class TestOpenConfigLACP(unittest.TestCase):
@@ -65,7 +65,7 @@ class TestOpenConfigLACP(unittest.TestCase):
                     '<fake-lacp-interface-config />'
                     '</interface>')
         self.assertEqual(expected, xml_str)
-        oc_lacp_iface.operation = ncconst.NetconfEditConfigOperation.REMOVE
+        oc_lacp_iface.operation = yconst.EditOperation.REMOVE
         element = oc_lacp_iface.to_xml_element()
         xml_str = ElementTree.tostring(element).decode("utf-8")
         expected = ('<interface operation="remove">'

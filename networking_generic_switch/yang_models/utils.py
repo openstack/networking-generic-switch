@@ -12,7 +12,7 @@
 
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
+CFG_ELEMENT = 'config'
 
 
 def txt_subelement(parent, tag, text, *args, **kwargs):
@@ -22,7 +22,7 @@ def txt_subelement(parent, tag, text, *args, **kwargs):
 
 
 def config_to_xml(config):
-    element = ElementTree.Element(ncconst.CFG_ELEMENT)
+    element = ElementTree.Element(CFG_ELEMENT)
     for conf in config:
         element.append(conf.to_xml_element())
     return ElementTree.tostring(element).decode("utf-8")

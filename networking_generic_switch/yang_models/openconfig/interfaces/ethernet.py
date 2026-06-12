@@ -11,9 +11,9 @@
 #    under the License.
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig.vlan import vlan
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig.vlan import vlan
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class InterfacesEthernetConfig:
@@ -23,7 +23,7 @@ class InterfacesEthernetConfig:
     PARENT = 'interface'
     TAG = 'config'
 
-    def __init__(self, operation=ncconst.NetconfEditConfigOperation.MERGE):
+    def __init__(self, operation=yconst.EditOperation.MERGE):
         self.operation = operation
         self._aggregate_id = None
         self._aggregate_id_namespace = (
@@ -37,10 +37,10 @@ class InterfacesEthernetConfig:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -75,7 +75,7 @@ class InterfacesEthernetConfig:
         if self.operation:
             element.set('operation', self.operation)
         if self.aggregate_id is not None:
-            ncutils.txt_subelement(
+            yutils.txt_subelement(
                 element, 'aggregate-id', self.aggregate_id,
                 xmlns=self._aggregate_id_namespace)
         return element

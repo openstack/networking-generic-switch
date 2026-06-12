@@ -26,7 +26,7 @@ from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 from networking_generic_switch import locking as ngs_lock
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import utils as yutils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -42,7 +42,7 @@ class RestconfSwitch(devices.GenericSwitchDevice):
     Subclasses must assign callable class variables (ADD_NETWORK, etc.)
     that build YANG model objects.  The dispatch methods in this class
     invoke those callables, serialize the result to JSON via
-    ``ncutils.config_to_restconf_json``, and send to the device over
+    ``yutils.config_to_restconf_json``, and send to the device over
     HTTPS.
     """
 
@@ -228,7 +228,7 @@ class RestconfSwitch(devices.GenericSwitchDevice):
         if not isinstance(config, list):
             config = [config]
 
-        payload = ncutils.config_to_restconf_json(config)
+        payload = yutils.config_to_restconf_json(config)
         if not payload:
             return
 

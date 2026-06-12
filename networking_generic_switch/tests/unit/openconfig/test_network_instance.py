@@ -13,10 +13,10 @@ import unittest
 from unittest import mock
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models.openconfig.network_instance \
+from networking_generic_switch.yang_models.openconfig.network_instance \
     import network_instance
-from networking_generic_switch.netconf_models.openconfig.vlan import vlan
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models.openconfig.vlan import vlan
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class TestNetworkInstance(unittest.TestCase):
@@ -129,7 +129,7 @@ class TestNetworkInstanceRestconf(unittest.TestCase):
         nis = network_instance.NetworkInstances()
         ni = nis.add('default')
         ni.vlans.add(100)
-        result = ncutils.config_to_restconf_json([nis])
+        result = yutils.config_to_restconf_json([nis])
         self.assertIn(
             'openconfig-network-instance:network-instances', result)
         ni_list = (
