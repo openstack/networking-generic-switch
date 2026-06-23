@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    The ``neutron`` package is no longer a required dependency.
+    It has been moved to an optional extra called ``neutron``.
+    This allows installing networking-generic-switch without pulling in
+    the full Neutron dependency tree, which is useful for standalone
+    deployments such as ironic-networking.
+
+    For full Neutron ML2 deployments, install with the extra::
+
+      pip install networking-generic-switch[neutron]
+
+    Existing deployments that install neutron separately (e.g. via
+    distribution packages or devstack) are not affected.

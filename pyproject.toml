@@ -33,6 +33,12 @@ Homepage = "https://docs.openstack.org/networking-generic-switch/latest/"
 Repository = "https://opendev.org/openstack/networking-generic-switch"
 Bugs = "https://bugs.launchpad.net/networking-generic-switch"
 
+[project.optional-dependencies]
+neutron = [
+    "neutron>=13.0.0.0b1",
+    "pyroute2>=0.7.3;sys_platform!='win32'",
+]
+
 [project.entry-points."neutron.ml2.mechanism_drivers"]
 genericswitch = "networking_generic_switch.generic_switch_mech:GenericSwitchDriver"
 
