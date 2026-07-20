@@ -76,7 +76,7 @@ class TestNetconfSwitchInit(unittest.TestCase):
         self.assertEqual(args['username'], 'admin')
         self.assertFalse(args['hostkey_verify'])
         self.assertEqual(args['device_params'], {'name': 'default'})
-        self.assertTrue(args['keepalive'])
+        self.assertTrue(args['use_libssh'])
         self.assertEqual(args['key_filename'], '/test/test_key')
         self.assertEqual(args['password'], 'secret')
 
@@ -110,7 +110,7 @@ class TestNetconfSwitchInit(unittest.TestCase):
         self.assertEqual(args['port'], 830)
         self.assertTrue(args['hostkey_verify'])
         self.assertTrue(args['allow_agent'])
-        self.assertTrue(args['look_for_keys'])
+        self.assertTrue(args['use_libssh'])
         self.assertNotIn('key_filename', args)
         self.assertNotIn('password', args)
 
