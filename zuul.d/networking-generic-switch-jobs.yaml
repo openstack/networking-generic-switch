@@ -55,7 +55,7 @@
         q-agt: True
         q-dhcp: True
         q-l3: True
-        q-ovn-metadata-agent: False
+        q-ovn-agent: False
         q-svc: True
         rabbit: True
         s-account: False
