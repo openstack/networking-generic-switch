@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes false batch result timeouts when the result key exists in etcd but
+    the watch event was missed. See `LP#2152047
+    <https://bugs.launchpad.net/networking-generic-switch/+bug/2152047>`__ for
+    details.
