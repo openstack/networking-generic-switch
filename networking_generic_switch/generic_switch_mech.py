@@ -27,6 +27,7 @@ from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as ngs_exc
 from networking_generic_switch import trunk_driver
 from networking_generic_switch import utils as ngs_utils
+from networking_generic_switch import validation
 
 LOG = logging.getLogger(__name__)
 
@@ -90,6 +91,8 @@ class GenericSwitchDriver(api.MechanismDriver):
         physnet = network.get('provider:physical_network')
 
         if provider_type == 'vlan' and segmentation_id:
+            segmentation_id = int(segmentation_id)
+
             # Create vlan on all switches from this driver
             for switch_name, switch in self._get_devices_by_physnet(physnet):
                 try:
@@ -175,6 +178,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         physnet = network.get('provider:physical_network')
 
         if provider_type == 'vlan' and segmentation_id:
+            segmentation_id = int(segmentation_id)
             # Delete vlan on all switches from this driver
             exc_info = None
             for switch_name, switch in self._get_devices_by_physnet(physnet):
@@ -344,6 +348,9 @@ class GenericSwitchDriver(api.MechanismDriver):
         update_port_postcommit is called for all changes to the port
         state. It is up to the mechanism driver to ignore state or
         state changes that it does not know or care about.
+
+        :raises: GenericSwitchInvalidPortId if a port_id value
+                 fails validation.
         """
         port = context.current
         segment = context.top_bound_segment
@@ -367,15 +374,20 @@ class GenericSwitchDriver(api.MechanismDriver):
                 return
             is_802_3ad = ngs_utils.is_802_3ad(binding_profile)
             for link in local_link_information:
-                port_id = link.get('port_id')
+                port_id = validation.validate_port_id(
+                    link.get('port_id'))
                 switch_info = link.get('switch_info')
                 switch_id = link.get('switch_id')
                 switch = device_utils.get_switch_device(
                     self.switches, switch_info=switch_info,
                     ngs_mac_address=switch_id)
 
-                # If segmentation ID is None, set vlan 1
-                segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
+                # NOTE(TheJulia): Defaulting to VLAN 1 when segmentation_id
+                # is absent was inherited behavior and should be
+                # re-evaluated to determine if it remains appropriate.
+                segmentation_id = int(
+                    segment.get(api.SEGMENTATION_ID) or 1)
+
                 LOG.debug("Putting switch port %(switch_port)s on "
                           "%(switch_info)s in vlan %(segmentation_id)s",
                           {'switch_port': port_id, 'switch_info': switch_info,
@@ -546,13 +558,16 @@ class GenericSwitchDriver(api.MechanismDriver):
         :param segment: The segment to check against
         :returns: Whether the link refers to a configured switch and/or switch
                   is associated with physnet
+        :raises: GenericSwitchInvalidPortId if a port_id value
+                 fails validation.
         """
 
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
 
         for link in local_link_information:
-            port_id = link.get('port_id')
+            port_id = validation.validate_port_id(
+                link.get('port_id'))
             switch_info = link.get('switch_info')
             switch_id = link.get('switch_id')
             switch = device_utils.get_switch_device(
@@ -568,7 +583,11 @@ class GenericSwitchDriver(api.MechanismDriver):
 
             physnet = segment.get(api.PHYSICAL_NETWORK)
             switch_physnets = switch._get_physical_networks()
-            segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
+            # NOTE(TheJulia): Defaulting to VLAN 1 when segmentation_id
+            # is absent was inherited behavior and should be
+            # re-evaluated to determine if it remains appropriate.
+            segmentation_id = int(
+                segment.get(api.SEGMENTATION_ID) or 1)
 
             if switch_physnets and physnet not in switch_physnets:
                 LOG.error("Cannot bind port %(port)s as device %(device)s "
@@ -598,7 +617,9 @@ class GenericSwitchDriver(api.MechanismDriver):
         exception will be raised.
 
         :param port: The port to unplug
-        :param segment: The segment from which to unplug the port
+        :param segment: The segment from which to unplug the port (VLAN)
+        :raises: GenericSwitchInvalidPortId if a port_id value
+                 fails validation.
         """
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
@@ -614,9 +635,13 @@ class GenericSwitchDriver(api.MechanismDriver):
                 ngs_mac_address=switch_id)
             if not switch:
                 continue
-            port_id = link.get('port_id')
-            # If segmentation ID is None, set vlan 1
-            segmentation_id = segment.get(api.SEGMENTATION_ID) or 1
+            port_id = validation.validate_port_id(
+                link.get('port_id'))
+            # NOTE(TheJulia): Defaulting to VLAN 1 when segmentation_id
+            # is absent was inherited behavior and should be
+            # re-evaluated to determine if it remains appropriate.
+            segmentation_id = int(
+                segment.get(api.SEGMENTATION_ID) or 1)
             LOG.debug("Unplugging port %(port)s on %(switch_info)s from vlan: "
                       "%(segmentation_id)s",
                       {'port': port_id, 'switch_info': switch_info,
@@ -659,6 +684,8 @@ class GenericSwitchDriver(api.MechanismDriver):
         :param context: Request context
         :param port: Port dictionary
         :subports: List with subports
+        :raises: GenericSwitchInvalidPortId if a port_id value
+                 fails validation.
         """
 
         # set the correct state on port in the case where it has subports.
@@ -679,7 +706,8 @@ class GenericSwitchDriver(api.MechanismDriver):
             return
 
         for link in local_link_information:
-            port_id = link.get('port_id')
+            port_id = validation.validate_port_id(
+                link.get('port_id'))
             switch_info = link.get('switch_info')
             switch_id = link.get('switch_id')
             switch = device_utils.get_switch_device(
@@ -705,6 +733,8 @@ class GenericSwitchDriver(api.MechanismDriver):
         :param context: Request context
         :param port: Port dictionary
         :subports: List with subports
+        :raises: GenericSwitchInvalidPortId if a port_id value
+                 fails validation.
         """
 
         if not port:
@@ -722,7 +752,8 @@ class GenericSwitchDriver(api.MechanismDriver):
             return
 
         for link in local_link_information:
-            port_id = link.get('port_id')
+            port_id = validation.validate_port_id(
+                link.get('port_id'))
             switch_info = link.get('switch_info')
             switch_id = link.get('switch_id')
             switch = device_utils.get_switch_device(

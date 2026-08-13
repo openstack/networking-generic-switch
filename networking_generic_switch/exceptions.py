@@ -65,3 +65,10 @@ class GenericSwitchNotSupported(GenericSwitchException):
 class GenericSwitchSecurityGroupRuleNotSupported(GenericSwitchNotSupported):
     message = _("Security group rule is not supported on the %(switch)s. "
                 "%(error)s")
+
+
+class GenericSwitchInvalidPortId(GenericSwitchException):
+    message = _("Invalid port_id '%(port_id)s' in local_link_information. "
+                "Port identifiers may only contain alphanumeric "
+                "characters, spaces, hyphens, underscores, forward "
+                "slashes, colons, and periods.")

@@ -27,6 +27,12 @@ from networking_generic_switch import exceptions
 from networking_generic_switch import generic_switch_mech as gsm
 from networking_generic_switch import utils as ngs_utils
 
+# TODO(TheJulia): port_id values in local_link_information test data
+# use integers (2222, 3333, etc.) instead of strings. Real Neutron
+# data always provides these as strings. The validate_port_id()
+# function casts to str, so tests still pass, but the test data
+# should be updated to use string port_id values.
+
 
 @mock.patch('networking_generic_switch.config.get_devices',
             return_value={'foo': {'device_type': 'bar', 'spam': 'ham',
@@ -286,8 +292,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.delete_port.assert_has_calls(
-            [mock.call(2222, 123),
-             mock.call(3333, 123)])
+            [mock.call('2222', 123),
+             mock.call('3333', 123)])
 
     def test_delete_portgroup_postcommit_802_3ad(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -319,8 +325,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.delete_port_postcommit(mock_context)
         self.switch_mock.unplug_bond_from_network.assert_has_calls(
-            [mock.call(2222, 123),
-             mock.call(3333, 123)])
+            [mock.call('2222', 123),
+             mock.call('3333', 123)])
 
     def test_delete_port_postcommit_failure(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -524,7 +530,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                           'network_id': 'aaaa-bbbb-ccc'}
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once_with(
-            2222, 42)
+            '2222', 42)
         m_pc.assert_called_once_with(mock_context._plugin_context,
                                      mock_context.current['id'],
                                      resources.PORT,
@@ -565,8 +571,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                           'network_id': 'aaaa-bbbb-ccc'}
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_has_calls(
-            [mock.call(2222, 42),
-             mock.call(3333, 42)]
+            [mock.call('2222', 42),
+             mock.call('3333', 42)]
         )
         self.switch_mock.plug_bond_to_network.assert_not_called()
         m_pc.assert_has_calls([mock.call(mock_context._plugin_context,
@@ -613,8 +619,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                           'network_id': 'aaaa-bbbb-ccc'}
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_bond_to_network.assert_has_calls(
-            [mock.call(2222, 42),
-             mock.call(3333, 42)]
+            [mock.call('2222', 42),
+             mock.call('3333', 42)]
         )
         self.switch_mock.plug_port_to_network.assert_not_called()
         m_pc.assert_has_calls([mock.call(mock_context._plugin_context,
@@ -651,7 +657,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once_with(
-            2222, 1)
+            '2222', 1)
         m_pc.assert_called_once_with(mock_context._plugin_context,
                                      mock_context.current['id'],
                                      resources.PORT,
@@ -815,7 +821,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         }
 
         driver.update_port_postcommit(mock_context)
-        self.switch_mock.delete_port.assert_called_once_with(2222, 123)
+        self.switch_mock.delete_port.assert_called_once_with('2222', 123)
         m_pc.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'provisioning_complete',
@@ -944,8 +950,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.update_port_postcommit(mock_context)
         self.switch_mock.delete_port.assert_has_calls(
-            [mock.call(2222, 123),
-             mock.call(3333, 123)])
+            [mock.call('2222', 123),
+             mock.call('3333', 123)])
         m_pc.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
@@ -1332,8 +1338,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
             'binding:vnic_type': 'baremetal',
             'id': '123'
         }
-        subports = [{"segmentation_id": "tag1", "port_id": "s1"},
-                    {"segmentation_id": "tag2", "port_id": "s2"}]
+        subports = [{"segmentation_id": 101, "port_id": "s1"},
+                    {"segmentation_id": 102, "port_id": "s2"}]
 
         mock_plugin.return_value = mock.MagicMock()
         mock_plugin.return_value.get_port.return_value = {"status": "DOWN"}
@@ -1351,8 +1357,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
             'binding:vnic_type': 'baremetal',
             'id': '123'
         }
-        subports = [{"segmentation_id": "tag1"},
-                    {"segmentation_id": "tag2"}]
+        subports = [{"segmentation_id": 101},
+                    {"segmentation_id": 102}]
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
         mock_get_switch.return_value.add_subports_on_trunk.assart_not_called()
@@ -1374,15 +1380,15 @@ class TestGenericSwitchDriver(unittest.TestCase):
             'binding:vnic_type': 'baremetal',
             'id': '123'
         }
-        subports = [{"segmentation_id": "tag1", "port_id": "s1"},
-                    {"segmentation_id": "tag2", "port_id": "s2"}]
+        subports = [{"segmentation_id": 101, "port_id": "s1"},
+                    {"segmentation_id": 102, "port_id": "s2"}]
 
         mock_plugin.return_value = mock.MagicMock()
         mock_plugin.return_value.get_port.return_value = {"status": "DOWN"}
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
         mock_get_switch.return_value.add_subports_on_trunk.assert_has_calls(
-            [mock.call(parent_port['binding:profile'], 2222, subports)])
+            [mock.call(parent_port['binding:profile'], '2222', subports)])
 
     @mock.patch.object(device_utils, "get_switch_device", autospec=True)
     def test_subports_deleted_other_port(self, mock_get_switch, m_list):
@@ -1416,8 +1422,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
             'binding:vnic_type': 'baremetal',
             'id': '123'
         }
-        subports = [{"segmentation_id": "tag1"},
-                    {"segmentation_id": "tag2"}]
+        subports = [{"segmentation_id": 101},
+                    {"segmentation_id": 102}]
 
         driver.subports_deleted(self.ctxt, parent_port, subports=subports)
         mock_get_switch.return_value.del_subports_on_trunk.assart_not_called()
@@ -1443,7 +1449,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         driver.subports_deleted(self.ctxt, parent_port, subports=subports)
         mock_get_switch.return_value.del_subports_on_trunk.assert_has_calls(
-            [mock.call(parent_port['binding:profile'], 2222, subports)])
+            [mock.call(parent_port['binding:profile'], '2222', subports)])
 
     def test_empty_methods(self, m_list):
         driver = gsm.GenericSwitchDriver()

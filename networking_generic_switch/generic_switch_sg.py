@@ -27,6 +27,7 @@ from networking_generic_switch import devices
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 from networking_generic_switch import utils as ngs_utils
+from networking_generic_switch import validation
 
 
 LOG = logging.getLogger(__name__)
@@ -137,6 +138,8 @@ class GenericSwitchSecurityGroupHandler(service_base.ServicePluginBase):
 
         :param port: The port to check
         :returns: The switch object, port id, switch info, and switch id
+        :raises: GenericSwitchInvalidPortId if a port_id value
+                 fails validation.
         """
         binding_profile = port['binding:profile']
         local_link_information = binding_profile.get('local_link_information')
@@ -150,7 +153,8 @@ class GenericSwitchSecurityGroupHandler(service_base.ServicePluginBase):
                 ngs_mac_address=switch_id)
             if not switch:
                 continue
-            port_id = link.get('port_id')
+            port_id = validation.validate_port_id(
+                link.get('port_id'))
             LOG.info('Found port %(port_id)s on switch %(switch)s',
                      {'port_id': port_id, 'switch': switch_info})
             return switch, port_id, switch_info, switch_id
@@ -164,6 +168,8 @@ class GenericSwitchSecurityGroupHandler(service_base.ServicePluginBase):
         :param switch_id: Local link information switch_id
         :returns: A dict with key security group ID and value set of
                   port names bound to that group
+        :raises: GenericSwitchInvalidPortId if a port_id value
+                 fails validation.
         """
         # iterate all baremetal ports and collect port names and security
         # group IDs related to this switch
@@ -181,12 +187,18 @@ class GenericSwitchSecurityGroupHandler(service_base.ServicePluginBase):
                 local_link_information = binding.profile.get(
                     'local_link_information', [])
                 for link in local_link_information:
-                    if not link.get('port_id'):
+                    validated_id = validation.validate_port_id(
+                        link.get('port_id'))
+                    if not validated_id:
                         continue
-                    if switch_info and link.get('switch_info') == switch_info:
-                        port_ids.add(link.get('port_id'))
-                    if switch_id and link.get('switch_id') == switch_id:
-                        port_ids.add(link.get('port_id'))
+                    if (switch_info
+                            and link.get('switch_info')
+                            == switch_info):
+                        port_ids.add(validated_id)
+                    if (switch_id
+                            and link.get('switch_id')
+                            == switch_id):
+                        port_ids.add(validated_id)
 
             for sg_id in port.security_group_ids:
                 sg_ports[sg_id].update(port_ids)
