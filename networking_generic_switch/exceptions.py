@@ -137,3 +137,10 @@ class GenericSwitchRestconfConnectError(GenericSwitchException):
 class GenericSwitchRestconfRetryable(GenericSwitchException):
     message = _("RESTCONF transient error on device %(device)s: %(error)s. "
                 "The request will be retried.")
+
+
+class GenericSwitchInvalidPortId(GenericSwitchException):
+    message = _("Invalid port_id '%(port_id)s' in local_link_information. "
+                "Port identifiers may only contain alphanumeric "
+                "characters, spaces, hyphens, underscores, forward "
+                "slashes, colons, and periods.")
