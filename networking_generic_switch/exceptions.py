@@ -88,3 +88,10 @@ class GenericSwitchNetconfLockDenied(GenericSwitchException):
 class GenericSwitchNetconfOperationFailed(GenericSwitchException):
     message = _("The NETCONF device returned operation-failed. "
                 "The request will be retried.")
+
+
+class GenericSwitchInvalidPortId(GenericSwitchException):
+    message = _("Invalid port_id '%(port_id)s' in local_link_information. "
+                "Port identifiers may only contain alphanumeric "
+                "characters, spaces, hyphens, underscores, forward "
+                "slashes, colons, and periods.")
