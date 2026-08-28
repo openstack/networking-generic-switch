@@ -147,7 +147,7 @@ function configure_generic_switch {
         # Create generic_switch ml2 config
         for switch in $GENERIC_SWITCH_TEST_BRIDGE $IRONIC_VM_NETWORK_BRIDGE; do
             local bridge_mac
-            bridge_mac=$(ip link show dev $switch | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
+            bridge_mac=$(ip link show dev $switch | grep -E -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
             switch="genericswitch:$switch"
             add_generic_switch_to_ml2_config $switch $GENERIC_SWITCH_KEY_FILE $GENERIC_SWITCH_USER ::1 netmiko_ovs_linux "$GENERIC_SWITCH_PORT" "$bridge_mac"
         done

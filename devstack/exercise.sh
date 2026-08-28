@@ -39,7 +39,7 @@ clear_resources
 sudo ovs-vsctl add-port $GENERIC_SWITCH_TEST_BRIDGE $GENERIC_SWITCH_TEST_PORT_NAME
 sudo ovs-vsctl clear port $GENERIC_SWITCH_TEST_PORT_NAME tag
 
-switch_id=$(ip link show dev $GENERIC_SWITCH_TEST_BRIDGE | egrep -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
+switch_id=$(ip link show dev $GENERIC_SWITCH_TEST_BRIDGE | grep -E -o "ether [A-Za-z0-9:]+"|sed "s/ether\ //")
 
 wait_for_openvswitch_agent
 
