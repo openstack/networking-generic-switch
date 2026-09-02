@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 from collections import abc
+from urllib.parse import quote
 from xml.etree import ElementTree
 
 from networking_generic_switch.netconf_models.openconfig.vlan import vlan
@@ -76,6 +77,10 @@ class NetworkInstances(abc.Collection):
                 'network-instance': instance_list
             }
         }
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this container."""
+        return 'openconfig-network-instance:network-instances'
 
 
 class NetworkInstance:
@@ -148,3 +153,7 @@ class NetworkInstance:
             if vlan_key in vlans_dict:
                 result['openconfig-vlan:vlans'] = vlans_dict[vlan_key]
         return result
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this list entry."""
+        return 'network-instance={}'.format(quote(self.name, safe=''))

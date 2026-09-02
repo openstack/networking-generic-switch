@@ -37,3 +37,18 @@ def config_to_restconf_json(config):
     for conf in config:
         result.update(conf.to_restconf_dict())
     return result
+
+
+def restconf_resource_path(*segments, base_path='/restconf/data'):
+    """Build a RESTCONF URL path from model path segments.
+
+    Composes segments from model ``to_restconf_path()`` calls into a
+    full RESTCONF data-resource URL path (RFC 8040 Section 3.5.3).
+
+    :param segments: One or more RESTCONF path segments.
+    :param base_path: RESTCONF base path (default ``/restconf/data``).
+    :returns: Full RESTCONF URL path string.
+    """
+    parts = [base_path.rstrip('/')]
+    parts.extend(s for s in segments if s)
+    return '/'.join(parts)

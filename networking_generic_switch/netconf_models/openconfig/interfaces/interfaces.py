@@ -11,6 +11,7 @@
 #    under the License.
 from collections import abc
 from typing import Optional
+from urllib.parse import quote
 from xml.etree import ElementTree
 
 from networking_generic_switch.netconf_models import constants as ncconst
@@ -176,6 +177,10 @@ class InterfaceConfig:
             result['mtu'] = self.mtu
         return result
 
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this node."""
+        return self.TAG
+
 
 class BaseInterface:
     """Base interface"""
@@ -242,6 +247,10 @@ class BaseInterface:
             if config_dict:
                 result['config'] = config_dict
         return result
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this list entry."""
+        return 'interface={}'.format(quote(self.name, safe=''))
 
 
 class InterfaceEthernet(BaseInterface):
@@ -442,3 +451,7 @@ class Interfaces(abc.Collection):
                 'interface': iface_list
             }
         }
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this container."""
+        return 'openconfig-interfaces:interfaces'

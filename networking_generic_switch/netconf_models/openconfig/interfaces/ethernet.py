@@ -90,6 +90,10 @@ class InterfacesEthernetConfig:
             result['openconfig-if-aggregate:aggregate-id'] = self.aggregate_id
         return result
 
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this node."""
+        return self.TAG
+
 
 class InterfacesEthernet:
     """Ethernet configuration and state"""
@@ -163,3 +167,7 @@ class InterfacesEthernet:
             if sv_dict:
                 result['openconfig-vlan:switched-vlan'] = sv_dict
         return result
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this augmentation node."""
+        return 'openconfig-if-ethernet:ethernet'

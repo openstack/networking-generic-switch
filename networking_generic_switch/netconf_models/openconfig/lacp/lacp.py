@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 from collections import abc
+from urllib.parse import quote
 from xml.etree import ElementTree
 
 from networking_generic_switch.netconf_models import constants as ncconst
@@ -56,6 +57,10 @@ class LACP:
             elem.append(self.interfaces.to_xml_element())
         return elem
 
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this container."""
+        return 'openconfig-lacp:lacp'
+
 
 class LACPInterfaces(abc.Collection):
     """Top-level grouping for LACP-enabled interfaces"""
@@ -101,6 +106,10 @@ class LACPInterfaces(abc.Collection):
         for interface in self.interfaces:
             elem.append(interface.to_xml_element())
         return elem
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this node."""
+        return self.TAG
 
 
 class LACPInterface:
@@ -179,6 +188,10 @@ class LACPInterface:
         if self.config:
             elem.append(self.config.to_xml_element())
         return elem
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this list entry."""
+        return 'interface={}'.format(quote(self.name, safe=''))
 
 
 class LACPInterfaceConfig:
@@ -287,3 +300,7 @@ class LACPInterfaceConfig:
         if self.lacp_mode is not None:
             ncutils.txt_subelement(elem, 'lacp-mode', self.lacp_mode)
         return elem
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this node."""
+        return self.TAG

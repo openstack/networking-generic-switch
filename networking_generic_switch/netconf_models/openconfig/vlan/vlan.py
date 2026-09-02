@@ -226,6 +226,10 @@ class VlanSwitchedConfig:
             result['trunk-vlans'] = self.trunk_vlans.to_restconf_list()
         return result
 
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this node."""
+        return self.TAG
+
 
 class VlanSwitchedVlan:
     """VLAN interface-specific data on Ethernet interfaces.
@@ -282,6 +286,10 @@ class VlanSwitchedVlan:
             if config_dict:
                 result['config'] = config_dict
         return result
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this augmentation node."""
+        return 'openconfig-vlan:switched-vlan'
 
 
 class VlanConfig:
@@ -395,6 +403,10 @@ class VlanConfig:
             result['status'] = self.status
         return result
 
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this node."""
+        return self.TAG
+
 
 class Vlan:
     """Base vlan"""
@@ -487,6 +499,10 @@ class Vlan:
                 result['config'] = config_dict
         return result
 
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this list entry."""
+        return 'vlan={}'.format(self.vlan_id)
+
 
 class Vlans(abc.Collection):
     """Group/List of VLANs"""
@@ -556,3 +572,7 @@ class Vlans(abc.Collection):
         for v in self.vlans:
             vlan_list.append(v.to_restconf_dict())
         return {'openconfig-vlan:vlans': {'vlan': vlan_list}}
+
+    def to_restconf_path(self):
+        """Return the RESTCONF API path segment for this container."""
+        return 'openconfig-vlan:vlans'
