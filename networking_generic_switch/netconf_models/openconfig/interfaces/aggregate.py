@@ -89,6 +89,18 @@ class InterfacesAggregationConfig:
             ncutils.txt_subelement(elem, 'min-links', str(self.min_links))
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {}
+        if self.lag_type is not None:
+            result['lag-type'] = self.lag_type
+        if self.min_links is not None:
+            result['min-links'] = self.min_links
+        return result
+
 
 class InterfacesAggregation:
     """Options for logical interfaces representing aggregates"""
@@ -144,3 +156,19 @@ class InterfacesAggregation:
         if self.switched_vlan:
             elem.append(self.switched_vlan.to_xml_element())
         return elem
+
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {}
+        if self.config:
+            config_dict = self.config.to_restconf_dict()
+            if config_dict:
+                result['config'] = config_dict
+        if self.switched_vlan:
+            sv_dict = self.switched_vlan.to_restconf_dict()
+            if sv_dict:
+                result['openconfig-vlan:switched-vlan'] = sv_dict
+        return result

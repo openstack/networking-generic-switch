@@ -160,6 +160,22 @@ class InterfaceConfig:
                 attrib={'operation': self.operation})
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {}
+        if self.name is not None:
+            result['name'] = self.name
+        if self.description is not None:
+            result['description'] = self.description
+        if self.enabled is not None:
+            result['enabled'] = self.enabled
+        if self.mtu is not None:
+            result['mtu'] = self.mtu
+        return result
+
 
 class BaseInterface:
     """Base interface"""
@@ -215,6 +231,18 @@ class BaseInterface:
             elem.append(self.config.to_xml_element())
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {'name': self.name}
+        if self._config:
+            config_dict = self.config.to_restconf_dict()
+            if config_dict:
+                result['config'] = config_dict
+        return result
+
 
 class InterfaceEthernet(BaseInterface):
 
@@ -250,6 +278,22 @@ class InterfaceEthernet(BaseInterface):
         if self.ethernet:
             elem.append(self.ethernet.to_xml_element())
         return elem
+
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {'name': self.name}
+        if self.config:
+            config_dict = self.config.to_restconf_dict()
+            if config_dict:
+                result['config'] = config_dict
+        if self.ethernet:
+            eth_dict = self.ethernet.to_restconf_dict()
+            if eth_dict:
+                result['openconfig-if-ethernet:ethernet'] = eth_dict
+        return result
 
 
 class InterfaceAggregate(BaseInterface):
@@ -311,6 +355,22 @@ class InterfaceAggregate(BaseInterface):
             elem.append(self.aggregation.to_xml_element())
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {'name': self.name}
+        if self.config:
+            config_dict = self.config.to_restconf_dict()
+            if config_dict:
+                result['config'] = config_dict
+        if self.aggregation:
+            agg_dict = self.aggregation.to_restconf_dict()
+            if agg_dict:
+                result['openconfig-if-aggregate:aggregation'] = agg_dict
+        return result
+
 
 class Interfaces(abc.Collection):
     """Group/List of interfaces"""
@@ -366,3 +426,19 @@ class Interfaces(abc.Collection):
         for interface in self.interfaces:
             eleme.append(interface.to_xml_element())
         return eleme
+
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        Returns the interfaces container with module prefix at the top level.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        iface_list = []
+        for interface in self.interfaces:
+            iface_list.append(interface.to_restconf_dict())
+        return {
+            'openconfig-interfaces:interfaces': {
+                'interface': iface_list
+            }
+        }

@@ -60,6 +60,23 @@ class NetworkInstances(abc.Collection):
             elem.append(instance.to_xml_element())
         return elem
 
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        Returns the network-instances container with module prefix
+        at the top level.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        instance_list = []
+        for instance in self.network_instances:
+            instance_list.append(instance.to_restconf_dict())
+        return {
+            'openconfig-network-instance:network-instances': {
+                'network-instance': instance_list
+            }
+        }
+
 
 class NetworkInstance:
     """An OpenConfig description of a network_instance.
@@ -118,3 +135,16 @@ class NetworkInstance:
         if self.vlans:
             elem.append(self.vlans.to_xml_element())
         return elem
+
+    def to_restconf_dict(self):
+        """Serialize to RESTCONF JSON (RFC 7951) dict.
+
+        :return: dict suitable for RESTCONF PATCH/PUT payload
+        """
+        result = {'name': self.name}
+        if self.vlans:
+            vlans_dict = self.vlans.to_restconf_dict()
+            vlan_key = 'openconfig-vlan:vlans'
+            if vlan_key in vlans_dict:
+                result['openconfig-vlan:vlans'] = vlans_dict[vlan_key]
+        return result
