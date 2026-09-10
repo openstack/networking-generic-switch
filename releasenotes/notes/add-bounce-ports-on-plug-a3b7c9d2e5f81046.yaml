@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds opt-in ``ngs_bounce_ports_on_plug`` option that bounces switch ports
+    (shutdown then no shutdown) during bind. This causes a carrier drop/raise
+    that signals the host OS to re-run DHCP, preventing stale network
+    configurations on baremetal hosts. Unlike ``ngs_disable_inactive_ports``,
+    ports remain administratively UP when not bound, preserving LLDP
+    collection and other discovery mechanisms needed for inspection workflows.

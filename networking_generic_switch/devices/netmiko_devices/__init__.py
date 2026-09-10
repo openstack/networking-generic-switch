@@ -616,8 +616,18 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
     def plug_port_to_network(self, port, segmentation_id, trunk_details=None,
                              default_vlan=None, mtu=None):
         cmds = []
-        if self._disable_inactive_ports() and self.ENABLE_PORT:
-            cmds += self._format_commands(self.ENABLE_PORT, port=port)
+        bounce = self._bounce_ports_on_plug()
+        disable_inactive = self._disable_inactive_ports()
+
+        if bounce:
+            if not disable_inactive and self.DISABLE_PORT:
+                cmds += self._format_commands(
+                    self.DISABLE_PORT, port=port)
+        else:
+            if disable_inactive and self.ENABLE_PORT:
+                cmds += self._format_commands(
+                    self.ENABLE_PORT, port=port)
+
         port_default_vlan = default_vlan or self._get_port_default_vlan()
         if port_default_vlan:
             cmds += self._format_commands(
@@ -644,6 +654,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             if self.SET_PORT_MTU and port_mtu:
                 cmds += self._format_commands(
                     self.SET_PORT_MTU, port=port, mtu=port_mtu)
+
+        if bounce and self.ENABLE_PORT:
+            cmds += self._format_commands(
+                self.ENABLE_PORT, port=port)
 
         return self.send_commands_to_device(cmds)
 
@@ -699,8 +713,16 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                                              trunk_details=trunk_details,
                                              mtu=mtu)
         cmds = []
-        if self._disable_inactive_ports() and self.ENABLE_BOND:
-            cmds += self._format_commands(self.ENABLE_BOND, bond=bond)
+        bounce = self._bounce_ports_on_plug()
+        disable_inactive = self._disable_inactive_ports()
+
+        if bounce and not disable_inactive and self.DISABLE_BOND:
+            cmds += self._format_commands(
+                self.DISABLE_BOND, bond=bond)
+        elif not bounce and disable_inactive and self.ENABLE_BOND:
+            cmds += self._format_commands(
+                self.ENABLE_BOND, bond=bond)
+
         port_default_vlan = default_vlan or self._get_port_default_vlan()
         if port_default_vlan:
             cmds += self._format_commands(
@@ -727,6 +749,10 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             if self.SET_BOND_MTU and port_mtu:
                 cmds += self._format_commands(
                     self.SET_BOND_MTU, bond=bond, mtu=port_mtu)
+
+        if bounce and self.ENABLE_BOND:
+            cmds += self._format_commands(
+                self.ENABLE_BOND, bond=bond)
 
         return self.send_commands_to_device(cmds)
 

@@ -93,6 +93,10 @@ NGS_INTERNAL_OPTS = [
     # MTU to apply on trunk (uplink) ports. Also serves as the upper
     # bound for access port MTU validation.
     {'name': 'ngs_trunk_port_mtu'},
+    # If True, bounce (shutdown then no shutdown) ports during bind
+    # to trigger a carrier drop/raise, signalling the host to re-run
+    # DHCP. Ports remain UP when not bound, preserving LLDP.
+    {'name': 'ngs_bounce_ports_on_plug', 'default': False},
 ]
 
 EM_SEMAPHORE = 'ngs_device_manager'
@@ -231,6 +235,11 @@ class GenericSwitchDevice(abc.ABC):
         """Return whether inactive ports should be disabled."""
         return strutils.bool_from_string(
             self.ngs_config['ngs_disable_inactive_ports'])
+
+    def _bounce_ports_on_plug(self):
+        """Return whether ports should be bounced during bind."""
+        return strutils.bool_from_string(
+            self.ngs_config['ngs_bounce_ports_on_plug'])
 
     def _get_save_configuration(self):
         """Return whether configuration should be saved on device."""

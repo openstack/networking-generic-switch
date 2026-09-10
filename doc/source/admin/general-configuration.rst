@@ -90,6 +90,26 @@ This is currently compatible with the following devices:
 .. netmiko-device-commands::
   :output-type: devices-supporting-port-disable
 
+Port Carrier Bounce
+===================
+
+When a port is bound (VLAN and MTU configured), the physical host has no way
+to detect that the port configuration changed because the line carrier stays
+up. This means the host OS will not re-trigger DHCP, resulting in stale
+network configurations on baremetal hosts.
+
+The ``ngs_bounce_ports_on_plug`` option causes the port to be shut down before
+VLAN/MTU configuration and brought back up after, creating a carrier
+drop/raise that signals the host to re-run DHCP. Ports remain UP when not
+bound, preserving LLDP and other discovery mechanisms::
+
+    [genericswitch:device-hostname]
+    ngs_bounce_ports_on_plug = True
+
+When combined with ``ngs_disable_inactive_ports``, the port is already
+admin-down from a prior unbind so the disable step is skipped, but the port
+is still enabled after configuration is applied.
+
 Network Name Format
 ===================
 
