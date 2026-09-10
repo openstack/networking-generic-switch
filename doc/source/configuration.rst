@@ -99,6 +99,13 @@ These options apply to all device drivers:
   persistent storage after each change (default: ``True``). For NETCONF
   devices targeting the running datastore, this controls whether the driver
   attempts to persist the configuration (see :ref:`netconf-persistence`).
+* ``ngs_manage_mtu`` — if ``True``, allow the driver to set port MTU
+  (default: ``False``). Must be enabled before any MTU commands are sent to
+  the switch. See :doc:`admin/general-configuration` for details.
+* ``ngs_port_default_mtu`` — default MTU applied to access/bound ports when
+  the Neutron network has no MTU set, and the value restored on unbind.
+* ``ngs_trunk_port_mtu`` — MTU applied to trunk (uplink) ports; also the
+  upper bound used to validate access port MTU.
 
 Netmiko (SSH/CLI) Devices
 -------------------------

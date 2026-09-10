@@ -17,6 +17,12 @@ from networking_generic_switch.devices import netmiko_devices
 
 class Ruijie(netmiko_devices.NetmikoSwitch):
     "Device Name: Ruijie"
+
+    SET_PORT_MTU = (
+        'interface {port}',
+        'mtu {mtu}',
+    )
+
     ADD_NETWORK = (
         'vlan {segmentation_id}',
         'name {network_name}',

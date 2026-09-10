@@ -154,6 +154,10 @@ class Sonic(netmiko_devices.NetmikoSwitch):
 
     SHOW_VLAN_VNI = ('show vxlan vlanvnimap',)
 
+    SET_PORT_MTU = (
+        'config interface mtu {port} {mtu}',
+    )
+
     PLUG_PORT_TO_NETWORK = (
         'config vlan member add -u {segmentation_id} {port}',
     )

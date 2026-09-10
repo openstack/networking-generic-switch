@@ -846,3 +846,38 @@ vxlan vlan 104 vni 988
         self.assertFalse(result)
         mock_net_connect.send_command.assert_called_once_with(
             'show vlan id 105 configured-ports')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
+    def test_plug_port_to_network_with_mtu(self, mock_exec):
+        device_cfg = {
+            'device_type': 'netmiko_arista_eos',
+            'ngs_manage_mtu': True,
+            'ngs_port_default_mtu': '1500',
+        }
+        switch = arista.AristaEos(device_cfg)
+        switch.plug_port_to_network(3333, 33, mtu=9000)
+        mock_exec.assert_called_with(
+            switch,
+            ['interface 3333', 'switchport mode access',
+             'switchport access vlan 33',
+             'interface 3333', 'mtu 9000'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='', autospec=True)
+    def test_delete_port_resets_mtu(self, mock_exec):
+        device_cfg = {
+            'device_type': 'netmiko_arista_eos',
+            'ngs_manage_mtu': True,
+            'ngs_port_default_mtu': '1500',
+        }
+        switch = arista.AristaEos(device_cfg)
+        switch.delete_port(3333, 33)
+        mock_exec.assert_called_with(
+            switch,
+            ['interface 3333', 'no switchport access vlan 33',
+             'no switchport mode trunk',
+             'switchport trunk allowed vlan none',
+             'interface 3333', 'mtu 1500'])

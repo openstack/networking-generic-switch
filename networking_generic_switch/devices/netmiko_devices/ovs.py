@@ -65,6 +65,10 @@ class OvsLinux(netmiko_devices.NetmikoSwitch):
         'ovs-vsctl clear port {port} vlan_mode'
     )
 
+    SET_PORT_MTU = (
+        'ovs-vsctl set interface {port} mtu_request={mtu}',
+    )
+
     SET_NATIVE_VLAN = (
         'ovs-vsctl set port {port} vlan_mode=native-untagged',
         'ovs-vsctl set port {port} tag={segmentation_id}',

@@ -41,6 +41,9 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                    'ip': 'ip'}
         self.switch_mock.get_physical_networks.return_value = []
         self.switch_mock.trunk_vlans_converge = False
+        self.switch_mock._manage_mtu.return_value = False
+        self.switch_mock._get_port_default_mtu.return_value = None
+        self.switch_mock._get_trunk_port_mtu.return_value = None
         self.ctxt = mock.MagicMock()
         self.db = mock.MagicMock()
         patcher = mock.patch(
@@ -1101,6 +1104,240 @@ class TestGenericSwitchDriver(unittest.TestCase):
         driver.update_port_postcommit(mock_context)
         self.switch_mock.plug_port_to_network.assert_called_once()
         m_pc.assert_called_once()
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_with_mtu(self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'}
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'}
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 42,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.network.current = {'mtu': 9000}
+        self.switch_mock._manage_mtu.return_value = True
+        self.switch_mock._get_port_default_mtu.return_value = 1500
+        self.switch_mock._get_trunk_port_mtu.return_value = None
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 42, mtu=9000)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_mtu_exceeds_trunk(
+            self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'}
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'}
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 42,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.network.current = {'mtu': 9000}
+        self.switch_mock._manage_mtu.return_value = True
+        self.switch_mock._get_port_default_mtu.return_value = None
+        self.switch_mock._get_trunk_port_mtu.return_value = 1500
+        self.assertRaises(
+            exceptions.GenericSwitchMtuExceedError,
+            driver.update_port_postcommit, mock_context)
+        self.switch_mock.plug_port_to_network \
+            .assert_not_called()
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_mtu_fallback_to_default(
+            self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'}
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'}
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 42,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.network.current = {}
+        self.switch_mock._manage_mtu.return_value = True
+        self.switch_mock._get_port_default_mtu.return_value = 1500
+        self.switch_mock._get_trunk_port_mtu.return_value = None
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 42, mtu=1500)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_mtu_zero_uses_default(
+            self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'}
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'}
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 42,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.network.current = {'mtu': 0}
+        self.switch_mock._manage_mtu.return_value = True
+        self.switch_mock._get_port_default_mtu.return_value = 1500
+        self.switch_mock._get_trunk_port_mtu.return_value = None
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 42, mtu=1500)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_mtu_disabled(
+            self, m_pc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'}
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'}
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 42,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'}
+        mock_context.network.current = {'mtu': 9000}
+        self.switch_mock._manage_mtu.return_value = False
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 42)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_network_mtu_always_present(
+            self, m_pc, m_list):
+        """Verify that Neutron ML2 networks always provide an MTU value.
+
+        Neutron's database schema defines the 'mtu' column as non-nullable
+        with a server default of 1500 (constants.DEFAULT_NETWORK_MTU).
+        This means all networks retrieved from Neutron's database will have
+        an MTU value - it cannot be NULL in production ML2 usage.
+
+        This test validates the normal ML2 case where a network object from
+        Neutron includes its MTU (1500 in this case), and that MTU is
+        correctly propagated to the switch port. The fallback logic in
+        _get_port_mtu() that handles missing/zero MTU is for standalone
+        usage or direct driver invocation where the network object may not
+        come from Neutron's database.
+
+        See neutron.db.models_v2.Network.mtu for the DB schema.
+        """
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'}
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'}
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 42,
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'}
+        # Simulate a typical network object from Neutron's database.
+        # MTU will always be present due to DB schema constraints.
+        mock_context.network.current = {
+            'id': 'aaaa-bbbb-ccc',
+            'name': 'test-network',
+            'mtu': 1500  # Always present - DB column is non-nullable
+        }
+        self.switch_mock._manage_mtu.return_value = True
+        self.switch_mock._get_port_default_mtu.return_value = 1500
+        self.switch_mock._get_trunk_port_mtu.return_value = None
+        driver.update_port_postcommit(mock_context)
+        # Verify the network's MTU is used (not the fallback default)
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 42, mtu=1500)
+        # Verify _get_port_default_mtu was not called since network has MTU
+        self.switch_mock._get_port_default_mtu.assert_not_called()
 
     @mock.patch.object(provisioning_blocks, 'provisioning_complete',
                        autospec=True)

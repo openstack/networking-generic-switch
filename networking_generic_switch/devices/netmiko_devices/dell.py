@@ -117,6 +117,12 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
         'no switchport access vlan',
     )
 
+    SET_PORT_MTU = (
+        "interface {port}",
+        "mtu {mtu}",
+        "exit",
+    )
+
     ENABLE_PORT = (
         "interface {port}",
         "no shutdown",

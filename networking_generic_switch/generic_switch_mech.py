@@ -419,6 +419,9 @@ class GenericSwitchDriver(api.MechanismDriver):
                 plug_kwargs = {}
                 if trunk_details:
                     plug_kwargs["trunk_details"] = trunk_details
+                mtu = self._get_port_mtu(context, switch)
+                if mtu:
+                    plug_kwargs["mtu"] = mtu
                 # Move port to network
                 if is_802_3ad:
                     if (trunk_details and not
@@ -628,6 +631,30 @@ class GenericSwitchDriver(api.MechanismDriver):
                              'segment_id': segmentation_id})
                 return False
         return True
+
+    def _get_port_mtu(self, context, switch):
+        """Return the MTU to set on a port, or None.
+
+        Returns None when MTU management is disabled or no MTU is
+        available from the network or switch config.
+        """
+        if not switch._manage_mtu():
+            return None
+        network = context.network.current
+        mtu = None
+        if isinstance(network, dict):
+            mtu = network.get('mtu')
+        if not mtu:
+            mtu = switch._get_port_default_mtu()
+        if not mtu:
+            return None
+        trunk_mtu = switch._get_trunk_port_mtu()
+        if trunk_mtu and mtu > trunk_mtu:
+            raise ngs_exc.GenericSwitchMtuExceedError(
+                mtu=mtu,
+                trunk_mtu=trunk_mtu,
+                switch=switch.device_name)
+        return mtu
 
     def _configure_l2vni_if_needed(self, context, switch, switch_info,
                                    segment, segmentation_id):
