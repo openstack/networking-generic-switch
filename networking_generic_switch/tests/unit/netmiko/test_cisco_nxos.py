@@ -188,6 +188,38 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
             security_group='ngs-1234',
             port='ethernet1/1'))
 
+        cmd_set = self.switch._format_commands(
+            cisco.CiscoNxOS.SET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'spanning-tree port type edge',
+                          'exit'])
+
+        cmd_set = self.switch._format_commands(
+            cisco.CiscoNxOS.UNSET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'no spanning-tree port type edge',
+                          'exit'])
+
+        cmd_set = self.switch._format_commands(
+            cisco.CiscoNxOS.SET_PORT_BPDU_GUARD,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'spanning-tree bpduguard enable',
+                          'exit'])
+
+        cmd_set = self.switch._format_commands(
+            cisco.CiscoNxOS.UNSET_PORT_BPDU_GUARD,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'no spanning-tree bpduguard enable',
+                          'exit'])
+
     def test__prepare_security_group_rule(self):
         # empty rule
         rule = mock.Mock(

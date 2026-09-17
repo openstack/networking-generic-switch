@@ -328,6 +328,38 @@ class TestNetmikoDellOS10(test_netmiko_base.NetmikoSwitchTestBase):
                           'no switchport trunk allowed vlan 33',
                           'exit'])
 
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.SET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'spanning-tree port type edge',
+                          'exit'])
+
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.UNSET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'no spanning-tree port type edge',
+                          'exit'])
+
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.SET_PORT_BPDU_GUARD,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'spanning-tree bpduguard enable',
+                          'exit'])
+
+        cmd_set = self.switch._format_commands(
+            dell.DellOS10.UNSET_PORT_BPDU_GUARD,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'no spanning-tree bpduguard enable',
+                          'exit'])
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
                 return_value="", autospec=True)

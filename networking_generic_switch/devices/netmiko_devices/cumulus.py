@@ -81,6 +81,38 @@ class Cumulus(netmiko_devices.NetmikoSwitch):
         'net del bond {bond} bridge access {segmentation_id}',
     )
 
+    SET_PORT_STP_EDGE = (
+        'net add interface {port} stp portadminedge',
+    )
+
+    UNSET_PORT_STP_EDGE = (
+        'net del interface {port} stp portadminedge',
+    )
+
+    SET_PORT_BPDU_GUARD = (
+        'net add interface {port} stp bpduguard',
+    )
+
+    UNSET_PORT_BPDU_GUARD = (
+        'net del interface {port} stp bpduguard',
+    )
+
+    SET_BOND_STP_EDGE = (
+        'net add bond {bond} stp portadminedge',
+    )
+
+    UNSET_BOND_STP_EDGE = (
+        'net del bond {bond} stp portadminedge',
+    )
+
+    SET_BOND_BPDU_GUARD = (
+        'net add bond {bond} stp bpduguard',
+    )
+
+    UNSET_BOND_BPDU_GUARD = (
+        'net del bond {bond} stp bpduguard',
+    )
+
     ENABLE_PORT = (
         'net del interface {port} link down',
     )
@@ -193,6 +225,26 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
 
     SET_PORT_MTU = (
         'nv set interface {port} link mtu {mtu}',
+    )
+
+    SET_PORT_STP_EDGE = (
+        'nv set interface {port} bridge domain br_default '
+        'stp admin-edge on',
+    )
+
+    UNSET_PORT_STP_EDGE = (
+        'nv unset interface {port} bridge domain br_default '
+        'stp admin-edge',
+    )
+
+    SET_PORT_BPDU_GUARD = (
+        'nv set interface {port} bridge domain br_default '
+        'stp bpdu-guard on',
+    )
+
+    UNSET_PORT_BPDU_GUARD = (
+        'nv unset interface {port} bridge domain br_default '
+        'stp bpdu-guard',
     )
 
     PLUG_PORT_TO_NETWORK = (

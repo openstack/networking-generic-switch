@@ -109,6 +109,34 @@ class TestNetmikoAristaEos(test_netmiko_base.NetmikoSwitchTestBase):
         disable_exp = ['interface 3333', 'shutdown']
         self.assertEqual(disable_exp, cmd_set)
 
+        cmd_set = self.switch._format_commands(
+            arista.AristaEos.SET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'spanning-tree portfast'])
+
+        cmd_set = self.switch._format_commands(
+            arista.AristaEos.UNSET_PORT_STP_EDGE,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'no spanning-tree portfast'])
+
+        cmd_set = self.switch._format_commands(
+            arista.AristaEos.SET_PORT_BPDU_GUARD,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'spanning-tree bpduguard enable'])
+
+        cmd_set = self.switch._format_commands(
+            arista.AristaEos.UNSET_PORT_BPDU_GUARD,
+            port=3333)
+        self.assertEqual(cmd_set,
+                         ['interface 3333',
+                          'no spanning-tree bpduguard'])
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
                 return_value='', autospec=True)

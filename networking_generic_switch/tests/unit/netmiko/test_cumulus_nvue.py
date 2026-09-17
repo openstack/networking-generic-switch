@@ -916,3 +916,32 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
              'access 123',
              'nv set interface 3333 link mtu 1500',
              'nv set interface 3333 link state down'])
+
+    def test__format_commands_stp(self):
+        cmd_set = self.switch._format_commands(
+            cumulus.CumulusNVUE.SET_PORT_STP_EDGE,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['nv set interface swp1 bridge domain '
+                          'br_default stp admin-edge on'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.CumulusNVUE.UNSET_PORT_STP_EDGE,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['nv unset interface swp1 bridge domain '
+                          'br_default stp admin-edge'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.CumulusNVUE.SET_PORT_BPDU_GUARD,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['nv set interface swp1 bridge domain '
+                          'br_default stp bpdu-guard on'])
+
+        cmd_set = self.switch._format_commands(
+            cumulus.CumulusNVUE.UNSET_PORT_BPDU_GUARD,
+            port='swp1')
+        self.assertEqual(cmd_set,
+                         ['nv unset interface swp1 bridge domain '
+                          'br_default stp bpdu-guard'])

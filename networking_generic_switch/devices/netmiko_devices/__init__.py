@@ -119,6 +119,22 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     SET_BOND_MTU = None
 
+    SET_PORT_STP_EDGE = None
+
+    UNSET_PORT_STP_EDGE = None
+
+    SET_PORT_BPDU_GUARD = None
+
+    UNSET_PORT_BPDU_GUARD = None
+
+    SET_BOND_STP_EDGE = None
+
+    UNSET_BOND_STP_EDGE = None
+
+    SET_BOND_BPDU_GUARD = None
+
+    UNSET_BOND_BPDU_GUARD = None
+
     SET_NATIVE_VLAN = None
 
     DELETE_NATIVE_VLAN = None
@@ -655,6 +671,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 cmds += self._format_commands(
                     self.SET_PORT_MTU, port=port, mtu=port_mtu)
 
+        if self.SET_PORT_STP_EDGE and self._port_stp_edge():
+            cmds += self._format_commands(
+                self.SET_PORT_STP_EDGE, port=port)
+        if self.SET_PORT_BPDU_GUARD and self._port_bpdu_guard():
+            cmds += self._format_commands(
+                self.SET_PORT_BPDU_GUARD, port=port)
+
         if bounce and self.ENABLE_PORT:
             cmds += self._format_commands(
                 self.ENABLE_PORT, port=port)
@@ -697,6 +720,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             if self.SET_PORT_MTU and default_mtu:
                 cmds += self._format_commands(
                     self.SET_PORT_MTU, port=port, mtu=default_mtu)
+
+        if self.UNSET_PORT_STP_EDGE and self._port_stp_edge():
+            cmds += self._format_commands(
+                self.UNSET_PORT_STP_EDGE, port=port)
+        if self.UNSET_PORT_BPDU_GUARD and self._port_bpdu_guard():
+            cmds += self._format_commands(
+                self.UNSET_PORT_BPDU_GUARD, port=port)
 
         if self._disable_inactive_ports() and self.DISABLE_PORT:
             cmds += self._format_commands(self.DISABLE_PORT, port=port)
@@ -750,6 +780,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
                 cmds += self._format_commands(
                     self.SET_BOND_MTU, bond=bond, mtu=port_mtu)
 
+        if self.SET_BOND_STP_EDGE and self._port_stp_edge():
+            cmds += self._format_commands(
+                self.SET_BOND_STP_EDGE, bond=bond)
+        if self.SET_BOND_BPDU_GUARD and self._port_bpdu_guard():
+            cmds += self._format_commands(
+                self.SET_BOND_BPDU_GUARD, bond=bond)
+
         if bounce and self.ENABLE_BOND:
             cmds += self._format_commands(
                 self.ENABLE_BOND, bond=bond)
@@ -799,6 +836,13 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
             if self.SET_BOND_MTU and default_mtu:
                 cmds += self._format_commands(
                     self.SET_BOND_MTU, bond=bond, mtu=default_mtu)
+
+        if self.UNSET_BOND_STP_EDGE and self._port_stp_edge():
+            cmds += self._format_commands(
+                self.UNSET_BOND_STP_EDGE, bond=bond)
+        if self.UNSET_BOND_BPDU_GUARD and self._port_bpdu_guard():
+            cmds += self._format_commands(
+                self.UNSET_BOND_BPDU_GUARD, bond=bond)
 
         if self._disable_inactive_ports() and self.DISABLE_BOND:
             cmds += self._format_commands(self.DISABLE_BOND, bond=bond)

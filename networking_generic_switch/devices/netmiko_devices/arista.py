@@ -152,6 +152,26 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         'mtu {mtu}',
     )
 
+    SET_PORT_STP_EDGE = (
+        'interface {port}',
+        'spanning-tree portfast',
+    )
+
+    UNSET_PORT_STP_EDGE = (
+        'interface {port}',
+        'no spanning-tree portfast',
+    )
+
+    SET_PORT_BPDU_GUARD = (
+        'interface {port}',
+        'spanning-tree bpduguard enable',
+    )
+
+    UNSET_PORT_BPDU_GUARD = (
+        'interface {port}',
+        'no spanning-tree bpduguard',
+    )
+
     ENABLE_PORT = (
         'interface {port}',
         'no shutdown',

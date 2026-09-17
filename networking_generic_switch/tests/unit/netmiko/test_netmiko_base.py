@@ -99,6 +99,30 @@ class NetmikoSwitchTestBase(fixtures.TestWithFixtures):
         switch.DELETE_NETWORK_ON_BOND_TRUNK = (
             'delete network {segmentation_id} on bond trunk {port}',
         )
+        switch.SET_PORT_STP_EDGE = (
+            'set stp edge on port {port}',
+        )
+        switch.UNSET_PORT_STP_EDGE = (
+            'unset stp edge on port {port}',
+        )
+        switch.SET_PORT_BPDU_GUARD = (
+            'set bpdu guard on port {port}',
+        )
+        switch.UNSET_PORT_BPDU_GUARD = (
+            'unset bpdu guard on port {port}',
+        )
+        switch.SET_BOND_STP_EDGE = (
+            'set stp edge on bond {bond}',
+        )
+        switch.UNSET_BOND_STP_EDGE = (
+            'unset stp edge on bond {bond}',
+        )
+        switch.SET_BOND_BPDU_GUARD = (
+            'set bpdu guard on bond {bond}',
+        )
+        switch.UNSET_BOND_BPDU_GUARD = (
+            'unset bpdu guard on bond {bond}',
+        )
         switch.ADD_SECURITY_GROUP = (
             "add security group {security_group}",
         )
@@ -1437,6 +1461,175 @@ class TestNetmikoSwitch(NetmikoSwitchTestBase):
             'mtu 9216'])
         m_check.assert_called_once_with(
             switch, 'fake output', 'add network')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_to_network_stp_edge(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true'})
+        switch.plug_port_to_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'plug port 2222 to network 22',
+            'set stp edge on port 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_to_network_bpdu_guard(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_bpdu_guard': 'true'})
+        switch.plug_port_to_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'plug port 2222 to network 22',
+            'set bpdu guard on port 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_to_network_stp_edge_and_bpdu_guard(
+            self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true',
+             'ngs_port_bpdu_guard': 'true'})
+        switch.plug_port_to_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'plug port 2222 to network 22',
+            'set stp edge on port 2222',
+            'set bpdu guard on port 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_stp_edge_with_mtu_and_bounce(
+            self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true',
+             'ngs_bounce_ports_on_plug': 'true',
+             'ngs_manage_mtu': 'true'})
+        switch.SET_PORT_MTU = (
+            'interface {port}',
+            'mtu {mtu}',
+        )
+        switch.plug_port_to_network(2222, 22, mtu=9000)
+        m_sctd.assert_called_with(switch, [
+            'disable port 2222',
+            'plug port 2222 to network 22',
+            'interface 2222',
+            'mtu 9000',
+            'set stp edge on port 2222',
+            'enable port 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_delete_port_removes_stp_edge(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true'})
+        switch.delete_port(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'delete port 2222 from network 22',
+            'unset stp edge on port 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'unplug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_delete_port_removes_bpdu_guard(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_bpdu_guard': 'true'})
+        switch.delete_port(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'delete port 2222 from network 22',
+            'unset bpdu guard on port 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'unplug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_delete_port_stp_with_disable_inactive(
+            self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true',
+             'ngs_port_bpdu_guard': 'true',
+             'ngs_disable_inactive_ports': 'true'})
+        switch.delete_port(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'delete port 2222 from network 22',
+            'unset stp edge on port 2222',
+            'unset bpdu guard on port 2222',
+            'disable port 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'unplug port')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_bond_to_network_stp_edge(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true'})
+        switch.plug_bond_to_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'plug bond 2222 to network 22',
+            'set stp edge on bond 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug bond')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_unplug_bond_removes_stp_edge(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true'})
+        switch.unplug_bond_from_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'unplug bond 2222 from network 22',
+            'unset stp edge on bond 2222'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'unplug bond')
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device',
+                return_value='fake output', autospec=True)
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.check_output', autospec=True)
+    def test_plug_port_stp_edge_no_template(self, m_check, m_sctd):
+        switch = self._make_switch_device(
+            {'ngs_port_stp_edge': 'true'})
+        switch.SET_PORT_STP_EDGE = None
+        switch.plug_port_to_network(2222, 22)
+        m_sctd.assert_called_with(switch, [
+            'plug port 2222 to network 22'])
+        m_check.assert_called_once_with(
+            switch, 'fake output', 'plug port')
 
     def test_check_output(self):
         self.switch.check_output('fake output', 'fake op')
