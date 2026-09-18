@@ -160,6 +160,60 @@ NGS_INTERNAL_OPTS = [
                help='Base path for the RESTCONF data resource.'),
 ]
 
+# EVPN/multicast options for VXLAN L2VNI. Unlike NGS_INTERNAL_OPTS, these are
+# read directly by the VXLAN-capable device drivers (in their __init__ and via
+# parse_vxlan_multicast_config) before this base class runs, so they are not
+# stored in ngs_config. They are listed here as cfg.Opt instances so that they
+# are recognised (rather than flagged as unknown) and can be documented.
+NGS_L2VNI_OPTS = [
+    cfg.BoolOpt('ngs_evpn_vni_config', default=False,
+                help='Enable EVPN VNI control-plane configuration for VXLAN '
+                     'L2VNI. Requires ngs_bgp_asn to be set.'),
+    cfg.IntOpt('ngs_bgp_asn',
+               help='BGP autonomous system number used for EVPN VXLAN L2VNI '
+                    'configuration. Required when ngs_evpn_vni_config is '
+                    'enabled, and for L2VNI on some drivers.'),
+    cfg.StrOpt('ngs_bum_replication_mode', default='ingress-replication',
+               help='BUM (broadcast, unknown-unicast, multicast) traffic '
+                    'replication mode for VXLAN L2VNI. One of '
+                    '"ingress-replication" or "multicast".'),
+    cfg.StrOpt('ngs_mcast_group_base',
+               help='Base multicast group IPv4 address used to automatically '
+                    'derive per-VNI multicast groups when '
+                    'ngs_bum_replication_mode is "multicast" '
+                    '(e.g. 239.1.1.0).'),
+    cfg.StrOpt('ngs_mcast_group_increment', default='vni_last_octet',
+               help='Method used to derive per-VNI multicast group addresses '
+                    'from ngs_mcast_group_base.'),
+    cfg.StrOpt('ngs_mcast_group_map',
+               help='Explicit VNI-to-multicast-group mappings as a '
+                    'comma-separated list of "<vni>:<group>" entries '
+                    '(e.g. "1001:239.1.1.1,1002:239.1.1.2"). Takes precedence '
+                    'over automatic derivation.'),
+    cfg.StrOpt('ngs_vxlan_interface', default='Vxlan1',
+               help='Arista EOS: name of the VXLAN source interface used for '
+                    'L2VNI. Replaces the deprecated vxlan_interface option.'),
+    cfg.StrOpt('ngs_evpn_route_target', default='auto',
+               help='Arista EOS: EVPN route target for L2VNI. Use "auto" '
+                    '(the default) to derive it automatically from the VNI.'),
+    cfg.ListOpt('ngs_her_flood_list',
+                help='Cumulus Linux: global head-end replication (HER) flood '
+                     'list, a comma-separated list of remote VTEP IPs used to '
+                     'flood BUM traffic.'),
+    cfg.StrOpt('ngs_physnet_her_flood',
+               help='Cumulus Linux: per-physical-network head-end '
+                    'replication (HER) flood lists, formatted as '
+                    '"<physnet>:<ip>,<ip>;<physnet>:<ip>,<ip>". Takes '
+                    'precedence over ngs_her_flood_list for a given '
+                    'physical network.'),
+    cfg.StrOpt('ngs_vtep_name',
+               help='SONiC: name of the VTEP used for VXLAN L2VNI. Replaces '
+                    'the deprecated vtep_name option.'),
+    cfg.StrOpt('ngs_nve_interface', default='nve1',
+               help='Cisco NX-OS: name of the NVE (network virtualization '
+                    'edge) interface used for VXLAN L2VNI.'),
+]
+
 EM_SEMAPHORE = 'ngs_device_manager'
 DEVICES = {}
 
@@ -215,6 +269,13 @@ class GenericSwitchDevice(abc.ABC):
                 self.ngs_config[opt.name] = device_cfg.pop(opt.name)
             elif opt.default is not None:
                 self.ngs_config[opt.name] = opt.default
+        # VXLAN L2VNI options are consumed directly by the VXLAN-capable
+        # device drivers (in their __init__ and via
+        # parse_vxlan_multicast_config) before this base __init__ runs. Drop
+        # them here so they are recognised rather than flagged as unknown
+        # below, and are not forwarded to the driver.
+        for opt in NGS_L2VNI_OPTS:
+            device_cfg.pop(opt.name, None)
         # Ignore any other option starting with 'ngs_' (to avoid passing
         # these options to Netmiko)
         for opt_name in [o for o in device_cfg.keys() if o.startswith("ngs_")]:
