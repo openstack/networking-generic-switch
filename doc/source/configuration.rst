@@ -66,46 +66,21 @@ These example device configuration snippets are assumed to be part of a
 specific file ``/etc/neutron/plugins/ml2/ml2_conf_genericswitch.ini``, but
 they could also be added directly to ``/etc/neutron/plugins/ml2/ml2_conf.ini``.
 
-Shared NGS options
-------------------
+NGS options
+-----------
 
-These options apply to all device drivers:
+Every switch section accepts a set of ``ngs_`` options that apply across
+device drivers. See :ref:`configuration-reference` for the complete list
+with each option's type and default. A few options have extra context
+documented elsewhere:
 
-* ``ngs_mac_address`` — MAC address of the switch for identification via
-  ``local_link_connection/switch_info``.
-* ``ngs_physical_networks`` — comma-separated list of physical networks
-  this switch belongs to.
-* ``ngs_manage_vlans`` — if ``False``, the driver will not create or delete
-  VLANs on the switch (default: ``True``).
-* ``ngs_allowed_vlans`` — comma-separated list of allowed VLAN IDs. If set,
-  only listed VLANs will be configured.
-* ``ngs_allowed_ports`` — comma-separated list of allowed port names. If set,
-  only listed ports will be configured.
-* ``ngs_max_connections`` — maximum number of concurrent sessions to the
-  device (default: ``1``). Used with the coordination lock pool.
-* ``ngs_network_name_format`` — Python format string for VLAN names on the
-  switch (default: ``{network_id}``). Accepts ``{network_id}`` and
-  ``{segmentation_id}`` placeholders.
-* ``ngs_trunk_ports`` — comma-separated list of interfaces to be tagged with
-  each VLAN when created (e.g. ``Ethernet1/48, Port-channel1``).
-* ``ngs_port_default_vlan`` — VLAN to restore on a port when it is released.
-* ``ngs_switchport_mode`` — switchport mode to use (default: ``access``).
-  Some devices support ``general``.
-* ``ngs_disable_inactive_ports`` — if ``True``, administratively shut down
-  ports that are not in use (default: ``False``).
-* ``ngs_security_groups_enabled`` — if ``True``, enable security group
-  support on this device (default: ``False``).
-* ``ngs_save_configuration`` — if ``False``, skip saving configuration to
-  persistent storage after each change (default: ``True``). For NETCONF
-  devices targeting the running datastore, this controls whether the driver
-  attempts to persist the configuration (see :ref:`netconf-persistence`).
-* ``ngs_manage_mtu`` — if ``True``, allow the driver to set port MTU
-  (default: ``False``). Must be enabled before any MTU commands are sent to
+* ``ngs_mac_address`` — lets a switch be identified by MAC address when
+  ``local_link_connection/switch_info`` is not set (see the note above).
+* ``ngs_manage_mtu`` — must be enabled before any MTU commands are sent to
   the switch. See :doc:`admin/general-configuration` for details.
-* ``ngs_port_default_mtu`` — default MTU applied to access/bound ports when
-  the Neutron network has no MTU set, and the value restored on unbind.
-* ``ngs_trunk_port_mtu`` — MTU applied to trunk (uplink) ports; also the
-  upper bound used to validate access port MTU.
+* ``ngs_save_configuration`` — for NETCONF devices targeting the running
+  datastore, this controls whether the driver attempts to persist the
+  configuration (see :ref:`netconf-persistence`).
 
 Netmiko (SSH/CLI) Devices
 -------------------------
@@ -125,18 +100,12 @@ Switch configuration format::
     ngs_allowed_vlans = <comma-separated list of allowed vlans for switch>
     ngs_allowed_ports = <comma-separated list of allowed ports for switch>
 
-Netmiko-specific NGS options:
-
-* ``ngs_batch_requests`` — if ``True``, batch concurrent switch requests
-  into a single SSH session (default: ``False``). Requires etcd coordination.
-* ``ngs_ssh_disabled_algorithms`` — comma-separated list of
-  ``<type>:<algorithm>`` entries to disable during SSH negotiation.
-* ``ngs_ssh_connect_timeout`` — SSH connection timeout in seconds
-  (default: ``60``).
-* ``ngs_ssh_connect_interval`` — interval between SSH connection retries in
-  seconds (default: ``10``).
-* ``ngs_ssh_reuse_connection`` — if ``True``, reuse SSH connections across
-  requests (default: ``False``).
+Netmiko (SSH/CLI) devices accept several additional ``ngs_`` options
+controlling SSH connection behaviour and request batching
+(``ngs_batch_requests``, ``ngs_ssh_connect_timeout``,
+``ngs_ssh_reuse_connection`` and others). See :ref:`configuration-reference`
+for the full list. Note that ``ngs_batch_requests`` requires etcd
+coordination; see :ref:`batching`.
 
 Examples
 ^^^^^^^^
@@ -360,33 +329,25 @@ Switch configuration format::
 NETCONF-specific NGS options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* ``ngs_openconfig_network_instance`` — OpenConfig network-instance
-  for VLAN management (default: ``default``).
-* ``ngs_port_id_re_sub`` — JSON object with ``pattern``
-  and ``repl`` keys for regex substitution on port IDs from LLDP.
-  Example: ``{"pattern": "^Eth", "repl": "Ethernet"}``
-* ``ngs_openconfig_disabled_properties`` — comma-separated list of
-  properties to omit from configuration payloads
-  (e.g. ``port_mtu``).
-* ``ngs_netconf_target`` — force the NETCONF datastore target to
-  ``candidate`` or ``running``. When unset (the default) the driver
-  auto-detects from the server's capabilities. Override this when the
-  device's candidate datastore is known to be unreliable.
+NETCONF devices accept additional ``ngs_`` options such as
+``ngs_openconfig_network_instance``, ``ngs_port_id_re_sub`` and
+``ngs_openconfig_disabled_properties``. See :ref:`configuration-reference`
+for the full list with types and defaults. Datastore selection
+(``ngs_netconf_target``) and configuration persistence
+(``ngs_netconf_save_config``) are covered in detail below.
+
+The confirmed-commit options warrant additional operational context:
+
 * ``ngs_netconf_confirmed_commit`` — whether to use confirmed commit when the
-  switch advertises the ``:confirmed-commit`` capability (default: ``true``).
-  Set to ``false`` to skip the tentative commit entirely. This is useful for
-  switches that hold their config backend busy for the full timeout window
-  (e.g. Cisco NX-OS), blocking concurrent sessions.
+  switch advertises the ``:confirmed-commit`` capability. Set to ``false`` to
+  skip the tentative commit entirely. This is useful for switches that hold
+  their config backend busy for the full timeout window (e.g. Cisco NX-OS),
+  blocking concurrent sessions.
 * ``ngs_netconf_confirmed_commit_timeout`` — rollback timeout in seconds for
-  the tentative confirmed commit, integer between 1 and 30 (default: ``5``).
-  Only used when confirmed commit is enabled and the switch advertises the
-  capability. The confirming commit is sent immediately after the tentative
-  commit, so a small value is usually sufficient.
-* ``ngs_netconf_save_config`` — XML config payload sent via ``edit-config``
-  to the running datastore to persist the configuration. Only used when
-  ``ngs_save_configuration`` is enabled and the target datastore is
-  ``running``. Takes priority over the standard ``copy-config`` to startup.
-  See :ref:`netconf-persistence` for vendor-specific examples.
+  the tentative confirmed commit. Only used when confirmed commit is enabled
+  and the switch advertises the capability. The confirming commit is sent
+  immediately after the tentative commit, so a small value is usually
+  sufficient.
 
 .. _netconf-datastore-selection:
 
