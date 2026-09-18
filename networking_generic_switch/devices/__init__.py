@@ -16,6 +16,7 @@ import abc
 
 from neutron_lib.utils.helpers import parse_mappings
 from oslo_concurrency import lockutils
+from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import strutils
 import stevedore
@@ -27,89 +28,136 @@ GENERIC_SWITCH_NAMESPACE = 'generic_switch.devices'
 LOG = logging.getLogger(__name__)
 
 # Internal ngs options will not be passed to driver.
+#
+# These are per-switch options, read from the dynamically-named
+# ``[genericswitch:<name>]`` config sections in config.py. Because the group
+# names are not known ahead of time, the options cannot be registered with
+# oslo.config in the usual way. They are still described as ``cfg.Opt``
+# instances so that the option name, default and help text live in a single,
+# machine-readable place (usable for documentation generation) rather than as
+# code comments. Values are consumed from the raw config in
+# GenericSwitchDevice.__init__.
 NGS_INTERNAL_OPTS = [
-    {'name': 'ngs_mac_address'},
-    # Comma-separated list of names of interfaces to be added to each network.
-    {'name': 'ngs_trunk_ports'},
-    {'name': 'ngs_port_default_vlan'},
-    # Comma-separated list of physical networks to which this switch is mapped.
-    {'name': 'ngs_physical_networks'},
-    # Comma-separated list of entries formatted as "<type>:<algorithm>",
-    # specifying SSH algorithms to disable.
-    {'name': 'ngs_ssh_disabled_algorithms'},
-    {'name': 'ngs_ssh_connect_timeout', 'default': 60},
-    {'name': 'ngs_ssh_connect_interval', 'default': 10},
-    {'name': 'ngs_ssh_reuse_connection', 'default': False},
-    {'name': 'ngs_max_connections', 'default': 1},
-    {'name': 'ngs_switchport_mode', 'default': 'access'},
-    # If True, disable switch ports that are not in use.
-    {'name': 'ngs_disable_inactive_ports', 'default': False},
-    # String format for network name to configure on switches.
-    # Accepts {network_id} and {segmentation_id} formatting options.
-    {'name': 'ngs_network_name_format', 'default': '{network_id}'},
-    # If false, ngs will not add and delete VLANs from switches
-    {'name': 'ngs_manage_vlans', 'default': True},
-    # If False, ngs will skip saving configuration on devices
-    {'name': 'ngs_save_configuration', 'default': True},
-    # When true try to batch up in flight switch requests
-    {'name': 'ngs_batch_requests', 'default': False},
-    # The following three are used in the Fake device driver.
-    {'name': 'ngs_fake_sleep_min_s'},
-    {'name': 'ngs_fake_sleep_max_s'},
-    {'name': 'ngs_fake_failure_prob'},
-    # Allow list for VLANs and ports for this switch
-    # default open, but setting empty string blocks all ports
-    {'name': 'ngs_allowed_vlans'},
-    {'name': 'ngs_allowed_ports'},
-    # Require security groups to be enabled on a per-device basis
-    {'name': 'ngs_security_groups_enabled', 'default': False},
-    # Force NETCONF datastore target ('candidate' or 'running').
-    # Unset (default) auto-detects from server capabilities.
-    {'name': 'ngs_netconf_target'},
-    # XML config payload sent via edit-config to the running datastore
-    # to persist configuration.
-    {'name': 'ngs_netconf_save_config'},
-    # OpenConfig: L2/L3 forwarding instance for VLANs
-    {'name': 'ngs_openconfig_network_instance', 'default': 'default'},
-    # JSON dict {"pattern": "...", "repl": "..."} for regex substitution
-    # on port IDs from LLDP
-    {'name': 'ngs_port_id_re_sub'},
-    # OpenConfig: comma-separated list of disabled properties
-    # (e.g. "port_mtu")
-    {'name': 'ngs_openconfig_disabled_properties'},
-    # Whether to use confirmed commit when the switch advertises it.
-    {'name': 'ngs_netconf_confirmed_commit', 'default': True},
-    # Rollback timeout (seconds) for the tentative confirmed commit.
-    {'name': 'ngs_netconf_confirmed_commit_timeout', 'default': 5},
-    # Master toggle for MTU management. Must be True for any MTU
-    # configuration to take effect. Default False preserves the
-    # pre-existing behavior of never touching port MTU.
-    {'name': 'ngs_manage_mtu', 'default': False},
-    # Default MTU for access/bound ports. Used as fallback when network
-    # MTU is missing/zero and as reset value on port unbind. Neutron ML2
-    # networks always have MTU (DB enforces non-null), but fallback supports
-    # standalone usage and direct driver invocation.
-    {'name': 'ngs_port_default_mtu'},
-    # MTU to apply on trunk (uplink) ports. Also serves as the upper
-    # bound for access port MTU validation.
-    {'name': 'ngs_trunk_port_mtu'},
-    # If True, bounce (shutdown then no shutdown) ports during bind
-    # to trigger a carrier drop/raise, signalling the host to re-run
-    # DHCP. Ports remain UP when not bound, preserving LLDP.
-    {'name': 'ngs_bounce_ports_on_plug', 'default': False},
-    # If True, configure ports as STP edge (portfast) during bind
-    # to skip STP convergence delay.
-    {'name': 'ngs_port_stp_edge', 'default': False},
-    # If True, enable BPDU guard on ports during bind to protect
-    # against spanning tree loops.
-    {'name': 'ngs_port_bpdu_guard', 'default': False},
-    # TLS certificate verification for HTTP-based transports
-    {'name': 'ngs_verify_tls', 'default': True},
-    # RESTCONF transport settings
-    {'name': 'ngs_restconf_scheme', 'default': 'https'},
-    {'name': 'ngs_restconf_content_type',
-     'default': 'application/yang-data+json'},
-    {'name': 'ngs_restconf_base_path', 'default': '/restconf/data'},
+    cfg.StrOpt('ngs_mac_address',
+               help='MAC address of the switch. Used to correlate LLDP '
+                    'data reported by ironic-python-agent with this device.'),
+    cfg.ListOpt('ngs_trunk_ports',
+                help='Comma-separated list of names of interfaces to be '
+                     'added as trunk ports to each network configured on '
+                     'this switch.'),
+    cfg.StrOpt('ngs_port_default_vlan',
+               help='Default VLAN to configure on a port when it is '
+                    'unplugged from a network.'),
+    cfg.ListOpt('ngs_physical_networks',
+                help='Comma-separated list of physical networks to which '
+                     'this switch is mapped.'),
+    cfg.ListOpt('ngs_ssh_disabled_algorithms',
+                help='Comma-separated list of entries formatted as '
+                     '"<type>:<algorithm>", specifying SSH algorithms to '
+                     'disable.'),
+    cfg.IntOpt('ngs_ssh_connect_timeout', default=60,
+               help='Timeout in seconds for establishing an SSH connection '
+                    'to the switch.'),
+    cfg.IntOpt('ngs_ssh_connect_interval', default=10,
+               help='Interval in seconds between SSH connection attempts.'),
+    cfg.BoolOpt('ngs_ssh_reuse_connection', default=False,
+                help='If True, reuse SSH connections to the switch across '
+                     'operations rather than reconnecting each time.'),
+    cfg.IntOpt('ngs_max_connections', default=1,
+               help='Maximum number of concurrent connections to the '
+                    'switch.'),
+    cfg.StrOpt('ngs_switchport_mode', default='access',
+               help='Switchport mode to configure on ports plugged into a '
+                    'network.'),
+    cfg.BoolOpt('ngs_disable_inactive_ports', default=False,
+                help='If True, disable switch ports that are not in use.'),
+    cfg.StrOpt('ngs_network_name_format', default='{network_id}',
+               help='String format for the network name to configure on '
+                    'switches. Accepts {network_id} and {segmentation_id} '
+                    'formatting options.'),
+    cfg.BoolOpt('ngs_manage_vlans', default=True,
+                help='If False, ngs will not add and delete VLANs from '
+                     'switches.'),
+    cfg.BoolOpt('ngs_save_configuration', default=True,
+                help='If False, ngs will skip saving configuration on '
+                     'devices.'),
+    cfg.BoolOpt('ngs_batch_requests', default=False,
+                help='If True, try to batch up in-flight switch requests.'),
+    cfg.FloatOpt('ngs_fake_sleep_min_s',
+                 help='Fake device driver: minimum time in seconds to sleep '
+                      'per operation.'),
+    cfg.FloatOpt('ngs_fake_sleep_max_s',
+                 help='Fake device driver: maximum time in seconds to sleep '
+                      'per operation.'),
+    cfg.FloatOpt('ngs_fake_failure_prob',
+                 help='Fake device driver: probability (0.0-1.0) that an '
+                      'operation fails.'),
+    cfg.ListOpt('ngs_allowed_vlans',
+                help='Allow list of VLANs for this switch. Defaults to open; '
+                     'setting an empty string blocks all VLANs.'),
+    cfg.ListOpt('ngs_allowed_ports',
+                help='Allow list of ports for this switch. Defaults to open; '
+                     'setting an empty string blocks all ports.'),
+    cfg.BoolOpt('ngs_security_groups_enabled', default=False,
+                help='Require security groups to be enabled on a per-device '
+                     'basis.'),
+    cfg.StrOpt('ngs_netconf_target',
+               help="Force the NETCONF datastore target ('candidate' or "
+                    "'running'). Unset (default) auto-detects from server "
+                    "capabilities."),
+    cfg.StrOpt('ngs_netconf_save_config',
+               help='XML config payload sent via edit-config to the running '
+                    'datastore to persist configuration.'),
+    cfg.StrOpt('ngs_openconfig_network_instance', default='default',
+               help='OpenConfig: L2/L3 forwarding instance for VLANs.'),
+    cfg.StrOpt('ngs_port_id_re_sub',
+               help='JSON dict {"pattern": "...", "repl": "..."} for regex '
+                    'substitution on port IDs from LLDP.'),
+    cfg.ListOpt('ngs_openconfig_disabled_properties',
+                help='OpenConfig: comma-separated list of disabled '
+                     'properties (e.g. "port_mtu").'),
+    cfg.BoolOpt('ngs_netconf_confirmed_commit', default=True,
+                help='Whether to use confirmed commit when the switch '
+                     'advertises it.'),
+    cfg.IntOpt('ngs_netconf_confirmed_commit_timeout', default=5,
+               help='Rollback timeout in seconds for the tentative '
+                    'confirmed commit.'),
+    cfg.BoolOpt('ngs_manage_mtu', default=False,
+                help='Master toggle for MTU management. Must be True for any '
+                     'MTU configuration to take effect. Default False '
+                     'preserves the pre-existing behavior of never touching '
+                     'port MTU.'),
+    cfg.IntOpt('ngs_port_default_mtu',
+               help='Default MTU for access/bound ports. Used as a fallback '
+                    'when the network MTU is missing/zero and as the reset '
+                    'value on port unbind. Neutron ML2 networks always have '
+                    'an MTU (DB enforces non-null), but the fallback '
+                    'supports standalone usage and direct driver '
+                    'invocation.'),
+    cfg.IntOpt('ngs_trunk_port_mtu',
+               help='MTU to apply on trunk (uplink) ports. Also serves as '
+                    'the upper bound for access port MTU validation.'),
+    cfg.BoolOpt('ngs_bounce_ports_on_plug', default=False,
+                help='If True, bounce (shutdown then no shutdown) ports '
+                     'during bind to trigger a carrier drop/raise, '
+                     'signalling the host to re-run DHCP. Ports remain UP '
+                     'when not bound, preserving LLDP.'),
+    cfg.BoolOpt('ngs_port_stp_edge', default=False,
+                help='If True, configure ports as STP edge (portfast) '
+                     'during bind to skip STP convergence delay.'),
+    cfg.BoolOpt('ngs_port_bpdu_guard', default=False,
+                help='If True, enable BPDU guard on ports during bind to '
+                     'protect against spanning tree loops.'),
+    cfg.BoolOpt('ngs_verify_tls', default=True,
+                help='TLS certificate verification for HTTP-based '
+                     'transports.'),
+    cfg.StrOpt('ngs_restconf_scheme', default='https',
+               help='URI scheme to use for the RESTCONF transport.'),
+    cfg.StrOpt('ngs_restconf_content_type',
+               default='application/yang-data+json',
+               help='Content-Type header sent with RESTCONF requests.'),
+    cfg.StrOpt('ngs_restconf_base_path', default='/restconf/data',
+               help='Base path for the RESTCONF data resource.'),
 ]
 
 EM_SEMAPHORE = 'ngs_device_manager'
@@ -161,11 +209,12 @@ class GenericSwitchDevice(abc.ABC):
         self.device_name = device_name
         # Do not expose NGS internal options to device config.
         for opt in NGS_INTERNAL_OPTS:
-            opt_name = opt['name']
-            if opt_name in device_cfg.keys():
-                self.ngs_config[opt_name] = device_cfg.pop(opt_name)
-            elif 'default' in opt:
-                self.ngs_config[opt_name] = opt['default']
+            if opt.name in device_cfg.keys():
+                # Values are stored as read from config (raw strings). The
+                # consuming helpers below handle any type coercion.
+                self.ngs_config[opt.name] = device_cfg.pop(opt.name)
+            elif opt.default is not None:
+                self.ngs_config[opt.name] = opt.default
         # Ignore any other option starting with 'ngs_' (to avoid passing
         # these options to Netmiko)
         for opt_name in [o for o in device_cfg.keys() if o.startswith("ngs_")]:

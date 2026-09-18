@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_config import cfg
 from oslo_log import log as logging
 import tenacity
 
@@ -22,12 +23,16 @@ from networking_generic_switch import exceptions as exc
 
 LOG = logging.getLogger(__name__)
 
-# Internal ngs options will not be passed to driver.
+# Internal ngs options will not be passed to driver. See NGS_INTERNAL_OPTS in
+# networking_generic_switch.devices for why these per-switch options are
+# described as cfg.Opt instances rather than registered oslo.config options.
 JUNIPER_INTERNAL_OPTS = [
-    # Timeout (seconds) for committing configuration changes.
-    {'name': 'ngs_commit_timeout', 'default': 60},
-    # Interval (seconds) between attempts to commit configuration changes.
-    {'name': 'ngs_commit_interval', 'default': 5},
+    cfg.IntOpt('ngs_commit_timeout', default=60,
+               help='Timeout in seconds for committing configuration '
+                    'changes.'),
+    cfg.IntOpt('ngs_commit_interval', default=5,
+               help='Interval in seconds between attempts to commit '
+                    'configuration changes.'),
 ]
 
 
@@ -167,11 +172,10 @@ class Juniper(netmiko_devices.NetmikoSwitch):
         # Do not expose Juniper internal options to device config.
         juniper_cfg = {}
         for opt in JUNIPER_INTERNAL_OPTS:
-            opt_name = opt['name']
-            if opt_name in device_cfg:
-                juniper_cfg[opt_name] = device_cfg.pop(opt_name)
-            elif 'default' in opt:
-                juniper_cfg[opt_name] = opt['default']
+            if opt.name in device_cfg:
+                juniper_cfg[opt.name] = device_cfg.pop(opt.name)
+            elif opt.default is not None:
+                juniper_cfg[opt.name] = opt.default
         super(Juniper, self).__init__(device_cfg, *args, **kwargs)
         self.ngs_config.update(juniper_cfg)
 

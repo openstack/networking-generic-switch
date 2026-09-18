@@ -14,12 +14,16 @@
 
 import re
 
+from oslo_config import cfg
+
 from networking_generic_switch.devices import netmiko_devices
 
-# Internal ngs options will not be passed to driver.
+# Internal ngs options will not be passed to driver. See NGS_INTERNAL_OPTS in
+# networking_generic_switch.devices for why these per-switch options are
+# described as cfg.Opt instances rather than registered oslo.config options.
 OVS_INTERNAL_OPTS = [
-    # OVS bridge name to use for VNI mapping storage.
-    {'name': 'ngs_ovs_bridge', 'default': 'genericswitch'},
+    cfg.StrOpt('ngs_ovs_bridge', default='genericswitch',
+               help='OVS bridge name to use for VNI mapping storage.'),
 ]
 
 
@@ -128,11 +132,10 @@ class OvsLinux(netmiko_devices.NetmikoSwitch):
         # Do not expose OVS internal options to device config.
         ovs_cfg = {}
         for opt in OVS_INTERNAL_OPTS:
-            opt_name = opt['name']
-            if opt_name in device_cfg:
-                ovs_cfg[opt_name] = device_cfg.pop(opt_name)
-            elif 'default' in opt:
-                ovs_cfg[opt_name] = opt['default']
+            if opt.name in device_cfg:
+                ovs_cfg[opt.name] = device_cfg.pop(opt.name)
+            elif opt.default is not None:
+                ovs_cfg[opt.name] = opt.default
         super(OvsLinux, self).__init__(device_cfg, *args, **kwargs)
         self.ngs_config.update(ovs_cfg)
 
