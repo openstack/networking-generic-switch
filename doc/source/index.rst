@@ -7,6 +7,7 @@ Welcome to networking-generic-switch's documentation!
    compatible-devices
    installation
    configuration
+   configuration-reference
    management-interfaces
    admin/index
    dev/dev-quickstart
