@@ -14,6 +14,7 @@
 
 from dataclasses import dataclass
 import ipaddress
+import re
 from typing import Optional
 
 from oslo_config import cfg
@@ -82,6 +83,22 @@ def sanitise_config(config):
 def get_hostname():
     """Helper to allow isolation of CONF.host and plugin loading."""
     return CONF.host
+
+
+def port_id_resub(port_id, port_id_re_sub):
+    """Apply a regex substitution to a port ID.
+
+    :param port_id: Original port identifier from local link info.
+    :param port_id_re_sub: Dict with ``pattern`` and ``repl`` keys,
+        or an empty dict to skip substitution.
+    :returns: Possibly modified port identifier.
+    """
+    if port_id_re_sub:
+        pattern = port_id_re_sub.get('pattern')
+        repl = port_id_re_sub.get('repl')
+        if pattern and repl is not None:
+            port_id = re.sub(pattern, repl, port_id)
+    return port_id
 
 
 def parse_vxlan_multicast_config(device_cfg):
