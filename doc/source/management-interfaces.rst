@@ -144,3 +144,175 @@ These options are passed directly to ``ncclient.manager.connect()`` and do
    * - ``look_for_keys``
      - ``true``
      - Look for SSH keys in ``~/.ssh/`` if no explicit key is provided.
+
+.. _restconf-management-interface:
+
+RESTCONF
+========
+
+The RESTCONF interface uses the `requests <https://requests.readthedocs.io/>`_
+library to communicate with switches via the RESTCONF protocol
+(`RFC 8040 <https://datatracker.ietf.org/doc/html/rfc8040>`_). Configuration
+payloads are structured JSON documents (RFC 7951) built from OpenConfig YANG
+models and sent to the device using HTTP PATCH (merge), GET (read), and
+DELETE (remove) operations. See the :doc:`restconf-device-commands` page for
+rendered JSON examples per device and operation.
+
+RESTCONF is a lightweight alternative to NETCONF for devices that expose an
+HTTPS-based management API. It provides the same OpenConfig model coverage
+as the NETCONF driver but uses JSON over HTTP instead of XML over SSH.
+
+Transport Overview
+------------------
+
+The RESTCONF driver sends configuration to the device as one HTTP PATCH
+request per top-level YANG container. Each PATCH targets the container's
+own resource URL (e.g.
+``https://<host>:<port>/restconf/data/openconfig-interfaces:interfaces``)
+and the request body contains only the container's children — the
+module-prefixed container name is conveyed by the URL, not repeated in the
+body. The body is a JSON document conforming to RFC 7951 encoding rules:
+
+- Nested elements use bare names (e.g. ``interface``, ``config``)
+- Augmented elements use module-prefixed names
+  (e.g. ``openconfig-if-ethernet:ethernet``)
+- Lists become JSON arrays
+- Leaf values map to native JSON types (string, number, boolean)
+
+Example PATCH to
+``/restconf/data/openconfig-interfaces:interfaces`` setting an interface
+to access VLAN 100:
+
+.. code-block:: json
+
+   {
+     "interface": [
+       {
+         "name": "Ethernet1/31",
+         "openconfig-if-ethernet:ethernet": {
+           "openconfig-vlan:switched-vlan": {
+             "config": {
+               "interface-mode": "ACCESS",
+               "access-vlan": 100
+             }
+           }
+         }
+       }
+     ]
+   }
+
+Retry and Error Handling
+------------------------
+
+The RESTCONF driver retries requests that receive transient error responses:
+
+- **HTTP 409 Conflict** — typically caused by concurrent configuration
+  changes on the device.
+- **HTTP 503 Service Unavailable** — the device is temporarily busy
+  (e.g. during an internal commit or restart).
+- **Connection errors** — network-level failures.
+
+Retries use exponential back-off (2 s, 4 s, 5 s, ..., up to 10 attempts).
+Non-transient errors (4xx other than 409, 5xx other than 503) raise
+immediately without retry.
+
+Coordination
+------------
+
+The RESTCONF driver uses the same ``PoolLock`` coordination mechanism as the
+Netmiko and NETCONF drivers. Configure the coordination backend and
+``ngs_max_connections`` as described in the :ref:`synchronization` section
+of the administration guide.
+
+RESTCONF vs NETCONF
+-------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - Aspect
+     - NETCONF
+     - RESTCONF
+   * - Transport
+     - SSH (port 830)
+     - HTTPS (port 443)
+   * - Encoding
+     - XML
+     - JSON (RFC 7951)
+   * - Library
+     - ncclient
+     - requests
+   * - Locking
+     - Protocol-level lock/unlock
+     - Coordination backend (Tooz)
+   * - Atomic commit
+     - Candidate + commit
+     - Per-request PATCH (merge)
+   * - Confirmed commit
+     - Supported
+     - Not applicable
+   * - Operation mapping
+     - edit-config with operation attributes
+     - HTTP methods (PATCH, PUT, DELETE)
+
+Choose RESTCONF when:
+
+- The device does not support NETCONF or has a more mature RESTCONF
+  implementation.
+- You prefer JSON-based configuration for debugging and automation.
+- The device's NETCONF candidate datastore is unreliable.
+
+Choose NETCONF when:
+
+- You need atomic multi-resource commits (candidate + commit).
+- You need confirmed commit with automatic rollback.
+- The device has a mature NETCONF implementation with proper locking.
+
+Connection Options
+------------------
+
+These options configure the RESTCONF HTTP transport and are documented
+in detail at :ref:`restconf-specific-options`.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 15 55
+
+   * - Option
+     - Default
+     - Description
+   * - ``host``
+     - *(required)*
+     - Hostname or IP address of the switch RESTCONF endpoint.
+   * - ``username``
+     - *(required)*
+     - Username for HTTP Basic authentication.
+   * - ``password``
+     -
+     - Password for HTTP Basic authentication.
+   * - ``ngs_restconf_scheme``
+     - ``https``
+     - URL scheme (``https`` or ``http``).
+   * - ``port``
+     - ``443``
+     - TCP port for the RESTCONF endpoint.
+   * - ``ngs_restconf_content_type``
+     - ``application/yang-data+json``
+     - Media type for Content-Type and Accept headers.
+   * - ``ngs_restconf_base_path``
+     - ``/restconf/data``
+     - Base path for RESTCONF data resources.
+   * - ``ngs_verify_ssl``
+     - ``True``
+     - Whether to verify the server's TLS certificate.
+   * - ``ngs_openconfig_network_instance``
+     - ``default``
+     - OpenConfig network-instance for VLAN management.
+   * - ``ngs_port_id_re_sub``
+     -
+     - JSON regex substitution for port IDs (e.g.
+       ``{"pattern": "^Eth", "repl": "Ethernet"}``).
+   * - ``ngs_openconfig_disabled_properties``
+     -
+     - Comma-separated list of properties to omit.

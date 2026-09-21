@@ -469,3 +469,158 @@ datastore due to known candidate datastore issues)::
     host = <switch mgmt ip address>
     username = admin
     password = password
+
+.. _restconf-devices:
+
+RESTCONF Devices
+----------------
+
+RESTCONF devices use the RESTCONF protocol
+(`RFC 8040 <https://datatracker.ietf.org/doc/html/rfc8040>`_) over HTTPS
+to push configuration encoded as JSON (RFC 7951). The driver communicates
+with the device using HTTP PATCH (merge), GET (read), and DELETE (remove)
+operations against the device's RESTCONF data resource.
+
+Switch configuration format::
+
+    [genericswitch:<switch name>]
+    device_type = <restconf device type>
+    ngs_mac_address = <switch mac address>
+    ngs_physical_networks = <comma-separated list of physical networks>
+    host = <IP address or hostname of switch>
+    username = <credential username>
+    password = <credential password>
+
+.. _restconf-specific-options:
+
+RESTCONF-specific NGS options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* ``ngs_restconf_scheme`` — URL scheme for the RESTCONF endpoint
+  (default: ``https``).
+* ``port`` — TCP port for the RESTCONF endpoint
+  (default: ``443``). This is a standard device config option (not
+  ``ngs_``-prefixed), consistent with the NETCONF and Netmiko drivers.
+* ``ngs_restconf_content_type`` — Media type used in ``Content-Type``
+  and ``Accept`` headers (default: ``application/yang-data+json``).
+  Override to ``application/yang.data+json`` for Cisco NX-OS
+  (see :ref:`restconf-nxos-quirks`).
+* ``ngs_restconf_base_path`` — Base path for RESTCONF data resources
+  (default: ``/restconf/data``).
+* ``ngs_verify_ssl`` — Whether to verify the server's TLS
+  certificate (default: ``True``).
+* ``ngs_openconfig_network_instance`` — OpenConfig network-instance
+  for VLAN management (default: ``default``).
+* ``ngs_port_id_re_sub`` — JSON object with ``pattern``
+  and ``repl`` keys for regex substitution on port IDs from LLDP.
+  Example: ``{"pattern": "^Eth", "repl": "Ethernet"}``
+* ``ngs_openconfig_disabled_properties`` — comma-separated list of
+  properties to omit from configuration payloads
+  (e.g. ``port_mtu``).
+
+Retry Behavior
+^^^^^^^^^^^^^^
+
+If the RESTCONF device returns HTTP 409 (Conflict) or 503 (Service
+Unavailable), or a connection error occurs, the driver retries with
+exponential back-off (2 s, 4 s, 5 s, ..., up to 10 attempts). This
+handles transient lock contention from concurrent operations or
+temporary unavailability during device-internal commits.
+
+Coordination
+^^^^^^^^^^^^
+
+The RESTCONF driver uses the same ``PoolLock`` coordination mechanism
+as the NETCONF and Netmiko drivers. Configure the coordination backend
+and ``ngs_max_connections`` as described in the :ref:`synchronization`
+section of the administration guide.
+
+.. _restconf-trunk-behavior:
+
+Trunk Behavior
+^^^^^^^^^^^^^^
+
+The RESTCONF OpenConfig driver supports both infrastructure trunk ports
+(``ngs_trunk_ports``) and Neutron trunk ports (parent + subports). Both
+use a converging approach:
+
+**Infrastructure trunk ports** — When a VLAN is created, if
+``physnet_vlans`` is available (the full set of VLANs on the physical
+network), the driver writes the complete trunk VLAN list with
+``operation="replace"`` in a single PATCH request. This ensures the
+switch converges to the exact desired state. If ``physnet_vlans`` is
+unavailable, the driver falls back to a single-VLAN merge.
+
+**Neutron trunk subports** — When ``trunk_details`` is provided (the full
+trunk state including all subports), the driver writes the complete set
+of subport VLANs and native VLAN in a single ``operation="replace"``
+PATCH. When ``trunk_details`` is ``None`` (older Neutron releases), it
+falls back to per-VLAN merge (add) or per-element remove (delete).
+
+When all subports are removed from a trunk, the port automatically
+reverts from trunk mode to access mode with the parent VLAN as the
+access VLAN.
+
+.. _restconf-nxos-quirks:
+
+NX-OS Quirks
+^^^^^^^^^^^^
+
+Cisco NX-OS uses a non-standard Content-Type for its RESTCONF
+implementation. The standard RFC 8040 media type is
+``application/yang-data+json``, but NX-OS requires the older
+draft-era ``application/yang.data+json`` (note the dot instead of
+hyphen). Configure this as follows::
+
+    ngs_restconf_content_type = application/yang.data+json
+
+Additionally, NX-OS port names from LLDP may use abbreviated forms
+(e.g. ``Eth1/31`` instead of ``Ethernet1/31``). Use
+``ngs_port_id_re_sub`` to normalize::
+
+    ngs_port_id_re_sub = {"pattern": "^Eth", "repl": "Ethernet"}
+
+Examples
+^^^^^^^^
+
+For a RESTCONF OpenConfig device (e.g. Arista EOS with RESTCONF
+enabled)::
+
+    [genericswitch:sw-hostname]
+    device_type = restconf_openconfig
+    ngs_mac_address = <switch mac address>
+    ngs_physical_networks = physnet1
+    ngs_trunk_ports = Ethernet1/48
+    ngs_disable_inactive_ports = True
+    ngs_port_default_vlan = 1
+    host = <switch mgmt ip address>
+    username = admin
+    password = password
+
+For a Cisco NX-OS device via RESTCONF::
+
+    [genericswitch:nxos-hostname]
+    device_type = restconf_openconfig
+    ngs_mac_address = <switch mac address>
+    ngs_physical_networks = physnet1
+    ngs_trunk_ports = Ethernet1/48
+    ngs_disable_inactive_ports = True
+    ngs_port_default_vlan = 1
+    ngs_restconf_content_type = application/yang.data+json
+    ngs_port_id_re_sub = {"pattern": "^Eth", "repl": "Ethernet"}
+    host = <switch mgmt ip address>
+    username = admin
+    password = password
+
+For a device using HTTP (lab only, no TLS)::
+
+    [genericswitch:lab-switch]
+    device_type = restconf_openconfig
+    ngs_mac_address = <switch mac address>
+    ngs_physical_networks = physnet1
+    ngs_restconf_scheme = http
+    port = 8080
+    ngs_verify_ssl = False
+    host = <switch mgmt ip address>
+    username = admin
+    password = password

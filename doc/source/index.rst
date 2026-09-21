@@ -13,6 +13,7 @@ Welcome to networking-generic-switch's documentation!
    contributing
    netmiko-device-commands
    netconf-device-commands
+   restconf-device-commands
    contributor/api/modules
 
 .. toctree::

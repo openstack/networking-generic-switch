@@ -2,9 +2,9 @@
 Compatible Devices
 ==================
 
-Networking-generic-switch supports two families of device drivers: Netmiko
-(SSH/CLI) and NETCONF. The Mechanism Driver architecture allows adding new
-devices of either type.
+Networking-generic-switch supports three families of device drivers: Netmiko
+(SSH/CLI), NETCONF, and RESTCONF. The Mechanism Driver architecture allows
+adding new devices of any type.
 
 ::
 
@@ -121,6 +121,35 @@ Compatible with switches supporting `OpenConfig <https://openconfig.net/>`_
 YANG models over NETCONF.
 Known platforms include Cisco NX-OS (Nexus 9000), Arista EOS, Juniper Junos
 and Nokia SR OS.
+
+Supported operations:
+
+ * Network (VLAN) management — create and delete VLANs in a named
+   network-instance.
+ * Port management — assign access VLANs to switch interfaces.
+ * Trunk port tagging — automatically tag/untag ``ngs_trunk_ports``
+   when networks are created or deleted.
+ * Neutron trunk ports — dynamically add and remove subport VLANs
+   on trunk ports via the Neutron trunk API.
+ * Port enable/disable — administratively shut down inactive ports
+   when ``ngs_disable_inactive_ports`` is set.
+ * Default VLAN restore — restore ``ngs_port_default_vlan`` when a
+   port is released.
+
+Not yet supported: bond/LACP, L2VNI, security groups.
+
+RESTCONF Devices
+================
+
+These device plugins access and configure switches via the RESTCONF protocol
+(RFC 8040). See :doc:`management-interfaces` for details on RESTCONF
+management interface behaviour.
+
+RESTCONF OpenConfig (restconf_openconfig)
+-----------------------------------------
+
+Compatible with switches supporting `OpenConfig <https://openconfig.net/>`_
+YANG models over RESTCONF.
 
 Supported operations:
 
