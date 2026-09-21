@@ -11,17 +11,17 @@
 #    under the License.
 import unittest
 
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     aggregate)
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     ethernet)
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     interfaces)
-from networking_generic_switch.netconf_models.openconfig.lacp import lacp
-from networking_generic_switch.netconf_models.openconfig.network_instance \
+from networking_generic_switch.yang_models.openconfig.lacp import lacp
+from networking_generic_switch.yang_models.openconfig.network_instance \
     import network_instance
-from networking_generic_switch.netconf_models.openconfig.vlan import vlan
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models.openconfig.vlan import vlan
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class TestConfigToRestconfJsonMergeOrder(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestConfigToRestconfJsonMergeOrder(unittest.TestCase):
         iface = ifaces.add('eth1/31')
         iface.ethernet.switched_vlan.config.interface_mode = 'ACCESS'
         iface.ethernet.switched_vlan.config.access_vlan = 100
-        result = ncutils.config_to_restconf_json([ifaces])
+        result = yutils.config_to_restconf_json([ifaces])
         self.assertIn('openconfig-interfaces:interfaces', result)
         self.assertEqual(1, len(result))
         iface_list = (
@@ -44,7 +44,7 @@ class TestConfigToRestconfJsonMergeOrder(unittest.TestCase):
         nis = network_instance.NetworkInstances()
         ni = nis.add('default')
         ni.vlans.add(100)
-        result = ncutils.config_to_restconf_json([nis])
+        result = yutils.config_to_restconf_json([nis])
         self.assertIn(
             'openconfig-network-instance:network-instances', result)
         self.assertEqual(1, len(result))
@@ -60,7 +60,7 @@ class TestConfigToRestconfJsonMergeOrder(unittest.TestCase):
         ni = nis.add('default')
         ni.vlans.add(10)
 
-        result = ncutils.config_to_restconf_json([ifaces, nis])
+        result = yutils.config_to_restconf_json([ifaces, nis])
         self.assertEqual(2, len(result))
         self.assertIn('openconfig-interfaces:interfaces', result)
         self.assertIn(
@@ -81,7 +81,7 @@ class TestConfigToRestconfJsonMergeOrder(unittest.TestCase):
         v2 = ni.vlans.add(200)
         v2.config.name = 'Vlan200'
 
-        result = ncutils.config_to_restconf_json([ifaces, nis])
+        result = yutils.config_to_restconf_json([ifaces, nis])
 
         iface_list = (
             result['openconfig-interfaces:interfaces']['interface'])
@@ -106,14 +106,14 @@ class TestConfigToRestconfJsonMergeOrder(unittest.TestCase):
         ifaces2 = interfaces.Interfaces()
         ifaces2.add('eth1/2')
 
-        result = ncutils.config_to_restconf_json([ifaces1, ifaces2])
+        result = yutils.config_to_restconf_json([ifaces1, ifaces2])
         iface_list = (
             result['openconfig-interfaces:interfaces']['interface'])
         self.assertEqual(1, len(iface_list))
         self.assertEqual('eth1/2', iface_list[0]['name'])
 
     def test_empty_config_list(self):
-        result = ncutils.config_to_restconf_json([])
+        result = yutils.config_to_restconf_json([])
         self.assertEqual({}, result)
 
     def test_three_way_merge(self):
@@ -127,7 +127,7 @@ class TestConfigToRestconfJsonMergeOrder(unittest.TestCase):
         oc_lacp = lacp.LACP()
         oc_lacp.interfaces.add('po10')
 
-        result = ncutils.config_to_restconf_json([ifaces, nis])
+        result = yutils.config_to_restconf_json([ifaces, nis])
         self.assertEqual(2, len(result))
         self.assertIn('openconfig-interfaces:interfaces', result)
         self.assertIn(
@@ -226,12 +226,12 @@ class TestRestconfPathGeneration(unittest.TestCase):
                 segs = kwargs.pop('segments')
                 self.assertEqual(
                     expected,
-                    ncutils.restconf_resource_path(*segs, **kwargs))
+                    yutils.restconf_resource_path(*segs, **kwargs))
 
     def test_composed_interface_path_from_models(self):
         ifaces = interfaces.Interfaces()
         iface = ifaces.add('eth1/31')
-        path = ncutils.restconf_resource_path(
+        path = yutils.restconf_resource_path(
             ifaces.to_restconf_path(),
             iface.to_restconf_path(),
             iface.ethernet.to_restconf_path(),
@@ -249,7 +249,7 @@ class TestRestconfPathGeneration(unittest.TestCase):
         nis = network_instance.NetworkInstances()
         ni = nis.add('default')
         v = ni.vlans.add(100)
-        path = ncutils.restconf_resource_path(
+        path = yutils.restconf_resource_path(
             nis.to_restconf_path(),
             ni.to_restconf_path(),
             ni.vlans.to_restconf_path(),

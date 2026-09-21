@@ -13,9 +13,9 @@ from collections import abc
 from typing import Optional
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig.vlan import types
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig.vlan import types
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class TrunkVlans(abc.Collection):
@@ -78,7 +78,7 @@ class VlanSwitchedConfig:
     TAG = 'config'
 
     def __init__(self,
-                 operation: str = ncconst.NetconfEditConfigOperation.MERGE,
+                 operation: str = yconst.EditOperation.MERGE,
                  interface_mode: Optional[str] = None,
                  native_vlan: Optional[int] = None,
                  access_vlan: Optional[int] = None):
@@ -103,10 +103,10 @@ class VlanSwitchedConfig:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -192,21 +192,21 @@ class VlanSwitchedConfig:
         if self.operation:
             elem.set('operation', self.operation)
         if self.access_vlan is not None:
-            ncutils.txt_subelement(elem, 'access-vlan', str(self.access_vlan))
+            yutils.txt_subelement(elem, 'access-vlan', str(self.access_vlan))
         if self.native_vlan is not None:
-            ncutils.txt_subelement(elem, 'native-vlan', str(self.native_vlan))
+            yutils.txt_subelement(elem, 'native-vlan', str(self.native_vlan))
         if self.trunk_vlans is not None:
             for item in self.trunk_vlans:
-                ncutils.txt_subelement(
+                yutils.txt_subelement(
                     elem, 'trunk-vlans', str(item))
             for item in self.trunk_vlans._removals:
-                ncutils.txt_subelement(
+                yutils.txt_subelement(
                     elem, 'trunk-vlans', str(item),
                     attrib={
                         'operation':
-                            ncconst.NetconfEditConfigOperation.REMOVE.value})
+                            yconst.EditOperation.REMOVE.value})
         if self.interface_mode:
-            ncutils.txt_subelement(
+            yutils.txt_subelement(
                 elem, 'interface-mode', self.interface_mode)
         return elem
 
@@ -300,7 +300,7 @@ class VlanConfig:
     TAG = 'config'
 
     def __init__(self,
-                 operation=ncconst.NetconfEditConfigOperation.MERGE,
+                 operation=yconst.EditOperation.MERGE,
                  vlan_id: int = None,
                  name: str = None,
                  status: str = None):
@@ -323,10 +323,10 @@ class VlanConfig:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -382,11 +382,11 @@ class VlanConfig:
         elem = ElementTree.Element(self.TAG)
         elem.set('operation', self.operation)
         if self.vlan_id is not None:
-            ncutils.txt_subelement(elem, 'vlan-id', str(self.vlan_id))
+            yutils.txt_subelement(elem, 'vlan-id', str(self.vlan_id))
         if self.name is not None:
-            ncutils.txt_subelement(elem, 'name', self.name)
+            yutils.txt_subelement(elem, 'name', self.name)
         if self.status is not None:
-            ncutils.txt_subelement(elem, 'status', self.status)
+            yutils.txt_subelement(elem, 'status', self.status)
         return elem
 
     def to_restconf_dict(self):
@@ -416,7 +416,7 @@ class Vlan:
     TAG = 'vlan'
 
     def __init__(self, vlan_id: int,
-                 operation=ncconst.NetconfEditConfigOperation.MERGE):
+                 operation=yconst.EditOperation.MERGE):
         self.operation = operation
         self.vlan_id = vlan_id
         self._config = VlanConfig(vlan_id=self.vlan_id)
@@ -429,10 +429,10 @@ class Vlan:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation '
                             'attribute.'.format(type(value)))
@@ -478,7 +478,7 @@ class Vlan:
         """
         elem = ElementTree.Element(self.TAG)
         if self.vlan_id:
-            ncutils.txt_subelement(
+            yutils.txt_subelement(
                 elem, 'vlan-id', str(self.vlan_id),
                 attrib={'operation': self.operation})
         if self.config:
@@ -546,7 +546,7 @@ class Vlans(abc.Collection):
         :type: int
         """
         vlan = Vlan(vlan_id)
-        vlan.operation = ncconst.NetconfEditConfigOperation.REMOVE
+        vlan.operation = yconst.EditOperation.REMOVE
         self._vlans.append(vlan)
         return vlan
 

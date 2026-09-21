@@ -13,9 +13,9 @@ from collections import abc
 from urllib.parse import quote
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig.lacp import types
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig.lacp import types
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class LACP:
@@ -120,7 +120,7 @@ class LACPInterface:
     TAG = 'interface'
 
     def __init__(self, name: str,
-                 operation=ncconst.NetconfEditConfigOperation.MERGE):
+                 operation=yconst.EditOperation.MERGE):
         self.operation = operation
         self._config = LACPInterfaceConfig(name)
         self.name = name
@@ -133,10 +133,10 @@ class LACPInterface:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -184,7 +184,7 @@ class LACPInterface:
         elem = ElementTree.Element(self.TAG)
         elem.set('operation', self.operation)
         if self.name:
-            ncutils.txt_subelement(elem, 'name', self.name)
+            yutils.txt_subelement(elem, 'name', self.name)
         if self.config:
             elem.append(self.config.to_xml_element())
         return elem
@@ -202,7 +202,7 @@ class LACPInterfaceConfig:
     TAG = 'config'
 
     def __init__(self, name: str,
-                 operation=ncconst.NetconfEditConfigOperation.MERGE,
+                 operation=yconst.EditOperation.MERGE,
                  interval=types.LACPPeriod.SLOW,
                  lacp_mode=types.LACPActivity.ACTIVE):
         self._name = name
@@ -218,10 +218,10 @@ class LACPInterfaceConfig:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -294,11 +294,11 @@ class LACPInterfaceConfig:
         elem = ElementTree.Element(self.TAG)
         elem.set('operation', self.operation)
         if self.name is not None:
-            ncutils.txt_subelement(elem, 'name', self.name)
+            yutils.txt_subelement(elem, 'name', self.name)
         if self.interval is not None:
-            ncutils.txt_subelement(elem, 'interval', self.interval)
+            yutils.txt_subelement(elem, 'interval', self.interval)
         if self.lacp_mode is not None:
-            ncutils.txt_subelement(elem, 'lacp-mode', self.lacp_mode)
+            yutils.txt_subelement(elem, 'lacp-mode', self.lacp_mode)
         return elem
 
     def to_restconf_path(self):

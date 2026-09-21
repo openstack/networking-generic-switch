@@ -11,11 +11,11 @@
 #    under the License.
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig.interfaces import (
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig.interfaces import (
     types)
-from networking_generic_switch.netconf_models.openconfig.vlan import vlan
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models.openconfig.vlan import vlan
+from networking_generic_switch.yang_models import utils as yutils
 
 
 class InterfacesAggregationConfig:
@@ -25,7 +25,7 @@ class InterfacesAggregationConfig:
     TAG = 'config'
 
     def __init__(self,
-                 operation: str = ncconst.NetconfEditConfigOperation.MERGE):
+                 operation: str = yconst.EditOperation.MERGE):
         self.operation = operation
         self._lag_type = None
         self._min_links = None
@@ -38,10 +38,10 @@ class InterfacesAggregationConfig:
     @operation.setter
     def operation(self, value):
         """RFC 6241 - <edit-config> operation attribute"""
-        if isinstance(value, ncconst.NetconfEditConfigOperation):
+        if isinstance(value, yconst.EditOperation):
             self._operation = value
         elif isinstance(value, str):
-            self._operation = ncconst.NetconfEditConfigOperation(value)
+            self._operation = yconst.EditOperation(value)
         else:
             raise TypeError('Invalid type {} for config operation attribute.'
                             .format(type(value)))
@@ -84,9 +84,9 @@ class InterfacesAggregationConfig:
         if self.operation:
             elem.set('operation', self.operation)
         if self.lag_type is not None:
-            ncutils.txt_subelement(elem, 'lag-type', self.lag_type)
+            yutils.txt_subelement(elem, 'lag-type', self.lag_type)
         if self.min_links is not None:
-            ncutils.txt_subelement(elem, 'min-links', str(self.min_links))
+            yutils.txt_subelement(elem, 'min-links', str(self.min_links))
         return elem
 
     def to_restconf_dict(self):

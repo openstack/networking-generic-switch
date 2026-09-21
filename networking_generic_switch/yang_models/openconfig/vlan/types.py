@@ -12,7 +12,7 @@
 import enum
 import re
 
-from networking_generic_switch.netconf_models.openconfig import constants
+from networking_generic_switch.yang_models.openconfig import constants
 
 
 class VlanStatus(enum.Enum):

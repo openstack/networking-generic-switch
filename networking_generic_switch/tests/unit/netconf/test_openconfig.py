@@ -15,11 +15,11 @@ import unittest
 from unittest import mock
 
 from networking_generic_switch.devices.netconf_devices import openconfig
-from networking_generic_switch.netconf_models.openconfig import (
+from networking_generic_switch.yang_models.openconfig import (
     constants as oc_constants)
-from networking_generic_switch.netconf_models.openconfig.interfaces \
+from networking_generic_switch.yang_models.openconfig.interfaces \
     .interfaces import Interfaces
-from networking_generic_switch.netconf_models.openconfig \
+from networking_generic_switch.yang_models.openconfig \
     .network_instance.network_instance import NetworkInstances
 
 

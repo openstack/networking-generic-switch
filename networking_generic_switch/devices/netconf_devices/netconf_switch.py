@@ -28,11 +28,12 @@ import tenacity
 from tooz import coordination
 
 from networking_generic_switch import devices
+from networking_generic_switch.devices.netconf_devices import (
+    constants as ncconst)
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 from networking_generic_switch import locking as ngs_lock
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models import utils as ncutils
+from networking_generic_switch.yang_models import utils as yutils
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -47,7 +48,7 @@ class NetconfSwitch(devices.GenericSwitchDevice):
     Subclasses must assign callable class variables (ADD_NETWORK, etc.)
     that build OpenConfig model objects.  The dispatch methods in this
     class invoke those callables, serialize the result to XML via
-    ``ncutils.config_to_xml``, and push to the device.
+    ``yutils.config_to_xml``, and push to the device.
     """
 
     ADD_NETWORK_TO_TRUNK = None
@@ -249,7 +250,7 @@ class NetconfSwitch(devices.GenericSwitchDevice):
         """
         try:
             with client.locked(source):
-                xml_config = ncutils.config_to_xml(config)
+                xml_config = yutils.config_to_xml(config)
                 LOG.debug(
                     'Sending configuration to Netconf device %(dev)s: '
                     '%(conf)s',
@@ -285,7 +286,7 @@ class NetconfSwitch(devices.GenericSwitchDevice):
                     {'dev': self.device_name, 'msg': err.message})
                 raise exc.GenericSwitchNetconfOperationFailed()
             else:
-                LOG.error('Netconf XML: %s', ncutils.config_to_xml(config))
+                LOG.error('Netconf XML: %s', yutils.config_to_xml(config))
                 raise err
 
     def _save_running_config(self, client):

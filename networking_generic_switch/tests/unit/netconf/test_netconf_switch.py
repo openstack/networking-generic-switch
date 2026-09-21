@@ -22,12 +22,13 @@ from ncclient.transport.errors import SSHError
 from oslo_config import fixture as config_fixture
 from tooz import coordination
 
+from networking_generic_switch.devices.netconf_devices import (
+    constants as ncconst)
 from networking_generic_switch.devices.netconf_devices import netconf_switch
 from networking_generic_switch.devices import utils as device_utils
 from networking_generic_switch import exceptions as exc
 from networking_generic_switch import locking as ngs_lock
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig.interfaces \
+from networking_generic_switch.yang_models.openconfig.interfaces \
     import interfaces
 
 

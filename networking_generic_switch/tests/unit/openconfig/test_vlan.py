@@ -13,8 +13,8 @@ import unittest
 from unittest import mock
 from xml.etree import ElementTree
 
-from networking_generic_switch.netconf_models import constants as ncconst
-from networking_generic_switch.netconf_models.openconfig.vlan import vlan
+from networking_generic_switch.yang_models import constants as yconst
+from networking_generic_switch.yang_models.openconfig.vlan import vlan
 
 
 class TestVlan(unittest.TestCase):
@@ -44,8 +44,7 @@ class TestVlan(unittest.TestCase):
         mock_vlan_conf.return_value.to_xml_element.return_value = (
             ElementTree.Element('fake-vlan-conf'))
         oc_vlan = vlan.Vlan(10)
-        self.assertEqual(ncconst.NetconfEditConfigOperation.MERGE.value,
-                         oc_vlan.operation)
+        self.assertEqual(yconst.EditOperation.MERGE.value, oc_vlan.operation)
         self.assertEqual(10, oc_vlan.vlan_id)
         self.assertRaises(TypeError,
                           vlan.Vlan, 'not-int')
@@ -69,7 +68,7 @@ class TestVlan(unittest.TestCase):
 
     def test_vlan_config(self):
         vlan_conf = vlan.VlanConfig()
-        self.assertEqual(ncconst.NetconfEditConfigOperation.MERGE.value,
+        self.assertEqual(yconst.EditOperation.MERGE.value,
                          vlan_conf.operation)
         self.assertRaises(ValueError, vlan.VlanConfig,
                           **dict(operation='invalid'))
@@ -115,7 +114,7 @@ class TestVlan(unittest.TestCase):
 
     def test_switched_vlan_config(self):
         swithced_vlan_conf = vlan.VlanSwitchedConfig()
-        self.assertEqual(ncconst.NetconfEditConfigOperation.MERGE.value,
+        self.assertEqual(yconst.EditOperation.MERGE.value,
                          swithced_vlan_conf.operation)
         self.assertRaises(ValueError, vlan.VlanSwitchedConfig,
                           **dict(operation='invalid'))

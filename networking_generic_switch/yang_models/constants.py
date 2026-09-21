@@ -12,7 +12,7 @@
 import enum
 
 
-class NetconfEditConfigOperation(enum.Enum):
+class EditOperation(enum.Enum):
     """RFC 6241 - <edit-config> operation attribute
 
     The "operation" attribute has one of the following values:
@@ -53,39 +53,3 @@ class NetconfEditConfigOperation(enum.Enum):
     CREATE = 'create'
     DELETE = 'delete'
     REMOVE = 'remove'
-
-
-CFG_ELEMENT = 'config'
-
-LOCK_DENIED_TAG = 'lock-denied'  # [RFC 4741]
-OPERATION_FAILED_TAG = 'operation-failed'  # [RFC 4741]
-CANDIDATE = 'candidate'
-RUNNING = 'running'
-STARTUP = 'startup'
-DEFERRED = 'deferred'
-
-IANA_NETCONF_CAPABILITIES = {
-    # [RFC4741][RFC6241]
-    ':base:1.0':
-        'urn:ietf:params:netconf:base:1.0',
-    # [RFC4741]
-    ':confirmed-commit':
-        'urn:ietf:params:netconf:capability:confirmed-commit:1.0',
-    ':validate':
-        'urn:ietf:params:netconf:capability:validate:1.0',
-    # [RFC6241]
-    ':base:1.1':
-        'urn:ietf:params:netconf:base:1.1',
-    ':writable-running':
-        'urn:ietf:params:netconf:capability:writable-running:1.0',
-    ':candidate':
-        'urn:ietf:params:netconf:capability:candidate:1.0',
-    ':confirmed-commit:1.1':
-        'urn:ietf:params:netconf:capability:confirmed-commit:1.1',
-    ':rollback-on-error':
-        'urn:ietf:params:netconf:capability:rollback-on-error:1.0',
-    ':validate:1.1':
-        'urn:ietf:params:netconf:capability:validate:1.1',
-    ':startup':
-        'urn:ietf:params:netconf:capability:startup:1.0',
-}
