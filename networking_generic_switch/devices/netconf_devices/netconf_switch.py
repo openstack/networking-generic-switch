@@ -124,11 +124,9 @@ class NetconfSwitch(devices.GenericSwitchDevice):
             hostkey_verify=self.config.get(
                 'hostkey_verify', 'true').lower() in ('true', '1', 'yes'),
             device_params=self._parse_device_params(),
-            keepalive=True,
             allow_agent=self.config.get(
                 'allow_agent', 'true').lower() in ('true', '1', 'yes'),
-            look_for_keys=self.config.get(
-                'look_for_keys', 'true').lower() in ('true', '1', 'yes'),
+            use_libssh=True,
         )
         key_filename = self.config.get('key_filename')
         if key_filename:
