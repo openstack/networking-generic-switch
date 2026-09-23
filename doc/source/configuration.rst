@@ -22,13 +22,13 @@ The ``GenericSwitch`` mechanism driver needs to be enabled from
 the ml2 config file ``/etc/neutron/plugins/ml2/ml2_conf.ini``::
 
    [ml2]
-   tenant_network_types = vlan
+   project_network_types = vlan
    type_drivers = local,flat,vlan,gre,vxlan
    mechanism_drivers = openvswitch,genericswitch
    ...
 
 Physical networks need to be declared in the ML2 config as well, with a range
-of VLANs that can be allocated to tenant networks.  Several physical networks
+of VLANs that can be allocated to project networks.  Several physical networks
 can coexist, possibly with overlapping VLAN ranges: in that case, each switch
 configuration needs to include its physical network, see :ref:`physicalnetworks`.
 Example of ``/etc/neutron/plugins/ml2/ml2_conf.ini`` with two physical networks::
