@@ -18,6 +18,16 @@ These options apply to all device drivers.
 
 .. ngs-config-options:: networking_generic_switch.devices.NGS_INTERNAL_OPTS
 
+VXLAN L2VNI (EVPN/multicast) options
+====================================
+
+These options configure VXLAN L2VNI overlays and are honoured by the
+VXLAN-capable device drivers (e.g. Juniper, Arista, SONiC, Cumulus and
+Cisco NX-OS). Some options apply only to a specific vendor, as noted in
+each option's description.
+
+.. ngs-config-options:: networking_generic_switch.devices.NGS_L2VNI_OPTS
+
 Juniper (Netmiko) options
 =========================
 
