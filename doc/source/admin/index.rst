@@ -7,7 +7,7 @@ deployments, including performance tuning, advanced features, and
 switch-specific configuration scenarios.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    general-configuration
    vxlan/index
