@@ -84,6 +84,41 @@ class TestNetmikoSonic(test_netmiko_base.NetmikoSwitchTestBase):
                           self.switch.plug_port_to_network, 3333, 33)
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_fails_already_untagged(self, mock_exec):
+        # bug #2170840: a port that is already an untagged member of
+        # another VLAN must be reported as a failure, not silently
+        # accepted, when the switch rejects the "config vlan member add"
+        # command with "is already untagged member!".
+        mock_exec.return_value = (
+            'config vlan member add -u 100 Ethernet0\n'
+            'Usage: config vlan member add [OPTIONS] <vid> port\n'
+            'Try "config vlan member add -h" for help.\n'
+            'Error: Ethernet0 is already untagged member!'
+        )
+        self.assertRaises(exc.GenericSwitchNetmikoConfigError,
+                          self.switch.plug_port_to_network, 3333, 33)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_not_a_member_is_not_fatal(self, mock_exec):
+        # bug #2170840: the harmless "config vlan member del <default_vlan>"
+        # cleanup step that plug_port_to_network() always issues first must
+        # NOT be treated as fatal when the port was simply never a member
+        # of the configured default/idle VLAN. Only the final command's
+        # success/failure matters here; this output must not raise.
+        mock_exec.return_value = (
+            'config vlan member del 123 Ethernet0\n'
+            'Usage: config vlan member del [OPTIONS] <vid> <port>\n'
+            'Try "config vlan member del -h" for help.\n'
+            'Error: Ethernet0 is not a member of Vlan123\n'
+            'config vlan member add -u 33 Ethernet0'
+        )
+        # Should not raise: "is not a member of Vlan..." is deliberately
+        # not in ERROR_MSG_PATTERNS.
+        self.switch.plug_port_to_network(3333, 33)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
                 return_value="", autospec=True)
     def test_plug_port_simple(self, mock_exec):
