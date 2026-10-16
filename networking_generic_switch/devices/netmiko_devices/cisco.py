@@ -121,7 +121,23 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
 
     DELETE_PORT = (
         'interface {port}',
+        'switchport mode access',
         'no switchport access vlan',
+        'switchport trunk allowed vlan none',
+        'exit',
+    )
+
+    SET_NATIVE_VLAN = (
+        'interface {port}',
+        'switchport mode trunk',
+        'switchport trunk native vlan {segmentation_id}',
+        'switchport trunk allowed vlan add {segmentation_id}',
+        'exit',
+    )
+
+    DELETE_NATIVE_VLAN = (
+        'interface {port}',
+        'no switchport trunk native vlan',
         'exit',
     )
 
