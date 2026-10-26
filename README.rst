@@ -6,7 +6,7 @@ Networking-generic-switch Neutron ML2 driver
     :target: https://governance.openstack.org/tc/reference/tags/index.html
 
 This is a Modular Layer 2 `Neutron Mechanism driver
-<https://wiki.openstack.org/wiki/Neutron/ML2>`_. The mechanism driver is
+<https://docs.openstack.org/neutron/latest/admin/config-ml2.html>`_. The mechanism driver is
 responsible for applying configuration information to hardware equipment.
 ``GenericSwitch`` provides a pluggable framework to implement
 functionality required for use-cases like OpenStack Ironic multi-tenancy mode.
