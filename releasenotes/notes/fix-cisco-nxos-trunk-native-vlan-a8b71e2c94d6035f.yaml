@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    When a port is disconnected, the Cisco NX-OS driver now restores
+    access mode and clears the trunk VLAN list, as IOS and Arista
+    already do. This applies to all NGS-managed NX-OS ports.
+fixes:
+  - |
+    Fix Cisco NX-OS trunk ports leaving the parent native VLAN unset.

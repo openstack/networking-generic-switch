@@ -59,7 +59,9 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
         self.switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
             self.switch,
-            ['interface 3333', 'no switchport access vlan', 'exit'])
+            ['interface 3333', 'switchport mode access',
+             'no switchport access vlan',
+             'switchport trunk allowed vlan none', 'exit'])
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device', autospec=True)
@@ -84,8 +86,98 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
         switch.delete_port(3333, 33)
         mock_exec.assert_called_with(
             switch,
-            ['interface 3333', 'no switchport access vlan', 'exit',
+            ['interface 3333', 'switchport mode access',
+             'no switchport access vlan',
+             'switchport trunk allowed vlan none', 'exit',
              'interface 3333', 'mtu 1500', 'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_plug_port_to_network_subports(self, mock_exec):
+        trunk_details = {'sub_ports': [{'segmentation_id': 44},
+                                       {'segmentation_id': 55}]}
+        self.switch.plug_port_to_network(3333, 33,
+                                         trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 3333',
+             'switchport mode trunk',
+             'switchport trunk native vlan 33',
+             'switchport trunk allowed vlan add 33',
+             'exit',
+             'interface 3333',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add 44',
+             'exit',
+             'interface 3333',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add 55',
+             'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_delete_port_subports(self, mock_exec):
+        trunk_details = {'sub_ports': [{'segmentation_id': 44},
+                                       {'segmentation_id': 55}]}
+        self.switch.delete_port(3333, 33, trunk_details=trunk_details)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 3333',
+             'switchport mode access',
+             'no switchport access vlan',
+             'switchport trunk allowed vlan none',
+             'exit',
+             'interface 3333',
+             'no switchport trunk native vlan',
+             'exit',
+             'interface 3333',
+             'switchport trunk allowed vlan remove 44',
+             'exit',
+             'interface 3333',
+             'switchport trunk allowed vlan remove 55',
+             'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_add_subports_on_trunk_no_subports(self, mock_exec):
+        self.switch.add_subports_on_trunk({}, 3333, subports=[])
+        mock_exec.assert_called_with(self.switch, [])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_add_subports_on_trunk_subports(self, mock_exec):
+        subports = [{'segmentation_id': 44}, {'segmentation_id': 55}]
+        self.switch.add_subports_on_trunk({}, 3333, subports=subports)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 3333',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add 44',
+             'exit',
+             'interface 3333',
+             'switchport mode trunk',
+             'switchport trunk allowed vlan add 55',
+             'exit'])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_del_subports_on_trunk_no_subports(self, mock_exec):
+        self.switch.del_subports_on_trunk({}, 3333, subports=[])
+        mock_exec.assert_called_with(self.switch, [])
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch.send_commands_to_device', autospec=True)
+    def test_del_subports_on_trunk_subports(self, mock_exec):
+        subports = [{'segmentation_id': 44}, {'segmentation_id': 55}]
+        self.switch.del_subports_on_trunk({}, 3333, subports=subports)
+        mock_exec.assert_called_with(
+            self.switch,
+            ['interface 3333',
+             'switchport trunk allowed vlan remove 44',
+             'exit',
+             'interface 3333',
+             'switchport trunk allowed vlan remove 55',
+             'exit'])
 
     def test__format_commands(self):
         cmd_set = self.switch._format_commands(
@@ -112,7 +204,9 @@ class TestNetmikoCiscoNxOS(test_netmiko_base.NetmikoSwitchTestBase):
             cisco.CiscoNxOS.DELETE_PORT,
             port=3333,
             segmentation_id=33)
-        del_exp = ['interface 3333', 'no switchport access vlan', 'exit']
+        del_exp = ['interface 3333', 'switchport mode access',
+                   'no switchport access vlan',
+                   'switchport trunk allowed vlan none', 'exit']
         self.assertEqual(del_exp, cmd_set)
 
         cmd_set = self.switch._format_commands(
