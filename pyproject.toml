@@ -47,6 +47,7 @@ genericswitch_security_group = "networking_generic_switch.generic_switch_sg:Gene
 
 [project.entry-points."generic_switch.devices"]
 netmiko_ovs_linux = "networking_generic_switch.devices.netmiko_devices.ovs:OvsLinux"
+cisco_ndfc = "networking_generic_switch.devices.ndfc_devices.cisco:CiscoNDFC"
 netmiko_cisco_ios = "networking_generic_switch.devices.netmiko_devices.cisco:CiscoIos"
 netmiko_cisco_nxos = "networking_generic_switch.devices.netmiko_devices.cisco:CiscoNxOS"
 netmiko_cisco_s300 = "networking_generic_switch.devices.netmiko_devices.cisco300:Cisco300"

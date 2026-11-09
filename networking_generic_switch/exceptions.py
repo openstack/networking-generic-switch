@@ -58,6 +58,37 @@ class GenericSwitchNetmikoConfigError(GenericSwitchException):
                 "Please contact your administrator.")
 
 
+class GenericSwitchNDFCConnectError(GenericSwitchException):
+    """Exception for Nexus Dashboard connection/authentication errors.
+
+    Accepts an optional ``error`` detail describing the failure, which is
+    included in the message so it is visible to callers and in logs. When
+    omitted, a generic fallback message is used.
+    """
+    message = _("%(error)s")
+
+    def __init__(self, error=None, **kwargs):
+        super().__init__(
+            error=error or _("Failed to connect or authenticate to NDFC."),
+            **kwargs)
+
+
+class GenericSwitchNDFCConfigError(GenericSwitchException):
+    """Exception for Nexus Dashboard switch configuration errors.
+
+    Accepts an optional ``error`` detail describing the failure, which is
+    included in the message so callers can inspect and act on it (for
+    example, idempotent handling of "already exists" responses) and so it
+    surfaces in logs. When omitted, a generic fallback message is used.
+    """
+    message = _("%(error)s")
+
+    def __init__(self, error=None, **kwargs):
+        super().__init__(
+            error=error or _("An unknown NDFC configuration error occurred."),
+            **kwargs)
+
+
 class GenericSwitchBatchError(GenericSwitchException):
     message = _("Batching error: %(device)s, error: %(error)s")
 

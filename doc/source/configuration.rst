@@ -468,7 +468,7 @@ RESTCONF-specific NGS options
   (see :ref:`restconf-nxos-quirks`).
 * ``ngs_restconf_base_path`` — Base path for RESTCONF data resources
   (default: ``/restconf/data``).
-* ``ngs_verify_ssl`` — Whether to verify the server's TLS
+* ``ngs_verify_tls`` — Whether to verify the server's TLS
   certificate (default: ``True``).
 * ``ngs_openconfig_network_instance`` — OpenConfig network-instance
   for VLAN management (default: ``default``).
@@ -581,7 +581,7 @@ For a device using HTTP (lab only, no TLS)::
     ngs_physical_networks = physnet1
     ngs_restconf_scheme = http
     port = 8080
-    ngs_verify_ssl = False
+    ngs_verify_tls = False
     host = <switch mgmt ip address>
     username = admin
     password = password
