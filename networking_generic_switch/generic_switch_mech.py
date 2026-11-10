@@ -686,9 +686,7 @@ class GenericSwitchDriver(api.MechanismDriver):
         vxlan_type = vxlan_seg.get(api.NETWORK_TYPE)
         vlan_type = segment.get(api.NETWORK_TYPE)
 
-        # TODO(TheJulia): A possibility exists that we might be able
-        # to check for geneve on the top bound segment and support it.
-        if (vxlan_type == const.TYPE_VXLAN
+        if ((vxlan_type in [const.TYPE_VXLAN, const.TYPE_GENEVE])
                 and vlan_type == const.TYPE_VLAN):
             # NOTE(TheJulia): In this case, we have a VXLAN network on
             # the top bound segment, and for the actual attachment we
@@ -1084,7 +1082,7 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         vxlan_type = vxlan_segment.get(api.NETWORK_TYPE)
         vlan_type = segment.get(api.NETWORK_TYPE)
-        if (vxlan_type == const.TYPE_VXLAN
+        if ((vxlan_type in [const.TYPE_VXLAN, const.TYPE_GENEVE])
                 and vlan_type == const.TYPE_VLAN):
             vni = vxlan_segment.get(api.SEGMENTATION_ID)
             if vni and segmentation_id:

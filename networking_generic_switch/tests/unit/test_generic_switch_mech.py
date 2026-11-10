@@ -2088,6 +2088,58 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     @mock.patch.object(provisioning_blocks, 'provisioning_complete',
                        autospec=True)
+    def test_update_port_postcommit_l2vni_plug_geneve(self, m_pc, m_list):
+        """Test L2VNI configuration on port plug with VXLAN+VLAN segments."""
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        # Mock switch supports L2VNI
+        self.switch_mock.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        self.switch_mock.vlan_has_vni.return_value = False
+
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {
+            'binding:profile': {
+                'local_link_information': [
+                    {'switch_info': 'foo', 'port_id': 2222}
+                ]
+            },
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'other',
+            'status': 'DOWN'
+        }
+        mock_context.original = {
+            'binding:profile': {},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'binding:vif_type': 'unbound'
+        }
+        # Bottom segment is VLAN
+        mock_context.bottom_bound_segment = {
+            'segmentation_id': 100,
+            'network_type': 'vlan',
+            'physical_network': 'physnet1',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+        # Top segment is VXLAN
+        mock_context.top_bound_segment = {
+            'segmentation_id': 5000,
+            'network_type': 'geneve',
+            'network_id': 'aaaa-bbbb-ccc'
+        }
+
+        driver.update_port_postcommit(mock_context)
+
+        # Verify VNI was checked and configured with physnet
+        self.switch_mock.vlan_has_vni.assert_called_once_with(100, 5000)
+        self.switch_mock.plug_switch_to_network.assert_called_once_with(
+            5000, 100, physnet='physnet1')
+        self.switch_mock.plug_port_to_network.assert_called_once_with(
+            2222, 100)
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
     def test_update_port_postcommit_l2vni_unsupported_switch(self,
                                                              m_pc, m_list):
         """Test L2VNI with unsupported switch logs warning."""

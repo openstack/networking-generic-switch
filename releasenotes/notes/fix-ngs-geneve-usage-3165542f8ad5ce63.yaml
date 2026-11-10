@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes consideration of top binding segments to include geneve networks.
+    This was originally intended, but somehow missed in the actual code.
