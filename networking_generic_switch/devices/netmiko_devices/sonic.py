@@ -220,6 +220,21 @@ class Sonic(netmiko_devices.NetmikoSwitch):
         re.compile(r'Invalid Vlan Id , Valid Range : 1 to 4094'),
         re.compile(r'Interface name is invalid!!'),
         re.compile(r'No such command'),
+        # NOTE: an access port can only be an untagged member of a single
+        # VLAN at a time, so "config vlan member add -u" fails with this
+        # message if the port is already untagged in another VLAN that was
+        # not removed first. Without this pattern the failure is swallowed
+        # and the caller believes the port was moved.
+        re.compile(r'is already untagged member'),
+        # NOTE: deliberately NOT matching "is not a member of Vlan[0-9]+"
+        # here. plug_port_to_network()/delete_port() in the base netmiko
+        # driver always issue a "config vlan member del <default_vlan>"
+        # cleanup command before plugging/parking a port, and that del is
+        # expected to fail harmlessly with this message whenever the port
+        # was never a member of ngs_port_default_vlan (e.g. a port that is
+        # plugged directly into its target network without ever touching
+        # the idle/default VLAN). Treating that as fatal would break that
+        # common, non-error case. See bug #2170840.
     )
 
     SUPPORT_SG_PORT_RANGE = True
