@@ -1643,3 +1643,30 @@ fake error message
         self.assertRaisesRegex(exc.GenericSwitchNetmikoConfigError,
                                "switch configuration operation failed",
                                self.switch.check_output, output, 'fake op')
+
+    def test_get_port_vlans_no_command(self):
+        self.assertIsNone(self.switch.get_port_vlans(2222))
+
+    def test_parse_port_vlans_default_unsupported(self):
+        self.assertIsNone(self.switch._parse_port_vlans('output', 2222))
+
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
+    def test_get_port_vlans(self, mock_get_conn):
+        self.switch.SHOW_PORT_VLANS = ('show port {port} vlans',)
+        self.switch._parse_port_vlans = mock.Mock(return_value=[1, 2])
+        mock_net_connect = mock.MagicMock()
+        mock_net_connect.send_command.return_value = 'fake output'
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+
+        self.assertEqual([1, 2], self.switch.get_port_vlans(2222))
+        mock_net_connect.send_command.assert_called_once_with(
+            'show port 2222 vlans')
+
+    @mock.patch.object(netmiko_devices.NetmikoSwitch, '_get_connection',
+                       autospec=True)
+    def test_get_port_vlans_error(self, mock_get_conn):
+        self.switch.SHOW_PORT_VLANS = ('show port {port} vlans',)
+        mock_get_conn.side_effect = ValueError('boom')
+
+        self.assertIsNone(self.switch.get_port_vlans(2222))

@@ -746,6 +746,57 @@ class TestNetmikoCumulusNVUE(test_netmiko_base.NetmikoSwitchTestBase):
         result = switch.vlan_has_ports(100)
         self.assertFalse(result)
 
+    # get_port_vlans() tests
+
+    def test_max_vlans_per_port(self):
+        self.assertEqual(1000, self.switch.MAX_VLANS_PER_PORT)
+
+    def test__parse_port_vlans(self):
+        output = '''{
+  "access": 10,
+  "vlan": {
+    "20": {},
+    "30": {}
+  }
+}'''
+        result = self.switch._parse_port_vlans(output, 'swp1')
+        self.assertEqual([10, 20, 30], result)
+
+    def test__parse_port_vlans_trunk_only(self):
+        output = '''{
+  "vlan": {
+    "20": {}
+  }
+}'''
+        result = self.switch._parse_port_vlans(output, 'swp1')
+        self.assertEqual([20], result)
+
+    def test__parse_port_vlans_invalid_json(self):
+        result = self.switch._parse_port_vlans('not valid json', 'swp1')
+        self.assertIsNone(result)
+
+    def test__parse_port_vlans_unrecognized(self):
+        result = self.switch._parse_port_vlans('{"foo": {}}', 'swp1')
+        self.assertIsNone(result)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_get_port_vlans(self, mock_get_conn):
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+        mock_net_connect.send_command.return_value = '''{
+  "access": 10,
+  "vlan": {
+    "20": {}
+  }
+}'''
+
+        result = self.switch.get_port_vlans('swp1')
+
+        mock_net_connect.send_command.assert_called_once_with(
+            'nv show interface swp1 bridge domain br_default -o json')
+        self.assertEqual([10, 20], result)
+
     # vlan_has_vni() tests
 
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'

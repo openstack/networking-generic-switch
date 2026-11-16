@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import re
+
 from oslo_config import cfg
 from oslo_log import log as logging
 import tenacity
@@ -71,6 +73,9 @@ class Juniper(netmiko_devices.NetmikoSwitch):
     * ``ngs_mcast_group_increment`` - Derivation method (default:
       ``vni_last_octet``)
     """
+    # Junos documents a per-port VLAN limit of 1024.
+    MAX_VLANS_PER_PORT = 1024
+
     ADD_NETWORK = (
         'set vlans {network_name} vlan-id {segmentation_id}',
     )
@@ -88,6 +93,8 @@ class Juniper(netmiko_devices.NetmikoSwitch):
     )
 
     SHOW_VLANS = ('show vlans',)
+
+    SHOW_PORT_VLANS = ('show configuration interfaces {port}',)
 
     PLUG_PORT_TO_NETWORK = (
         # Delete any existing VLAN associations - only one VLAN may be
@@ -421,6 +428,36 @@ class Juniper(netmiko_devices.NetmikoSwitch):
                 if line and not line.startswith(' '):
                     return False
         return False
+
+    def _parse_port_vlans(self, output, port_id):
+        """Parse 'show configuration interfaces' output for VLANs.
+
+        :param output: Command output from switch
+        :param port_id: The name of the switch interface
+        :returns: A sorted list of VLAN IDs on the port, or None when
+                  the output could not be recognised.
+        """
+        # Junos configuration output format:
+        # unit 0 {
+        #     family ethernet-switching {
+        #         interface-mode trunk;
+        #         vlan {
+        #             members [ 100 200 ];
+        #         }
+        #     }
+        # }
+        # or, for a single member:
+        #         vlan members 100;
+        vlans = set()
+        found = False
+        for match in re.finditer(r'members\s+([^;]+);', output):
+            found = True
+            # Junos prints list members space-separated.
+            spec = match.group(1).strip().strip('[]').replace(' ', ',')
+            vlans.update(device_utils.expand_vlan_list(spec))
+        if not found:
+            return None
+        return sorted(vlans)
 
     @netmiko_devices.check_output('plug vni')
     def plug_switch_to_network(self, vni: int, segmentation_id: int,

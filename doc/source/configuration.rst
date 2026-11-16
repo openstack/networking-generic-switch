@@ -81,6 +81,66 @@ documented elsewhere:
 * ``ngs_save_configuration`` — for NETCONF devices targeting the running
   datastore, this controls whether the driver attempts to persist the
   configuration (see :ref:`netconf-persistence`).
+* ``ngs_max_vlans_per_port`` — caps the number of VLANs NGS will place on
+  a single switch port (see :ref:`per-port-vlan-limits`).
+
+.. _per-port-vlan-limits:
+
+Per-port VLAN limits
+--------------------
+
+Every port of a switch has a finite capacity for VLAN membership, imposed
+by the switch ASIC. When that capacity is exhausted, further VLAN
+configuration silently fails to apply, leaving ports in an unexpected
+state. NGS guards against this by rejecting, before any configuration is
+pushed to the switch, requests that would place more VLANs on a port than
+the port supports.
+
+The limit for a switch is resolved as follows:
+
+1. ``ngs_max_vlans_per_port``, when set to a value greater than zero.
+   Setting it to ``0`` disables the check. This option always wins.
+2. Otherwise, a conservative floor encoded by the device driver where
+   one is known:
+
+   * Dell OS10: 32 VLANs per port (documented by the vendor).
+   * Cisco NX-OS: 100 VLANs per port. The real capacity depends on the
+     union of ASICs in the chassis and which physical ports map to
+     which ASIC, and can be anywhere between roughly 100, 512 and 1024
+     VLANs; 100 is encoded as the conservative floor.
+   * Arista EOS: 128 VLANs per port (128, 256 or 512 depending on the
+     ASIC; 128 is the conservative floor).
+   * Cumulus NVUE: 1000 VLANs per port (practical figure).
+   * Juniper Junos: 1024 VLANs per port.
+3. Otherwise, no limit is enforced. NGS deliberately does not guess a
+   global default: a wrong default either blocks legitimate requests or
+   provides no protection. Because the driver-encoded values are
+   conservative floors, operators whose hardware supports more VLANs
+   per port than the encoded value should verify their switch
+   documentation and set ``ngs_max_vlans_per_port`` accordingly.
+
+Two kinds of check exist:
+
+* Baremetal port bindings and trunk subport additions are checked by
+  counting the VLANs the request itself would place on the port, with no
+  interaction with the switch.
+* Uplink trunk ports (``ngs_trunk_ports``) are checked because they can
+  become logical bottlenecks for traffic flow: operators commonly
+  curate, by hand, the set of VLANs permitted across an uplink trunk,
+  and that state is invisible to Neutron. When a network is created the
+  switch is therefore queried for the VLANs already present on each
+  trunk port before the new VLAN is pushed. A driver must support this
+  query for the check to apply (currently the Cisco IOS, Cisco NX-OS,
+  Cumulus NVUE, Juniper and Open vSwitch drivers); on other drivers the
+  check is skipped and a warning is logged when a limit is configured.
+
+.. note::
+   An operator who encounters the per-port VLAN limit on an uplink
+   trunk port may wish to reset the port's configuration so that no
+   manual trunk port configuration is required, for example permitting
+   all VLANs to cross the uplink trunks. An unrestricted trunk consumes
+   no per-port VLAN table entries, so it is not itself subject to the
+   limit.
 
 Netmiko (SSH/CLI) Devices
 -------------------------

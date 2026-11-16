@@ -31,6 +31,8 @@ class DellOS10(netmiko_devices.NetmikoSwitch):
     Only IPv4 rules are implemented. Both ingress and egress rules are
     supported.
     """
+    # Dell OS10 documents a per-port limit of 32 VLANs.
+    MAX_VLANS_PER_PORT = 32
 
     ADD_NETWORK = (
         "interface vlan {segmentation_id}",

@@ -17,6 +17,7 @@ import re
 from oslo_config import cfg
 
 from networking_generic_switch.devices import netmiko_devices
+from networking_generic_switch.devices import utils as device_utils
 
 # Internal ngs options will not be passed to driver. See NGS_INTERNAL_OPTS in
 # networking_generic_switch.devices for why these per-switch options are
@@ -124,6 +125,8 @@ class OvsLinux(netmiko_devices.NetmikoSwitch):
 
     SHOW_PORTS = ('ovs-vsctl list port',)
 
+    SHOW_PORT_VLANS = ('ovs-vsctl list port {port}',)
+
     SHOW_BRIDGE_EXTERNAL_IDS = (
         'ovs-vsctl get bridge {bridge_name} external_ids',
     )
@@ -194,6 +197,38 @@ class OvsLinux(netmiko_devices.NetmikoSwitch):
         if match:
             return int(match.group(1)) == segmentation_id
         return False
+
+    def _parse_port_vlans(self, output, port_id):
+        """Parse 'ovs-vsctl list port' output for the port's VLANs.
+
+        :param output: Command output from OVS
+        :param port_id: The name of the switch interface
+        :returns: A sorted list of VLAN IDs on the port, or None when
+                  the output could not be recognised.
+        """
+        # OVS output format:
+        # _uuid               : 12345678-1234-1234-1234-123456789abc
+        # name                : "eth0"
+        # tag                 : 100
+        # trunks              : [100, 200]
+        vlans = set()
+        recognized = False
+        for line in output.strip().split('\n'):
+            if line.startswith('tag'):
+                recognized = True
+                value = line.split(':', 1)[1].strip()
+                if value and value != '[]':
+                    try:
+                        vlans.add(int(value))
+                    except ValueError:
+                        continue
+            elif line.startswith('trunks'):
+                recognized = True
+                value = line.split(':', 1)[1].strip().strip('[]')
+                vlans.update(device_utils.expand_vlan_list(value))
+        if not recognized:
+            return None
+        return sorted(vlans)
 
     @netmiko_devices.check_output('plug vni')
     def plug_switch_to_network(self, vni: int, segmentation_id: int,

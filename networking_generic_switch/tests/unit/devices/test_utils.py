@@ -290,3 +290,16 @@ class TestGetVxlanMulticastGroup(unittest.TestCase):
             10100, {}, '225.0.0.0')
         # VNI 10100 % 256 = 116 -> 225.0.0.116
         self.assertEqual(result, '225.0.0.116')
+
+    def test_expand_vlan_list(self):
+        self.assertEqual([1, 2, 100, 101, 102],
+                         device_utils.expand_vlan_list('1,2,100-102'))
+
+    def test_expand_vlan_list_with_spaces(self):
+        self.assertEqual([1, 2, 3], device_utils.expand_vlan_list('1, 2, 3'))
+
+    def test_expand_vlan_list_garbage(self):
+        self.assertEqual([], device_utils.expand_vlan_list(''))
+        self.assertEqual([], device_utils.expand_vlan_list('not-a-vlan'))
+        self.assertEqual([5], device_utils.expand_vlan_list('5,x'))
+        self.assertEqual([], device_utils.expand_vlan_list('x-y'))

@@ -23,6 +23,49 @@ from networking_generic_switch import exceptions as exc
 LOG = logging.getLogger(__name__)
 
 
+def _parse_switchport_vlans(output):
+    """Parse 'show ... switchport' output for the VLANs on a port.
+
+    Handles the output of both IOS ('show interfaces X switchport')
+    and NX-OS ('show interface X switchport'), covering the access
+    and trunking VLAN lines, e.g.:
+
+    .. code-block:: none
+
+        Access Mode VLAN: 1 (default)
+        Trunking VLANs Enabled: 1,2,100-200
+
+    A trunking VLAN list of ``ALL`` means the port is unrestricted:
+    no per-port VLAN forwarding rule exists, so it consumes no
+    per-port VLAN capacity and adds nothing to the count.
+
+    :param output: Command output from switch
+    :returns: A sorted list of VLAN IDs on the port, or None when the
+              output could not be recognised.
+    """
+    vlans = set()
+    recognized = False
+    for line in output.split('\n'):
+        stripped = line.strip()
+        if stripped.startswith(('Trunking VLANs Enabled:',
+                                'Trunking VLANs Allowed:')):
+            recognized = True
+            spec = stripped.split(':', 1)[1].strip()
+            if spec.upper() != 'ALL':
+                vlans.update(device_utils.expand_vlan_list(spec))
+        elif stripped.startswith(('Access Mode VLAN:', 'Access VLAN:')):
+            recognized = True
+            value = stripped.split(':', 1)[1].split('(')[0].split()
+            if value:
+                try:
+                    vlans.add(int(value[0]))
+                except ValueError:
+                    pass
+    if not recognized:
+        return None
+    return sorted(vlans)
+
+
 class CiscoIos(netmiko_devices.NetmikoSwitch):
     """Device Name: Cisco IOS"""
     ADD_NETWORK = (
@@ -75,6 +118,13 @@ class CiscoIos(netmiko_devices.NetmikoSwitch):
         'switchport trunk allowed vlan remove {segmentation_id}',
     )
 
+    SHOW_PORT_VLANS = (
+        'show interfaces {port} switchport',
+    )
+
+    def _parse_port_vlans(self, output, port_id):
+        return _parse_switchport_vlans(output)
+
 
 class CiscoNxOS(netmiko_devices.NetmikoSwitch):
     """Device Name: Cisco NX-OS (Nexus)
@@ -87,6 +137,12 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
     Only IPv4 rules are implemented. Based on the capabilities of 9000 series
     Cisco switches, only ingress rules are allowed.
     """
+    # The real per-port VLAN capacity of a Nexus depends on the union
+    # of its ASICs and which physical ports map to which ASIC, and can
+    # be anywhere between roughly 100, 512 and 1024 VLANs. Encode the
+    # conservative floor; operators with larger-ASIC ports should set
+    # ngs_max_vlans_per_port.
+    MAX_VLANS_PER_PORT = 100
 
     ADD_NETWORK = (
         'vlan {segmentation_id}',
@@ -153,6 +209,13 @@ class CiscoNxOS(netmiko_devices.NetmikoSwitch):
         'switchport trunk allowed vlan remove {segmentation_id}',
         'exit',
     )
+
+    SHOW_PORT_VLANS = (
+        'show interface {port} switchport',
+    )
+
+    def _parse_port_vlans(self, output, port_id):
+        return _parse_switchport_vlans(output)
 
     SET_PORT_MTU = (
         'interface {port}',

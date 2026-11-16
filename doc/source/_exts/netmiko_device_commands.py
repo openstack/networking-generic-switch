@@ -32,6 +32,9 @@ command_descriptions = {
         are assigned to a VLAN',
     'SHOW_VLAN_VNI': 'A tuple of command strings used to check if a VLAN has \
         a VNI configured',
+    'SHOW_PORT_VLANS': 'A tuple of command strings used to query the VLANs \
+        permitted on a port. Used to enforce per-port VLAN limits \
+        (ngs_max_vlans_per_port).',
     'PLUG_PORT_TO_NETWORK': 'A tuple of command strings used to configure a \
          port to connect to a specific VLAN',
     'DELETE_PORT': 'A tuple of command strings used to remove a port from the\

@@ -198,6 +198,11 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
       is enabled)
 
     """
+    # Practical per-port VLAN limit on Cumulus Linux. Encode the
+    # conservative floor; operators should verify their hardware and
+    # set ngs_max_vlans_per_port accordingly.
+    MAX_VLANS_PER_PORT = 1000
+
     NETMIKO_DEVICE_TYPE = "linux"
 
     ADD_NETWORK = (
@@ -219,6 +224,9 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
 
     SHOW_VLAN_PORTS = ('nv show bridge domain br_default vlan '
                        '{segmentation_id} -o json',)
+
+    SHOW_PORT_VLANS = ('nv show interface {port} bridge domain '
+                       'br_default -o json',)
 
     SHOW_VLAN_VNI = ('nv show bridge domain br_default vlan-vni-map '
                      '-o json',)
@@ -518,6 +526,48 @@ class CumulusNVUE(netmiko_devices.NetmikoSwitch):
                 KeyError):
             # If parsing fails, VNI is not configured
             return False
+
+    def _parse_port_vlans(self, output, port_id):
+        """Parse 'nv show interface X bridge domain' output.
+
+        :param output: Command output from switch (JSON format)
+        :param port_id: The name of the switch interface
+        :returns: A sorted list of VLAN IDs on the port, or None when
+                  the output could not be recognised.
+        """
+        # Cumulus NVUE JSON output format:
+        # {
+        #   "access": 10,
+        #   "vlan": {
+        #     "20": {},
+        #     "30": {}
+        #   }
+        # }
+        try:
+            data = json.loads(output)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        if not isinstance(data, dict):
+            return None
+        vlans = set()
+        access = data.get('access')
+        if access is not None:
+            try:
+                vlans.add(int(access))
+            except (TypeError, ValueError):
+                return None
+        vlan_list = data.get('vlan', {})
+        if not isinstance(vlan_list, dict):
+            return None
+        for key in vlan_list:
+            try:
+                vlans.add(int(key))
+            except (TypeError, ValueError):
+                continue
+        if not vlans and not vlan_list and access is None:
+            # Neither field present: unrecognised output.
+            return None
+        return sorted(vlans)
 
     @netmiko_devices.check_output('plug vni')
     def plug_switch_to_network(self, vni: int, segmentation_id: int,

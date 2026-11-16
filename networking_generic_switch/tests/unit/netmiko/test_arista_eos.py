@@ -909,3 +909,8 @@ vxlan vlan 104 vni 988
              'no switchport mode trunk',
              'switchport trunk allowed vlan none',
              'interface 3333', 'mtu 1500'])
+
+    def test_max_vlans_per_port(self):
+        # Conservative floor; Arista platforms support 128, 256 or 512
+        # VLANs per port depending on the ASIC.
+        self.assertEqual(128, self.switch.MAX_VLANS_PER_PORT)

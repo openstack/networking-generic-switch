@@ -1039,3 +1039,28 @@ VLAN Name                             Status    Ports
         mock_net_connect.send_command.assert_called_once_with(
             'show running-config interface nve1 | include "member vni 10100"')
         self.assertFalse(result)
+
+    def test_max_vlans_per_port(self):
+        # Conservative floor; the real capacity ranges between roughly
+        # 100, 512 and 1024 VLANs by ASIC and port mapping.
+        self.assertEqual(100, self.switch.MAX_VLANS_PER_PORT)
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_get_port_vlans(self, mock_get_conn):
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+        mock_net_connect.send_command.return_value = """
+Name: Ethernet1/1
+  Switchport: Enabled
+  Switchport Mode: trunk
+  Enabled: True
+  Access VLAN: 1
+  Trunking VLANs Allowed: 1,100-102
+"""
+
+        result = self.switch.get_port_vlans('Ethernet1/1')
+
+        mock_net_connect.send_command.assert_called_once_with(
+            'show interface Ethernet1/1 switchport')
+        self.assertEqual([1, 100, 101, 102], result)

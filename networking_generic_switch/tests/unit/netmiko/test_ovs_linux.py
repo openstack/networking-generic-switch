@@ -349,3 +349,23 @@ trunks              : []'''
         output = '''{key1=value1, key2=value2}'''
         result = self.switch._parse_vlan_vni(output, 100, 5000)
         self.assertFalse(result)
+
+    def test__parse_port_vlans(self):
+        output = '''_uuid               : 12345678-1234-1234-1234-123456789abc
+name                : "eth0"
+tag                 : 100
+trunks              : [100, 200]
+vlan_mode           : []'''
+        result = self.switch._parse_port_vlans(output, 'eth0')
+        self.assertEqual([100, 200], result)
+
+    def test__parse_port_vlans_no_vlans(self):
+        output = '''name                : "eth1"
+tag                 : []
+trunks              : []'''
+        result = self.switch._parse_port_vlans(output, 'eth1')
+        self.assertEqual([], result)
+
+    def test__parse_port_vlans_unrecognized(self):
+        result = self.switch._parse_port_vlans('ovs-vsctl: no row', 'eth0')
+        self.assertIsNone(result)

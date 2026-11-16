@@ -162,6 +162,10 @@ class TestNetmikoDellOS10(test_netmiko_base.NetmikoSwitchTestBase):
     def test_constants(self):
         self.assertIsNone(self.switch.SAVE_CONFIGURATION)
 
+    def test_max_vlans_per_port(self):
+        # Documented by the vendor.
+        self.assertEqual(32, self.switch.MAX_VLANS_PER_PORT)
+
     @mock.patch('networking_generic_switch.devices.netmiko_devices.'
                 'NetmikoSwitch.send_commands_to_device',
                 return_value="", autospec=True)

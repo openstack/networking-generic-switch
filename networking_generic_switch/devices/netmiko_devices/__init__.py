@@ -91,6 +91,8 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
 
     SHOW_VLAN_PORTS = None
 
+    SHOW_PORT_VLANS = None
+
     SHOW_VLAN_VNI = None
 
     PLUG_PORT_TO_NETWORK = None
@@ -627,6 +629,49 @@ class NetmikoSwitch(devices.GenericSwitchDevice):
         """
         # Default implementation: return False (assume not configured)
         return False
+
+    def get_port_vlans(self, port_id):
+        """Return the VLANs currently configured on a switch port.
+
+        Sends the driver's SHOW_PORT_VLANS command and hands the
+        output to _parse_port_vlans for vendor-specific parsing. Used
+        by the mechanism driver to pre-flight per-port VLAN limits on
+        uplink trunk ports. See bug #2169302.
+
+        :param port_id: The name of the switch interface
+        :returns: A list of VLAN IDs configured on the port, or None
+                  when the driver does not support the query or the
+                  output could not be parsed.
+        """
+        if not self.SHOW_PORT_VLANS:
+            return None
+
+        cmd = self._format_commands(self.SHOW_PORT_VLANS, port=port_id)
+        try:
+            with self._get_connection() as net_connect:
+                output = net_connect.send_command(cmd[0])
+                return self._parse_port_vlans(output, port_id)
+        except Exception as e:
+            LOG.error("Failed to query VLANs on port %s of %s: %s",
+                      port_id, self.device_name, e)
+            return None
+
+    def _parse_port_vlans(self, output, port_id):
+        """Parse output of SHOW_PORT_VLANS command.
+
+        Subclasses should override this for vendor-specific parsing.
+
+        Implementations must return None rather than an empty list
+        when the output cannot be recognised, so that the per-port
+        VLAN limit check is skipped rather than enforced against a
+        bogus VLAN count.
+
+        :param output: Command output from switch
+        :param port_id: The name of the switch interface
+        :returns: A list of VLAN IDs configured on the port, or None
+                  when the output could not be parsed.
+        """
+        return None
 
     @check_output('plug port')
     def plug_port_to_network(self, port, segmentation_id, trunk_details=None,

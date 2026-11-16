@@ -58,6 +58,10 @@ class AristaEos(netmiko_devices.NetmikoSwitch):
         ngs_bum_replication_mode = ingress-replication
         ngs_mcast_group_base = 239.1.1.0
     """
+    # Arista platforms encode a per-port VLAN limit of 128, 256 or 512
+    # depending on the ASIC. Encode the conservative floor; operators
+    # with larger-ASIC ports should set ngs_max_vlans_per_port.
+    MAX_VLANS_PER_PORT = 128
 
     ADD_NETWORK = (
         'vlan {segmentation_id}',

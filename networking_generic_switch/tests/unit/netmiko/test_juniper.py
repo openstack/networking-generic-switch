@@ -655,3 +655,31 @@ default-switch          vlan200             200
             ['delete interfaces 3333 unit 0 family '
              'ethernet-switching vlan members',
              'set interfaces 3333 mtu 1500'])
+
+    def test_max_vlans_per_port(self):
+        self.assertEqual(1024, self.switch.MAX_VLANS_PER_PORT)
+
+    def test__parse_port_vlans(self):
+        output = """unit 0 {
+    family ethernet-switching {
+        interface-mode trunk;
+        vlan {
+            members [ 100 200 ];
+        }
+    }
+}"""
+        self.assertEqual([100, 200],
+                         self.switch._parse_port_vlans(output, 'ge-0/0/1'))
+
+    def test__parse_port_vlans_single_member(self):
+        output = """unit 0 {
+    family ethernet-switching {
+        vlan members 100;
+    }
+}"""
+        self.assertEqual([100],
+                         self.switch._parse_port_vlans(output, 'ge-0/0/1'))
+
+    def test__parse_port_vlans_unrecognized(self):
+        self.assertIsNone(
+            self.switch._parse_port_vlans('no vlan members', 'ge-0/0/1'))

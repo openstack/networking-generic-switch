@@ -285,3 +285,56 @@ class TestNetmikoCiscoIos(test_netmiko_base.NetmikoSwitchTestBase):
              'switchport trunk allowed vlan remove tag1',
              'interface 44',
              'switchport trunk allowed vlan remove tag2'])
+
+    def test__parse_port_vlans_trunk(self):
+        output = """
+Name: Gi1/0/1
+Switchport: Enabled
+Administrative Mode: trunk
+Operational Mode: trunk
+Administrative Trunking Encapsulation: dot1q
+Access Mode VLAN: 1 (default)
+Trunking Native Mode VLAN: 1 (default)
+Trunking VLANs Enabled: 1,2,100-101
+Pruning VLANs Enabled: 2-1001
+"""
+        self.assertEqual([1, 2, 100, 101],
+                         self.switch._parse_port_vlans(output, 'Gi1/0/1'))
+
+    def test__parse_port_vlans_access(self):
+        output = """
+Name: Gi1/0/2
+Switchport: Enabled
+Administrative Mode: static access
+Access Mode VLAN: 5 (VLAN0005)
+"""
+        self.assertEqual([5], self.switch._parse_port_vlans(output, 'Gi1/0/2'))
+
+    def test__parse_port_vlans_all(self):
+        # An unrestricted trunk consumes no per-port VLAN capacity.
+        output = """
+Name: Gi1/0/3
+Trunking VLANs Enabled: ALL
+"""
+        self.assertEqual([], self.switch._parse_port_vlans(output, 'Gi1/0/3'))
+
+    def test__parse_port_vlans_unrecognized(self):
+        self.assertIsNone(
+            self.switch._parse_port_vlans('Command failed', 'Gi1/0/1'))
+
+    @mock.patch('networking_generic_switch.devices.netmiko_devices.'
+                'NetmikoSwitch._get_connection', autospec=True)
+    def test_get_port_vlans(self, mock_get_conn):
+        mock_net_connect = mock.MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_net_connect
+        mock_net_connect.send_command.return_value = """
+Name: Gi1/0/1
+Administrative Mode: trunk
+Trunking VLANs Enabled: 1,2
+"""
+
+        result = self.switch.get_port_vlans('Gi1/0/1')
+
+        mock_net_connect.send_command.assert_called_once_with(
+            'show interfaces Gi1/0/1 switchport')
+        self.assertEqual([1, 2], result)
