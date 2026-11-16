@@ -144,3 +144,10 @@ class GenericSwitchInvalidPortId(GenericSwitchException):
                 "Port identifiers may only contain alphanumeric "
                 "characters, spaces, hyphens, underscores, forward "
                 "slashes, colons, and periods.")
+
+
+class GenericSwitchVlanLimitExceeded(GenericSwitchException):
+    message = _("VLAN count %(count)s for port %(port)s on switch %(switch)s "
+                "would exceed the per-port VLAN limit of %(limit)s. Reduce "
+                "the number of VLANs on the port or adjust "
+                "ngs_max_vlans_per_port.")

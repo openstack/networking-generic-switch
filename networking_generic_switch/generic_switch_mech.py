@@ -20,6 +20,7 @@ from neutron.objects import network as network_obj
 from neutron_lib.api.definitions import portbindings
 from neutron_lib.callbacks import resources
 from neutron_lib import constants as const
+from neutron_lib import exceptions as n_exc
 from neutron_lib.plugins import directory
 from neutron_lib.plugins.ml2 import api
 from oslo_log import log as logging
@@ -108,6 +109,21 @@ class GenericSwitchDriver(api.MechanismDriver):
                         self._get_physnet_vlans(context._plugin_context,
                                                 list(switch_physnets)))
                 physnet_vlans = physnet_vlans_cache[switch_physnets]
+            # NOTE(TheJulia): Neutron cannot know which VLANs already
+            # exist on an uplink trunk port, so the device must be
+            # queried before a new VLAN is pushed to it. Rejecting the
+            # request here prevents exhaustion of the switch ASIC's
+            # per-port VLAN capacity. See bug #2169302.
+            try:
+                self._check_trunk_port_vlan_limits(switch, switch_name,
+                                                   segmentation_id)
+            except ngs_exc.GenericSwitchVlanLimitExceeded as e:
+                LOG.error("Rejecting network %(net_id)s on device "
+                          "%(switch)s: %(exc)s",
+                          {'net_id': network_id,
+                           'switch': switch_name,
+                           'exc': e})
+                raise
             try:
                 switch.add_network(segmentation_id, network_id,
                                    physnet_vlans=physnet_vlans)
@@ -581,6 +597,20 @@ class GenericSwitchDriver(api.MechanismDriver):
             if not self._is_link_valid(port, segments[0]):
                 return
 
+            # NOTE(TheJulia): Pre-flight the per-port VLAN limit so an
+            # excessive request is rejected before the port binds and
+            # before any configuration is pushed to the switch. Without
+            # this, a large trunk request can exhaust the switch ASIC's
+            # per-port VLAN capacity, after which further configuration
+            # silently fails to apply. See bug #2169302.
+            try:
+                self._check_port_vlan_limits(port, segments[0])
+            except ngs_exc.GenericSwitchVlanLimitExceeded as e:
+                LOG.error("Rejecting binding for port %(port_id)s: %(exc)s",
+                          {'port_id': port['id'], 'exc': e})
+                raise n_exc.PortBindingError(port_id=port['id'],
+                                             host=context.host)
+
             context.set_binding(segments[0][api.ID],
                                 portbindings.VIF_TYPE_OTHER, {})
 
@@ -650,6 +680,125 @@ class GenericSwitchDriver(api.MechanismDriver):
                              'segment_id': segmentation_id})
                 return False
         return True
+
+    def _check_links_vlan_limit(self, local_link_information, count):
+        """Raise if count exceeds any link's per-port VLAN limit.
+
+        :param local_link_information: Local link information of the
+            port being checked.
+        :param count: Number of VLANs which would be on the port.
+        :raises: GenericSwitchVlanLimitExceeded when the count would
+                 exceed a device's per-port VLAN limit.
+        """
+        for link in local_link_information:
+            switch_info = link.get('switch_info')
+            switch_id = link.get('switch_id')
+            switch = device_utils.get_switch_device(
+                self.switches, switch_info=switch_info,
+                ngs_mac_address=switch_id)
+            if not switch:
+                # Unknown switches are handled by _is_link_valid.
+                continue
+            max_vlans = switch.get_max_vlans_per_port()
+            if max_vlans is None:
+                continue
+            if count > max_vlans:
+                raise ngs_exc.GenericSwitchVlanLimitExceeded(
+                    switch=switch.device_name,
+                    port=link.get('port_id'),
+                    count=count,
+                    limit=max_vlans)
+
+    def _check_port_vlan_limits(self, port, segment):
+        """Check a binding against device per-port VLAN limits.
+
+        Counts the VLANs which the binding would place on the switch
+        port: the native VLAN of the segment plus one VLAN per trunk
+        subport. This is a pre-flight check only and does not interact
+        with the switch.
+
+        :param port: The port being bound.
+        :param segment: The segment the port is binding to.
+        :raises: GenericSwitchVlanLimitExceeded when the VLANs placed on
+                 a port would exceed the device's limit.
+        """
+        vlans = {segment.get(api.SEGMENTATION_ID) or 1}
+        for sub_port in port.get('trunk_details', {}).get('sub_ports', []):
+            vlans.add(sub_port['segmentation_id'])
+
+        binding_profile = port['binding:profile']
+        local_link_information = binding_profile.get('local_link_information')
+        self._check_links_vlan_limit(local_link_information, len(vlans))
+
+    def _check_subport_vlan_limits(self, port, subports):
+        """Check subport additions against per-port VLAN limits.
+
+        Counts the VLANs which will be on the port after the addition:
+        every subport of the trunk (trunk_details reflects the trunk
+        state after the addition and falls back to the subports being
+        added) plus the native VLAN of the trunk parent.
+
+        :param port: Parent port dictionary.
+        :param subports: List of subports being added.
+        :raises: GenericSwitchVlanLimitExceeded when the resulting VLAN
+                 count would exceed the device's limit.
+        """
+        trunk_details = port.get('trunk_details') or {}
+        resulting_subports = trunk_details.get('sub_ports')
+        if resulting_subports is None:
+            resulting_subports = subports
+        seg_ids = {sub_port['segmentation_id']
+                   for sub_port in resulting_subports}
+        # The native VLAN of the trunk parent also occupies the port.
+        count = len(seg_ids) + 1
+
+        binding_profile = port['binding:profile']
+        local_link_information = binding_profile.get('local_link_information')
+        self._check_links_vlan_limit(local_link_information, count)
+
+    def _check_trunk_port_vlan_limits(self, switch, switch_name,
+                                      segmentation_id):
+        """Check uplink trunk ports against per-port VLAN limits.
+
+        Neutron cannot know which VLANs are already present on an
+        uplink trunk port (ngs_trunk_ports), so unlike the bind-time
+        checks this queries the running state of the device before a
+        new VLAN is pushed to it. See bug #2169302.
+
+        :param switch: The switch device the network is being added to.
+        :param switch_name: Name of the switch, for logging.
+        :param segmentation_id: VLAN ID of the network being created.
+        :raises: GenericSwitchVlanLimitExceeded when adding the VLAN
+                 would exceed a trunk port's per-port VLAN limit.
+        """
+        max_vlans = switch.get_max_vlans_per_port()
+        if max_vlans is None:
+            return
+        trunk_ports = switch.get_trunk_ports()
+        if not trunk_ports:
+            return
+        for port_id in trunk_ports:
+            vlans = switch.get_port_vlans(port_id)
+            if vlans is None:
+                LOG.warning("Switch %(switch)s has a per-port VLAN "
+                            "limit of %(limit)s configured but its "
+                            "driver does not support querying VLANs "
+                            "on trunk port %(port)s; the limit cannot "
+                            "be enforced on this port.",
+                            {'switch': switch_name,
+                             'limit': max_vlans,
+                             'port': port_id})
+                continue
+            if segmentation_id in vlans:
+                # Already present on the port; the request would not
+                # change the port configuration.
+                continue
+            if len(vlans) + 1 > max_vlans:
+                raise ngs_exc.GenericSwitchVlanLimitExceeded(
+                    switch=switch_name,
+                    port=port_id,
+                    count=len(vlans) + 1,
+                    limit=max_vlans)
 
     def _get_port_mtu(self, context, switch):
         """Return the MTU to set on a port, or None.
@@ -1249,6 +1398,11 @@ class GenericSwitchDriver(api.MechanismDriver):
 
         if not local_link_information:
             return
+
+        # Check the resulting trunk against the per-port VLAN limits
+        # before applying it, so an excessive request is rejected rather
+        # than exhausting the switch ASIC's capacity. See bug #2169302.
+        self._check_subport_vlan_limits(port, subports)
 
         for link in local_link_information:
             port_id = validation.validate_port_id(

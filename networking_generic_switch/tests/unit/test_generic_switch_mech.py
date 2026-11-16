@@ -20,6 +20,7 @@ from neutron.db import provisioning_blocks
 from neutron.plugins.ml2 import driver_context
 from neutron_lib.callbacks import resources
 from neutron_lib import constants as const
+from neutron_lib import exceptions as n_exc
 from neutron_lib.plugins import directory
 
 from networking_generic_switch import devices
@@ -50,6 +51,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
         self.switch_mock._manage_mtu.return_value = False
         self.switch_mock._get_port_default_mtu.return_value = None
         self.switch_mock._get_trunk_port_mtu.return_value = None
+        self.switch_mock.get_max_vlans_per_port.return_value = None
+        self.switch_mock.get_port_vlans.return_value = None
         self.ctxt = mock.MagicMock()
         self.db = mock.MagicMock()
         patcher = mock.patch(
@@ -156,6 +159,100 @@ class TestGenericSwitchDriver(unittest.TestCase):
             22, 22, physnet_vlans=None)
         self.assertEqual(1, m_log.error.call_count)
         self.assertIn('Failed to create network', m_log.error.call_args[0][0])
+
+    def test_create_network_postcommit_trunk_vlan_limit_exceeded(
+            self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.get_max_vlans_per_port.return_value = 32
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        self.switch_mock.get_port_vlans.return_value = list(range(101, 133))
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        # 32 VLANs are already on the trunk port; the new VLAN would
+        # be the 33rd and exceed the limit of 32.
+        self.assertRaises(exceptions.GenericSwitchVlanLimitExceeded,
+                          driver.create_network_postcommit, mock_context)
+        self.switch_mock.add_network.assert_not_called()
+
+    def test_create_network_postcommit_trunk_vlan_limit_not_exceeded(
+            self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.get_max_vlans_per_port.return_value = 32
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        self.switch_mock.get_port_vlans.return_value = list(range(101, 132))
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        # 31 VLANs are already on the trunk port; the new VLAN would
+        # be the 32nd and stay within the limit of 32.
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
+
+    def test_create_network_postcommit_trunk_vlan_limit_existing_vlan(
+            self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.get_max_vlans_per_port.return_value = 32
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        # The network VLAN is already on the port (e.g. a retried
+        # creation), so the request must not count toward the limit.
+        self.switch_mock.get_port_vlans.return_value = (
+            list(range(101, 134)) + [22])
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
+
+    def test_create_network_postcommit_trunk_vlan_limit_query_unsupported(
+            self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.get_max_vlans_per_port.return_value = 32
+        self.switch_mock.get_trunk_ports.return_value = ['port1']
+        self.switch_mock.get_port_vlans.return_value = None
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        # The driver cannot be queried: the check is skipped and the
+        # network is created as before.
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
+
+    def test_create_network_postcommit_trunk_vlan_limit_no_trunk_ports(
+            self, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.get_max_vlans_per_port.return_value = 32
+        self.switch_mock.get_trunk_ports.return_value = []
+        mock_context = mock.create_autospec(driver_context.NetworkContext)
+        mock_context.current = {'id': 22,
+                                'provider:network_type': 'vlan',
+                                'provider:segmentation_id': 22,
+                                'provider:physical_network': 'physnet1'}
+
+        driver.create_network_postcommit(mock_context)
+        self.switch_mock.get_port_vlans.assert_not_called()
+        self.switch_mock.add_network.assert_called_once_with(
+            22, 22, physnet_vlans=None)
 
     def test_delete_network_postcommit(self, m_list):
         driver = gsm.GenericSwitchDriver()
@@ -352,10 +449,12 @@ class TestGenericSwitchDriver(unittest.TestCase):
         switch_a.trunk_vlans_converge = True
         switch_a.get_trunk_ports.return_value = ['port1']
         switch_a.get_physical_networks.return_value = ['physnet1']
+        switch_a.get_max_vlans_per_port.return_value = None
         switch_b = mock.Mock()
         switch_b.trunk_vlans_converge = True
         switch_b.get_trunk_ports.return_value = ['port2']
         switch_b.get_physical_networks.return_value = ['physnet1']
+        switch_b.get_max_vlans_per_port.return_value = None
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
         driver.switches = {'foo': switch_a, 'bar': switch_b}
@@ -1420,6 +1519,129 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
     @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
                        autospec=True)
+    def test_bind_port_vlan_limit_exceeded(self, m_apc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.get_max_vlans_per_port.return_value = 32
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile':
+                                {'local_link_information':
+                                    [
+                                        {
+                                            'switch_info': 'foo',
+                                            'port_id': 2222
+                                        }
+                                    ]
+                                 },
+                                'binding:vnic_type': 'baremetal',
+                                'trunk_details': {
+                                    'sub_ports': [
+                                        {'segmentation_id': seg_id}
+                                        for seg_id in range(101, 141)
+                                    ]
+                                },
+                                'id': '123'}
+        mock_context.segments_to_bind = [
+            {
+                'segmentation_id': 42,
+                'id': 123,
+                'physical_network': 'physnet1'
+            }
+        ]
+
+        # 40 subport VLANs plus the native VLAN exceed the limit of 32.
+        self.assertRaises(n_exc.PortBindingError,
+                          driver.bind_port, mock_context)
+        mock_context.set_binding.assert_not_called()
+        m_apc.assert_not_called()
+        self.switch_mock.plug_port_to_network.assert_not_called()
+
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
+    def test_bind_port_vlan_limit_not_exceeded(self, m_apc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        self.switch_mock.get_max_vlans_per_port.return_value = 32
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile':
+                                {'local_link_information':
+                                    [
+                                        {
+                                            'switch_info': 'foo',
+                                            'port_id': 2222
+                                        }
+                                    ]
+                                 },
+                                'binding:vnic_type': 'baremetal',
+                                'trunk_details': {
+                                    'sub_ports': [
+                                        {'segmentation_id': seg_id}
+                                        for seg_id in range(101, 131)
+                                    ]
+                                },
+                                'id': '123'}
+        mock_context.segments_to_bind = [
+            {
+                'segmentation_id': 42,
+                'id': 123,
+                'physical_network': 'physnet1'
+            }
+        ]
+
+        # 30 subport VLANs plus the native VLAN stay within 32.
+        driver.bind_port(mock_context)
+        mock_context.set_binding.assert_called_with(123, 'other', {})
+        m_apc.assert_called_once_with(mock_context._plugin_context,
+                                      mock_context.current['id'],
+                                      resources.PORT,
+                                      'GENERICSWITCH')
+
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
+    def test_bind_port_vlan_limit_not_enforced(self, m_apc, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        # No limit resolved: the binding must proceed regardless of the
+        # number of VLANs requested.
+        self.switch_mock.get_max_vlans_per_port.return_value = None
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        mock_context.current = {'binding:profile':
+                                {'local_link_information':
+                                    [
+                                        {
+                                            'switch_info': 'foo',
+                                            'port_id': 2222
+                                        }
+                                    ]
+                                 },
+                                'binding:vnic_type': 'baremetal',
+                                'trunk_details': {
+                                    'sub_ports': [
+                                        {'segmentation_id': seg_id}
+                                        for seg_id in range(101, 201)
+                                    ]
+                                },
+                                'id': '123'}
+        mock_context.segments_to_bind = [
+            {
+                'segmentation_id': 42,
+                'id': 123,
+                'physical_network': 'physnet1'
+            }
+        ]
+
+        driver.bind_port(mock_context)
+        mock_context.set_binding.assert_called_with(123, 'other', {})
+        m_apc.assert_called_once_with(mock_context._plugin_context,
+                                      mock_context.current['id'],
+                                      resources.PORT,
+                                      'GENERICSWITCH')
+
+    @mock.patch.object(provisioning_blocks, 'add_provisioning_component',
+                       autospec=True)
     def test_bind_portgroup(self, m_apc, m_list):
         driver = gsm.GenericSwitchDriver()
         driver.initialize()
@@ -1773,6 +1995,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         mock_plugin.return_value = mock.MagicMock()
         mock_plugin.return_value.get_port.return_value = {"status": "DOWN"}
+        (mock_get_switch.return_value.get_max_vlans_per_port
+         .return_value) = None
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
         mock_get_switch.return_value.add_subports_on_trunk.assart_not_called()
@@ -1819,6 +2043,8 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         mock_plugin.return_value = mock.MagicMock()
         mock_plugin.return_value.get_port.return_value = {"status": "DOWN"}
+        (mock_get_switch.return_value.get_max_vlans_per_port
+         .return_value) = None
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
 
@@ -1931,12 +2157,93 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         mock_plugin.return_value = mock.MagicMock()
         mock_plugin.return_value.get_port.return_value = {"status": "DOWN"}
+        (mock_get_switch.return_value.get_max_vlans_per_port
+         .return_value) = None
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
 
         mock_get_switch.return_value.add_subports_on_trunk.assert_has_calls(
             [mock.call(parent_port['binding:profile'], '2222', subports,
                        trunk_details=trunk_details)])
+
+    @mock.patch.object(directory, "get_plugin", autospec=True)
+    @mock.patch.object(device_utils, "get_switch_device", autospec=True)
+    def test_subports_added_vlan_limit_exceeded(self, mock_get_switch,
+                                                mock_plugin, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+
+        trunk_details = {
+            'sub_ports': [
+                {'segmentation_id': seg_id, 'port_id': 's%d' % seg_id}
+                for seg_id in range(101, 141)
+            ],
+        }
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'trunk_details': trunk_details,
+        }
+        subports = [{"segmentation_id": 140, "port_id": "s140"}]
+
+        mock_switch = mock.MagicMock()
+        mock_switch.get_max_vlans_per_port.return_value = 32
+        mock_get_switch.return_value = mock_switch
+
+        # The resulting trunk (40 subports plus the native VLAN) exceeds
+        # the limit of 32, so nothing must be applied to the switch.
+        self.assertRaises(exceptions.GenericSwitchVlanLimitExceeded,
+                          driver.subports_added, self.ctxt, parent_port,
+                          subports=subports)
+        mock_switch.add_subports_on_trunk.assert_not_called()
+
+    @mock.patch.object(directory, "get_plugin", autospec=True)
+    @mock.patch.object(device_utils, "get_switch_device", autospec=True)
+    def test_subports_added_vlan_limit_not_exceeded(self, mock_get_switch,
+                                                    mock_plugin, m_list):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+
+        trunk_details = {
+            'sub_ports': [
+                {'segmentation_id': seg_id, 'port_id': 's%d' % seg_id}
+                for seg_id in range(101, 131)
+            ],
+        }
+        parent_port = {
+            'binding:profile': {
+                'local_link_information': [
+                    {
+                        'switch_info': 'bar',
+                        'port_id': 2222
+                    }
+                ]},
+            'binding:vnic_type': 'baremetal',
+            'id': '123',
+            'trunk_details': trunk_details,
+        }
+        subports = [{"segmentation_id": 130, "port_id": "s130"}]
+
+        mock_plugin.return_value = mock.MagicMock()
+        mock_plugin.return_value.get_port.return_value = {"status": "DOWN"}
+        mock_switch = mock.MagicMock()
+        mock_switch.get_max_vlans_per_port.return_value = 32
+        mock_get_switch.return_value = mock_switch
+
+        # The resulting trunk (30 subports plus the native VLAN) stays
+        # within the limit of 32.
+        driver.subports_added(self.ctxt, parent_port, subports=subports)
+        # port_id is normalized to a string by validate_port_id.
+        mock_switch.add_subports_on_trunk.assert_called_once_with(
+            parent_port['binding:profile'], '2222', subports,
+            trunk_details=trunk_details)
 
     @mock.patch.object(directory, "get_plugin", autospec=True)
     @mock.patch.object(device_utils, "get_switch_device", autospec=True)
@@ -2700,6 +3007,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         mock_switch = mock.MagicMock()
         mock_switch.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
         mock_switch.vlan_has_vni.return_value = False
+        mock_switch.get_max_vlans_per_port.return_value = None
         mock_get_switch.return_value = mock_switch
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
@@ -2750,6 +3058,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         mock_switch = mock.MagicMock()
         mock_switch.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        mock_switch.get_max_vlans_per_port.return_value = None
         mock_get_switch.return_value = mock_switch
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)
@@ -2901,6 +3210,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
 
         mock_switch = mock.MagicMock()
         mock_switch.PLUG_SWITCH_TO_NETWORK = ['mock', 'commands']
+        mock_switch.get_max_vlans_per_port.return_value = None
         # VNI already configured on VLAN
         mock_switch.vlan_has_vni.return_value = True
         mock_get_switch.return_value = mock_switch
@@ -3001,6 +3311,7 @@ class TestGenericSwitchDriver(unittest.TestCase):
         # Mock switch does NOT support L2VNI
         mock_switch = mock.MagicMock()
         mock_switch.PLUG_SWITCH_TO_NETWORK = None
+        mock_switch.get_max_vlans_per_port.return_value = None
         mock_get_switch.return_value = mock_switch
 
         driver.subports_added(self.ctxt, parent_port, subports=subports)

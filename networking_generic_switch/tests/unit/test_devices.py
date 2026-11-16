@@ -102,6 +102,42 @@ class TestGenericSwitchDevice(unittest.TestCase):
         device.unplug_bond_from_network(22, 33)
         mock_delete.assert_called_once_with(device, 22, 33)
 
+    def test_get_max_vlans_per_port_default(self):
+        device = FakeDevice({'spam': 'ham'})
+        self.assertIsNone(device.get_max_vlans_per_port())
+
+    def test_get_max_vlans_per_port_driver_default(self):
+        class LimitedFakeDevice(FakeDevice):
+            MAX_VLANS_PER_PORT = 32
+
+        device = LimitedFakeDevice({'spam': 'ham'})
+        self.assertEqual(32, device.get_max_vlans_per_port())
+
+    def test_get_max_vlans_per_port_operator_override(self):
+        device = FakeDevice({'spam': 'ham',
+                             'ngs_max_vlans_per_port': '64'})
+        self.assertEqual(64, device.get_max_vlans_per_port())
+
+    def test_get_max_vlans_per_port_operator_overrides_driver(self):
+        class LimitedFakeDevice(FakeDevice):
+            MAX_VLANS_PER_PORT = 32
+
+        device = LimitedFakeDevice({'spam': 'ham',
+                                    'ngs_max_vlans_per_port': '64'})
+        self.assertEqual(64, device.get_max_vlans_per_port())
+
+    def test_get_max_vlans_per_port_disabled(self):
+        class LimitedFakeDevice(FakeDevice):
+            MAX_VLANS_PER_PORT = 32
+
+        device = LimitedFakeDevice({'spam': 'ham',
+                                    'ngs_max_vlans_per_port': '0'})
+        self.assertIsNone(device.get_max_vlans_per_port())
+
+    def test_get_port_vlans_unsupported_by_default(self):
+        device = FakeDevice({'spam': 'ham'})
+        self.assertIsNone(device.get_port_vlans(2222))
+
 
 class TestDeviceManager(unittest.TestCase):
 

@@ -98,6 +98,11 @@ NGS_INTERNAL_OPTS = [
     cfg.ListOpt('ngs_allowed_ports',
                 help='Allow list of ports for this switch. Defaults to open; '
                      'setting an empty string blocks all ports.'),
+    cfg.IntOpt('ngs_max_vlans_per_port',
+               help='Maximum number of VLANs which may be configured on a '
+                    'single port of this switch. Takes precedence over the '
+                    'driver-declared limit. Set to 0 to disable the '
+                    'check.'),
     cfg.BoolOpt('ngs_security_groups_enabled', default=False,
                 help='Require security groups to be enabled on a per-device '
                      'basis.'),
@@ -256,6 +261,16 @@ def _load_failure_hook(manager, entrypoint, exception):
 
 
 class GenericSwitchDevice(abc.ABC):
+
+    MAX_VLANS_PER_PORT = None
+    """Maximum number of VLANs supported on a single port.
+
+    A vendor-specific ASIC limit, encoded by drivers where it is
+    documented. None when unknown, in which case no limit is enforced
+    unless the operator sets ngs_max_vlans_per_port. Excessive VLAN
+    counts on a port can exhaust switch ASIC capacity, after which
+    further configuration silently fails to apply. See bug #2169302.
+    """
 
     def __init__(self, device_cfg, device_name=""):
         self.ngs_config = {}
@@ -447,6 +462,52 @@ class GenericSwitchDevice(abc.ABC):
 
         return is_port_id_allowed and is_vlan_allowed
 
+    def get_max_vlans_per_port(self):
+        """Return the maximum number of VLANs allowed on a port.
+
+        The operator-configured ngs_max_vlans_per_port takes precedence
+        over the driver-declared MAX_VLANS_PER_PORT. A value of 0 or
+        less disables the check.
+
+        :returns: The maximum number of VLANs per port, or None when
+                  no limit should be enforced.
+        """
+        max_vlans = self.ngs_config.get('ngs_max_vlans_per_port')
+        if max_vlans is None:
+            max_vlans = self.MAX_VLANS_PER_PORT
+        if max_vlans is None:
+            return None
+        max_vlans = int(max_vlans)
+        if max_vlans <= 0:
+            # Explicitly disabled by the operator.
+            return None
+        return max_vlans
+
+    def get_port_vlans(self, port_id):
+        """Return the VLANs currently configured on a switch port.
+
+        Used by the mechanism driver to pre-flight per-port VLAN
+        limits on uplink trunk ports (ngs_trunk_ports), where Neutron
+        cannot know the running configuration of the switch. See
+        bug #2169302.
+
+        This is a read-only operation and should not acquire locks.
+
+        Implementations should:
+
+        - Query the switch directly (not rely on cached state)
+        - Return every VLAN ID configured on the port, covering both
+          the access/native VLAN and trunk allowed VLANs
+        - Return None when the driver does not support querying the
+          VLANs on a port, in which case per-port VLAN limits cannot
+          be enforced on uplink trunk ports
+
+        :param port_id: The name of the switch interface
+        :returns: A collection of VLAN IDs configured on the port, or
+                  None when the driver does not support the query.
+        """
+        return None
+
     @abc.abstractmethod
     def add_network(self, segmentation_id, network_id, physnet_vlans=None):
         """Create a network (VLAN) on the switch.
@@ -540,6 +601,7 @@ class GenericSwitchDevice(abc.ABC):
         This is a read-only operation and should not acquire locks.
 
         Implementations should:
+
         - Query the switch directly (not rely on cached state)
         - Return True if the VLAN has any ports (access or trunk)
         - Return True on error (conservative - prevents accidental removal)
@@ -561,6 +623,7 @@ class GenericSwitchDevice(abc.ABC):
         This is a read-only operation and should not acquire locks.
 
         Implementations should:
+
         - Query the switch directly (not rely on cached state)
         - Return True only if this exact VNI is configured on this VLAN
         - Return False on error (will attempt to configure)
