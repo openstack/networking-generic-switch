@@ -14,6 +14,7 @@ import unittest
 from unittest import mock
 
 from networking_generic_switch.devices.restconf_devices import openconfig
+from networking_generic_switch import exceptions as exc
 from networking_generic_switch.yang_models.openconfig import (
     constants as oc_constants)
 
@@ -86,6 +87,123 @@ class TestRestconfOpenConfigSwitchInit(unittest.TestCase):
         self.assertIsNotNone(switch.DELETE_NETWORK)
         self.assertIsNotNone(switch.ADD_SUBPORTS_ON_TRUNK)
         self.assertIsNotNone(switch.DEL_SUBPORTS_ON_TRUNK)
+
+
+class TestGetPortVlans(unittest.TestCase):
+
+    def setUp(self):
+        super(TestGetPortVlans, self).setUp()
+        self.switch = _make_switch()
+
+    def _mock_response(self, mock_get, response):
+        mock_get.return_value = response
+        return mock_get
+
+    def test_trunk_port_with_ranges(self):
+        response = {
+            'openconfig-vlan:switched-vlan': {
+                'config': {
+                    'interface-mode': 'TRUNK',
+                    'native-vlan': 5,
+                    'trunk-vlans': [100, '200..202'],
+                }
+            }
+        }
+        with mock.patch.object(self.switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            self._mock_response(mock_get, response)
+            result = self.switch.get_port_vlans('Ethernet1/49')
+
+        self.assertEqual([5, 100, 200, 201, 202], result)
+
+    def test_access_port(self):
+        response = {
+            'openconfig-vlan:switched-vlan': {
+                'config': {
+                    'interface-mode': 'ACCESS',
+                    'access-vlan': 100,
+                }
+            }
+        }
+        with mock.patch.object(self.switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            self._mock_response(mock_get, response)
+            result = self.switch.get_port_vlans('Ethernet1/4')
+
+        self.assertEqual([100], result)
+
+    def test_unrestricted_trunk(self):
+        response = {
+            'openconfig-vlan:switched-vlan': {
+                'config': {
+                    'interface-mode': 'TRUNK',
+                }
+            }
+        }
+        with mock.patch.object(self.switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            self._mock_response(mock_get, response)
+            result = self.switch.get_port_vlans('Ethernet1/49')
+
+        self.assertEqual([], result)
+
+    def test_unprefixed_key(self):
+        # Tolerate servers that return the container without its
+        # module prefix.
+        response = {
+            'switched-vlan': {
+                'config': {
+                    'interface-mode': 'ACCESS',
+                    'access-vlan': 7,
+                }
+            }
+        }
+        with mock.patch.object(self.switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            self._mock_response(mock_get, response)
+            result = self.switch.get_port_vlans('Ethernet1/4')
+
+        self.assertEqual([7], result)
+
+    def test_unrecognised_response(self):
+        with mock.patch.object(self.switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            self._mock_response(mock_get, {'unrelated': {}})
+            self.assertIsNone(self.switch.get_port_vlans('Ethernet1/49'))
+
+            self._mock_response(mock_get, ['not', 'a', 'dict'])
+            self.assertIsNone(self.switch.get_port_vlans('Ethernet1/49'))
+
+    def test_query_error(self):
+        with mock.patch.object(self.switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            mock_get.side_effect = exc.GenericSwitchRestconfError(
+                device='test-switch', error='HTTP 404 Not Found')
+            self.assertIsNone(self.switch.get_port_vlans('Ethernet1/49'))
+
+    def test_port_id_resub_applied(self):
+        switch = _make_switch(
+            {'ngs_port_id_re_sub': '{"pattern":"Ethernet","repl":"Eth"}'})
+        with mock.patch.object(switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            self._mock_response(mock_get, {})
+            switch.get_port_vlans('Ethernet1/49')
+
+        path = mock_get.call_args[0][0]
+        self.assertIn('interface=Eth1%2F49', path)
+
+    def test_path_segments(self):
+        with mock.patch.object(self.switch, 'get_from_device',
+                               autospec=True) as mock_get:
+            self._mock_response(mock_get, {})
+            self.switch.get_port_vlans('Ethernet1/49')
+
+        path = mock_get.call_args[0][0]
+        self.assertEqual(
+            'openconfig-interfaces:interfaces/interface=Ethernet1%2F49'
+            '/openconfig-if-ethernet:ethernet'
+            '/openconfig-vlan:switched-vlan',
+            path)
 
 
 class TestAddSubportsOnTrunkConvergence(unittest.TestCase):

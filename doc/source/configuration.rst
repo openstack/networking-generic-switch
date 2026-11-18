@@ -133,9 +133,9 @@ Two kinds of check exist:
   switch is therefore queried for the VLANs already present on each
   trunk port before the new VLAN is pushed. A driver must support this
   query for the check to apply (currently the Cisco IOS, Cisco NX-OS,
-  Cisco NDFC, Cumulus NVUE, Juniper and Open vSwitch drivers); on other
-  drivers the check is skipped and a warning is logged when a limit is
-  configured.
+  Cisco NDFC, Cumulus NVUE, Juniper, Open vSwitch, and OpenConfig
+  RESTCONF drivers); on other drivers the check is skipped and a
+  warning is logged when a limit is configured.
 
 .. note::
    An operator who encounters the per-port VLAN limit on an uplink

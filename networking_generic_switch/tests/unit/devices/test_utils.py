@@ -303,3 +303,18 @@ class TestGetVxlanMulticastGroup(unittest.TestCase):
         self.assertEqual([], device_utils.expand_vlan_list('not-a-vlan'))
         self.assertEqual([5], device_utils.expand_vlan_list('5,x'))
         self.assertEqual([], device_utils.expand_vlan_list('x-y'))
+
+    def test_expand_openconfig_trunk_vlans(self):
+        self.assertEqual([100, 200, 201, 202],
+                         device_utils.expand_openconfig_trunk_vlans(
+                             [100, '200..202']))
+
+    def test_expand_openconfig_trunk_vlans_numeric_strings(self):
+        self.assertEqual([5, 7],
+                         device_utils.expand_openconfig_trunk_vlans(
+                             ['5', 7]))
+
+    def test_expand_openconfig_trunk_vlans_garbage(self):
+        self.assertEqual([], device_utils.expand_openconfig_trunk_vlans([]))
+        self.assertEqual([], device_utils.expand_openconfig_trunk_vlans(
+            ['', 'not-a-vlan', 'x..y', None, True]))
