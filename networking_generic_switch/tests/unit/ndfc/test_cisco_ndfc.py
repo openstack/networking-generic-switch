@@ -109,6 +109,16 @@ class TestCiscoNDFC(unittest.TestCase):
         """Test that trunk on bond ports is explicitly not supported."""
         self.assertFalse(self.switch.support_trunk_on_bond_ports)
 
+    def test_max_vlans_per_port(self):
+        self.assertEqual(100, self.switch.MAX_VLANS_PER_PORT)
+        self.assertEqual(100, self.switch.get_max_vlans_per_port())
+        # The operator-configured limit always wins.
+        switch = make_switch(ngs_max_vlans_per_port='512')
+        self.assertEqual(512, switch.get_max_vlans_per_port())
+        # A value of zero or less disables the check.
+        switch = make_switch(ngs_max_vlans_per_port='0')
+        self.assertIsNone(switch.get_max_vlans_per_port())
+
     def test_api_base_url(self):
         """Test modern API base URL is correctly constructed."""
         expected = 'api/v1/manage/fabrics/test-fabric/'
@@ -1094,6 +1104,110 @@ class TestCiscoNDFCVXLAN(unittest.TestCase):
         mock_request.side_effect = exc.GenericSwitchNDFCConfigError()
 
         self.assertTrue(self.switch.vlan_has_ports(100))
+
+    @mock.patch.object(cisco.CiscoNDFC, '_ndfc_request', autospec=True)
+    @mock.patch.object(cisco.CiscoNDFC, '_get_switch_serial', autospec=True)
+    def test_get_port_vlans_trunk(self, mock_serial, mock_request):
+        """Test trunk port VLANs parsed from ALLOWED_VLANS."""
+        mock_serial.return_value = 'FLM30040EZF'
+        mock_request.return_value = [
+            {
+                'policy': 'int_trunk_host',
+                'interfaces': [{
+                    'serialNumber': 'FLM30040EZF',
+                    'ifName': 'Ethernet1/49',
+                    'nvPairs': {'ALLOWED_VLANS': '746,800-802'}
+                }]
+            }
+        ]
+
+        result = self.switch.get_port_vlans('Ethernet1/49')
+
+        self.assertEqual(result, [746, 800, 801, 802])
+
+    @mock.patch.object(cisco.CiscoNDFC, '_ndfc_request', autospec=True)
+    @mock.patch.object(cisco.CiscoNDFC, '_get_switch_serial', autospec=True)
+    def test_get_port_vlans_access(self, mock_serial, mock_request):
+        """Test access port VLAN parsed from ACCESS_VLAN."""
+        mock_serial.return_value = 'FLM30040EZF'
+        mock_request.return_value = [
+            {
+                'policy': 'int_access_host',
+                'interfaces': [{
+                    'serialNumber': 'FLM30040EZF',
+                    'ifName': 'Ethernet1/4',
+                    'nvPairs': {'ACCESS_VLAN': '100'}
+                }]
+            }
+        ]
+
+        result = self.switch.get_port_vlans('Ethernet1/4')
+
+        self.assertEqual(result, [100])
+
+    @mock.patch.object(cisco.CiscoNDFC, '_ndfc_request', autospec=True)
+    @mock.patch.object(cisco.CiscoNDFC, '_get_switch_serial', autospec=True)
+    def test_get_port_vlans_unrestricted_trunk(self, mock_serial,
+                                               mock_request):
+        """Test unrestricted trunk consumes no per-port VLAN capacity."""
+        mock_serial.return_value = 'FLM30040EZF'
+        mock_request.return_value = [
+            {
+                'policy': 'int_trunk_host',
+                'interfaces': [{
+                    'serialNumber': 'FLM30040EZF',
+                    'ifName': 'Ethernet1/49',
+                    'nvPairs': {'ALLOWED_VLANS': 'all'}
+                }]
+            }
+        ]
+
+        result = self.switch.get_port_vlans('Ethernet1/49')
+
+        self.assertEqual(result, [])
+
+    @mock.patch.object(cisco.CiscoNDFC, '_ndfc_request', autospec=True)
+    @mock.patch.object(cisco.CiscoNDFC, '_get_switch_serial', autospec=True)
+    def test_get_port_vlans_unset_values(self, mock_serial, mock_request):
+        """Test unset access and allowed VLANs contribute nothing."""
+        mock_serial.return_value = 'FLM30040EZF'
+        mock_request.return_value = [
+            {
+                'policy': 'int_trunk_host',
+                'interfaces': [{
+                    'serialNumber': 'FLM30040EZF',
+                    'ifName': 'Ethernet1/49',
+                    'nvPairs': {'ACCESS_VLAN': 'none',
+                                'ALLOWED_VLANS': 'none'}
+                }]
+            }
+        ]
+
+        result = self.switch.get_port_vlans('Ethernet1/49')
+
+        self.assertEqual(result, [])
+
+    @mock.patch.object(cisco.CiscoNDFC, '_ndfc_request', autospec=True)
+    @mock.patch.object(cisco.CiscoNDFC, '_get_switch_serial', autospec=True)
+    def test_get_port_vlans_not_found(self, mock_serial, mock_request):
+        """Test port missing from the response returns None."""
+        mock_serial.return_value = 'FLM30040EZF'
+        mock_request.return_value = []
+
+        result = self.switch.get_port_vlans('Ethernet1/99')
+
+        self.assertIsNone(result)
+
+    @mock.patch.object(cisco.CiscoNDFC, '_ndfc_request', autospec=True)
+    @mock.patch.object(cisco.CiscoNDFC, '_get_switch_serial', autospec=True)
+    def test_get_port_vlans_query_error(self, mock_serial, mock_request):
+        """Test query failure returns None so no bogus count is enforced."""
+        mock_serial.return_value = 'FLM30040EZF'
+        mock_request.side_effect = exc.GenericSwitchNDFCConfigError()
+
+        result = self.switch.get_port_vlans('Ethernet1/49')
+
+        self.assertIsNone(result)
 
     def test_parse_vlan_list_simple(self):
         """Test parsing simple VLAN list returns a set."""

@@ -211,6 +211,10 @@ class CiscoNDFC(GenericSwitchDevice):
     PLUG_SWITCH_TO_NETWORK = True
     UNPLUG_SWITCH_FROM_NETWORK = True
 
+    # Matches the netmiko Cisco NX-OS driver; NDFC manages the same
+    # hardware. See ngs_max_vlans_per_port for the operator override.
+    MAX_VLANS_PER_PORT = 100
+
     @property
     def support_trunk_on_ports(self):
         return True
@@ -1469,6 +1473,47 @@ class CiscoNDFC(GenericSwitchDevice):
 
         LOG.debug("VLAN %s has no ports", segmentation_id)
         return False
+
+    def get_port_vlans(self, port_id):
+        """Return the VLANs currently configured on a switch port.
+
+        Queries the LAN Fabric interface API for the port's nvPairs,
+        covering both the access VLAN and the trunk allowed VLANs.
+
+        An ALLOWED_VLANS value of ``all`` means the trunk is
+        unrestricted: no per-port VLAN forwarding rule exists, so it
+        consumes no per-port VLAN capacity and adds nothing to the
+        count.
+
+        :param port_id: Interface name (e.g. 'Ethernet1/49')
+        :returns: A sorted list of VLAN IDs configured on the port, or
+                  None when the port is not found or the query fails,
+                  in which case per-port VLAN limits cannot be
+                  enforced on the port.
+        """
+        try:
+            switch_serial = self._get_switch_serial()
+            nv_pairs = self._get_interface_nvpairs(switch_serial, port_id)
+        except exc.GenericSwitchNDFCConfigError as e:
+            LOG.warning("Failed to query VLANs on port %s of switch %s: %s",
+                        port_id, self.ndfc_switch_hostname, e)
+            return None
+        if not nv_pairs:
+            # The interface is not present in the NDFC response.
+            return None
+
+        vlans = set()
+        access_vlan = nv_pairs.get('ACCESS_VLAN', '')
+        if access_vlan and access_vlan != 'none':
+            try:
+                vlans.add(int(access_vlan))
+            except ValueError:
+                pass
+        allowed_vlans = nv_pairs.get('ALLOWED_VLANS', '')
+        if (allowed_vlans and allowed_vlans != 'none'
+                and allowed_vlans.lower() != 'all'):
+            vlans.update(self._parse_vlan_list(allowed_vlans))
+        return sorted(vlans)
 
     def _parse_vlan_list(self, vlan_str):
         """Parse a VLAN list string into a set of integers.
