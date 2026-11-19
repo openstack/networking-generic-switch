@@ -6,3 +6,8 @@ sphinxcontrib-apidoc>=0.2.0  # BSD
 # NOTE(hjensas): Build fail without pyroute2
 # This mirrors doc/requirements.txt in neutron
 pyroute2>=0.7.3;sys_platform!='win32' # Apache-2.0 (+ dual licensed GPL2)
+# NOTE: the driver modules that autodoc imports require neutron at import
+# time, but neutron is only pulled in via the 'neutron' extra, which tox
+# installs without consulting constraints. Listing it here ensures it is
+# resolved against upper-constraints like everything else in this env.
+neutron>=13.0.0.0b1 # Apache-2.0
