@@ -1,0 +1,8 @@
+---
+security:
+  - |
+    Input validation is now applied to ``port_id`` values from
+    ``local_link_information`` before use in switch configuration
+    commands. A strict allowlist limits ``port_id`` to alphanumeric
+    characters, spaces, hyphens, underscores, forward slashes,
+    colons, and periods, with a maximum length of 64 characters.
