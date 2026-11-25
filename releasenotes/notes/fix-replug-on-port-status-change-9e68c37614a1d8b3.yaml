@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed reconfiguration of switch ports when the status of an already
+    bound port changes. Previously a bound port that was reported down,
+    for example by ``ovn-controller`` restarting on the chassis hosting
+    the port, was plugged into its network on the switch again. When many
+    ports were affected at once this could overload the switches.
+    The switch port is now only configured when the port becomes bound.

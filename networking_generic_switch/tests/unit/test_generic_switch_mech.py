@@ -831,6 +831,46 @@ class TestGenericSwitchDriver(unittest.TestCase):
                                      resources.PORT,
                                      'GENERICSWITCH')
 
+    def _test_update_port_postcommit_already_bound(self, m_pc, status):
+        driver = gsm.GenericSwitchDriver()
+        driver.initialize()
+        mock_context = mock.create_autospec(driver_context.PortContext)
+        mock_context._plugin_context = mock.MagicMock()
+        port = {'binding:profile':
+                {'local_link_information':
+                    [
+                        {
+                            'switch_info': 'foo',
+                            'port_id': 2222
+                        }
+                    ]
+                 },
+                'binding:vnic_type': 'baremetal',
+                'id': '123',
+                'binding:vif_type': 'other'}
+        mock_context.current = dict(port, status=status)
+        mock_context.original = dict(port, status='ACTIVE')
+        mock_context.bottom_bound_segment = {'segmentation_id': 42,
+                                             'physical_network': 'physnet1',
+                                             'network_id': 'aaaa-bbbb-ccc'}
+        driver.update_port_postcommit(mock_context)
+        self.switch_mock.plug_port_to_network.assert_not_called()
+        self.switch_mock.delete_port.assert_not_called()
+        m_pc.assert_not_called()
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_already_bound_status_down(self, m_pc,
+                                                              m_list):
+        # E.g. ovn-controller restarted and reported the port down.
+        self._test_update_port_postcommit_already_bound(m_pc, 'DOWN')
+
+    @mock.patch.object(provisioning_blocks, 'provisioning_complete',
+                       autospec=True)
+    def test_update_port_postcommit_already_bound_status_active(self, m_pc,
+                                                                m_list):
+        self._test_update_port_postcommit_already_bound(m_pc, 'ACTIVE')
+
     @mock.patch.object(provisioning_blocks, 'provisioning_complete',
                        autospec=True)
     def test_update_portgroup_postcommit_complete_provisioning(self,

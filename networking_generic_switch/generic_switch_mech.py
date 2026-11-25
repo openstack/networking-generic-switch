@@ -407,11 +407,15 @@ class GenericSwitchDriver(api.MechanismDriver):
                 'local_link_information')
             if not local_link_information:
                 return
-            # Necessary because the "provisioning_complete" event triggers
-            # an additional call to update_port_postcommit().  We don't
-            # want to configure the port a second time.
-            if port['status'] == const.PORT_STATUS_ACTIVE:
-                LOG.debug("Port %(port_id)s is already active, "
+            # The switch port is configured when the port becomes bound. A
+            # port that was already bound is being updated for another
+            # reason, e.g. a status change caused by "provisioning_complete"
+            # or by an agent such as ovn-controller reporting the port down.
+            # We don't want to configure the port a second time. A change of
+            # binding inputs unbinds the port first, see the unbind case
+            # below.
+            if ngs_utils.is_port_bound(context.original):
+                LOG.debug("Port %(port_id)s was already bound, "
                           "not doing anything",
                           {'port_id': port['id']})
                 return
